@@ -36,7 +36,6 @@ const TR = {
     heroTitle2:  'Your data, your Drive.',
     heroBody:    'No subscriptions. No vendor lock-in. Your team\'s tasks live in your own Google Drive — with real-time two-way sync between kanban and spreadsheet.',
     ctaStart:    'Get started free →',
-    ctaDemo:     'Watch demo',
     scopeNote:   '🔒 scope: drive.file — only accesses files this app creates',
     // landing — roi  (P1: removed AdSense row)
     roiTitle:       'SaaS Cost Savings Calculator',
@@ -224,7 +223,6 @@ Attendees: Alex, Jordan, Sam
     heroTitle2:  '데이터는 내 드라이브에.',
     heroBody:    '월정액 없음. 벤더 종속 없음. 팀의 모든 태스크가 내 구글 드라이브에 저장됩니다 — 칸반과 스프레드시트가 실시간 양방향 동기화됩니다.',
     ctaStart:    '무료로 시작하기 →',
-    ctaDemo:     '데모 영상 보기',
     scopeNote:   '🔒 scope: drive.file — 앱이 생성한 파일에만 접근합니다',
     roiTitle:       'SaaS 비용 절감 계산기',
     roiMembers:     '팀원 수',
@@ -1320,7 +1318,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
 
       {/* Header */}
       <header style={{ borderBottom: `1px solid ${Z.border}`, padding: isMobile ? '10px 16px' : '10px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 20, background: Z.bg }}>
-        <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5 }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
+        <div onClick={onSignOut} style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, cursor: 'pointer' }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
         {!isMobile && (
           <div style={{ display: 'flex', gap: 2, marginLeft: 8 }}>
             {tabs.map(tab => (
