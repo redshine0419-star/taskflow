@@ -38,10 +38,6 @@ const TR = {
     ctaStart:    'Get started free →',
     scopeNote:   '🔒 scope: drive.file — only accesses files this app creates',
     // landing — roi  (P1: removed AdSense row)
-    roiTitle:       'SaaS Cost Savings Calculator',
-    roiMembers:     'Team members',
-    roiProjects:    'Projects',
-    roiMonthlySave: 'Monthly SaaS tool savings',
     // landing — sync showcase
     syncTitle:    'Live Sync Demo',
     syncKanban:   'Kanban (click → next stage)',
@@ -224,10 +220,6 @@ Attendees: Alex, Jordan, Sam
     heroBody:    '월정액 없음. 벤더 종속 없음. 팀의 모든 태스크가 내 구글 드라이브에 저장됩니다 — 칸반과 스프레드시트가 실시간 양방향 동기화됩니다.',
     ctaStart:    '무료로 시작하기 →',
     scopeNote:   '🔒 scope: drive.file — 앱이 생성한 파일에만 접근합니다',
-    roiTitle:       'SaaS 비용 절감 계산기',
-    roiMembers:     '팀원 수',
-    roiProjects:    '프로젝트 수',
-    roiMonthlySave: '월간 SaaS 비용 절감',
     syncTitle:    '실시간 싱크 체감 위젯',
     syncKanban:   '칸반 (클릭 → 다음 단계)',
     syncSheet:    '구글 시트 (즉시 반영)',
@@ -1383,35 +1375,6 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
 }
 
 // ─── LANDING WIDGETS ─────────────────────────────────────────────────────────
-function ROICalculator() {
-  const { t, lang } = useLang()
-  const [members, setMembers]   = useState(5)
-  const [projects, setProjects] = useState(3)
-  const monthly = members * projects * 4200
-  const curr = lang === 'ko' ? `₩${monthly.toLocaleString()}` : `$${Math.round(monthly/1300).toLocaleString()}`
-  return (
-    <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 12, padding: 24 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: Z.muted, letterSpacing: 1, marginBottom: 16 }}>{t('roiTitle')}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div>
-          <div style={{ fontSize: 12, color: Z.muted, marginBottom: 6 }}>{t('roiMembers')}: <strong style={{ color: Z.text }}>{members}</strong></div>
-          <input type="range" min={1} max={50} value={members} onChange={e => setMembers(+e.target.value)} style={{ width: '100%', accentColor: Z.emerald }} />
-        </div>
-        <div>
-          <div style={{ fontSize: 12, color: Z.muted, marginBottom: 6 }}>{t('roiProjects')}: <strong style={{ color: Z.text }}>{projects}</strong></div>
-          <input type="range" min={1} max={20} value={projects} onChange={e => setProjects(+e.target.value)} style={{ width: '100%', accentColor: Z.indigo }} />
-        </div>
-        {/* P1: removed AdSense row — single metric only */}
-        <div style={{ background: Z.bg, borderRadius: 8, padding: '14px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: Z.muted }}>{t('roiMonthlySave')}</span>
-            <span style={{ fontWeight: 800, color: Z.emerald, fontSize: 20 }}>{curr}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function SyncShowcase() {
   const { t } = useLang()
@@ -1556,7 +1519,6 @@ function Landing({ onSignIn, onSandbox }) {
       </div>
       {/* Widgets */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginBottom: 60 }}>
-        <ROICalculator />
         <SyncShowcase />
         <AIDemo />
       </div>
