@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
-import { loadGIS, requestToken, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId } from '../lib/gapi'
+import { startOAuthFlow, parseAuthFromURL, clearToken, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId } from '../lib/gapi'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const Z = {
@@ -1722,30 +1722,21 @@ function AIDemo() {
 }
 
 // ─── LANDING ─────────────────────────────────────────────────────────────────
-function Landing({ onSignIn, onSandbox }) {
+function Landing({ onSandbox }) {
   const { t } = useLang()
-  const [signingIn, setSigningIn] = useState(false)
-  const [authError, setAuthError] = useState(null)
+  const [authError, setAuthError] = useState(() => {
+    if (typeof window === 'undefined') return null
+    const p = new URLSearchParams(window.location.search)
+    const err = p.get('auth_error')
+    if (err) window.history.replaceState({}, '', window.location.pathname)
+    return err ? decodeURIComponent(err) : null
+  })
 
-  const handleSignIn = async () => {
-    setSigningIn(true)
-    setAuthError(null)
+  const handleSignIn = () => {
     try {
-      setAuthError('Step 1: Loading GIS…')
-      await loadGIS()
-      setAuthError('Step 2: Requesting token…')
-      const token = await requestToken()
-      setAuthError('Step 3: Fetching profile…')
-      const profile = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json())
-      setAuthError('Step 4: Signing in…')
-      onSignIn({ name: profile.name, email: profile.email, picture: profile.picture })
-      setAuthError(null)
+      startOAuthFlow()
     } catch (e) {
-      setAuthError('Error: ' + (e.message || 'Sign-in failed'))
-    } finally {
-      setSigningIn(false)
+      setAuthError(e.message || 'Sign-in failed')
     }
   }
   const features = [
@@ -1762,7 +1753,7 @@ function Landing({ onSignIn, onSandbox }) {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <LangToggle />
           <Btn variant="ghost" onClick={onSandbox}>{t('tryGuest')}</Btn>
-          <Btn variant="emerald" onClick={handleSignIn} disabled={signingIn}>{signingIn ? t('signingIn') : t('signInGoogle')}</Btn>
+          <Btn variant="emerald" onClick={handleSignIn}>{t('signInGoogle')}</Btn>
         </div>
       </nav>
       {/* Hero */}
@@ -1776,8 +1767,8 @@ function Landing({ onSignIn, onSandbox }) {
         </h1>
         <p style={{ fontSize: 15, color: Z.muted, maxWidth: 520, margin: '0 auto 32px' }}>{t('heroBody')}</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-          <Btn variant="emerald" onClick={handleSignIn} disabled={signingIn} style={{ fontSize: 14, padding: '10px 24px' }}>
-            {signingIn ? t('signingIn') : t('ctaStart')}
+          <Btn variant="emerald" onClick={handleSignIn} style={{ fontSize: 14, padding: '10px 24px' }}>
+            {t('ctaStart')}
           </Btn>
           {/* P0: sandbox CTA in hero too */}
           <Btn variant="ghost" onClick={onSandbox} style={{ fontSize: 14 }}>{t('tryGuest')}</Btn>
@@ -1831,18 +1822,25 @@ export default function App() {
     setScene('workspace'); setTrans(false)
   }
 
-  const handleSignIn  = (userData) => enter(userData)
   const handleSandbox = () => enter({ name: 'Guest', email: '', sandbox: true })
   const handleSignOut = () => {
-    import('../lib/gapi').then(m => m.clearToken())
+    clearToken()
     setScene('landing')
     setUser(null)
   }
 
+  // Handle OAuth redirect callback — must be after enter() is declared
+  useEffect(() => {
+    const result = parseAuthFromURL()
+    if (!result) return
+    if (result.error) { console.error('Auth error:', result.error); return }
+    if (result.user) enter(result.user)
+  }, [])
+
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>
       <div style={{ fontFamily: "'Inter',system-ui,-apple-system,sans-serif", background: Z.bg, color: Z.text, minHeight: '100vh', fontSize: 14, lineHeight: 1.5, opacity: transitioning ? 0 : 1, transition: 'opacity .3s' }}>
-        {scene === 'landing'    && <Landing onSignIn={handleSignIn} onSandbox={handleSandbox} />}
+        {scene === 'landing'    && <Landing onSandbox={handleSandbox} />}
         {scene === 'workspace'  && <Workspace user={user} onSignOut={handleSignOut} onSignIn={() => enter({ name: t('demoUserName'), email: t('demoUserEmail') })} isMobile={isMobile} />}
       </div>
     </LangContext.Provider>
