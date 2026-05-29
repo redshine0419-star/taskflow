@@ -1274,8 +1274,10 @@ function TutorialModal({ open, onClose }) {
   const isLast = step === steps.length - 1
 
   return (
-    <Overlay onClick={onClose}>
-      <ModalShell onClick={e => e.stopPropagation()} style={{ maxWidth: 420, padding: 0, overflow: 'hidden' }}>
+    <>
+      <Overlay onClick={onClose} />
+      <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, pointerEvents: 'none' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 12, width: '100%', maxWidth: 420, overflow: 'hidden', pointerEvents: 'auto' }}>
         {/* Progress bar */}
         <div style={{ height: 3, background: Z.border }}>
           <div style={{ height: '100%', width: `${((step + 1) / steps.length) * 100}%`, background: Z.emerald, transition: 'width .3s' }} />
@@ -1318,8 +1320,9 @@ function TutorialModal({ open, onClose }) {
             </div>
           </div>
         </div>
-      </ModalShell>
-    </Overlay>
+      </div>
+      </div>
+    </>
   )
 }
 
