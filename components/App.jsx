@@ -55,6 +55,21 @@ const TR = {
     feat2Title: 'AI Meeting Parser',    feat2Desc: 'Gemini 2.5 Flash powered',
     feat3Title: 'Auto-publish SEO',     feat3Desc: 'Dev retrospectives on autopilot',
     feat4Title: 'Full Privacy',         feat4Desc: 'drive.file scope only',
+    // tutorial
+    tutorialBtn:   '? How to use',
+    tutorialTitle: 'Welcome to TaskFlow',
+    tutorialSkip:  'Skip',
+    tutorialPrev:  '← Back',
+    tutorialNext:  'Next →',
+    tutorialDone:  'Got it!',
+    tutorialSteps: [
+      { icon: '⬡', title: 'Kanban Board', body: 'Your tasks live in 4 stages: Planning → Design → Dev → Publishing. Drag the stage badge on each card to move it forward.' },
+      { icon: '+', title: 'Add a Task', body: 'Click the dashed "+ Add task" button at the bottom of any column. Fill in title, assignee, priority, and due date.' },
+      { icon: '⊞', title: 'Spreadsheet View', body: 'Switch to Sheet tab to see all tasks as a table. Edit cells inline — changes sync back to the kanban board instantly.' },
+      { icon: '◆', title: 'AI Meeting Parser', body: 'Click "AI Parser" in the header, paste your meeting notes, and TaskFlow will extract tasks automatically using Gemini AI.' },
+      { icon: '↑', title: 'Publish Tab', body: 'Mark a task complete, then go to the Publish tab to auto-generate a dev retrospective blog post — great for team SEO.' },
+      { icon: '⚙', title: 'Settings', body: 'Rename pipeline stages to match your workflow (e.g. "Review" instead of "Publishing"), and invite teammates by email.' },
+    ],
     // workspace — header
     aiParserBtn: '◆ AI Parser',
     syncLogBtn:  'SYNC LOG',
@@ -234,6 +249,21 @@ Attendees: Alex, Jordan, Sam
     feat2Title: 'AI 회의록 파서',      feat2Desc: 'Gemini 2.5 Flash 연동',
     feat3Title: '자동 SEO 발행',       feat3Desc: '개발 회고록 자동 생성',
     feat4Title: '완전한 프라이버시',    feat4Desc: 'drive.file 스코프 제한',
+    // tutorial
+    tutorialBtn:   '? 사용법',
+    tutorialTitle: 'TaskFlow 시작하기',
+    tutorialSkip:  '건너뛰기',
+    tutorialPrev:  '← 이전',
+    tutorialNext:  '다음 →',
+    tutorialDone:  '시작하기!',
+    tutorialSteps: [
+      { icon: '⬡', title: '칸반 보드', body: '태스크는 Planning → Design → Dev → Publishing 4단계로 진행됩니다. 카드의 단계 배지를 클릭해 이동하세요.' },
+      { icon: '+', title: '태스크 추가', body: '각 컬럼 하단의 점선 "+ 태스크 추가" 버튼을 클릭하세요. 제목, 담당자, 우선순위, 마감일을 입력할 수 있습니다.' },
+      { icon: '⊞', title: '스프레드시트 뷰', body: '시트 탭으로 전환하면 모든 태스크를 표 형태로 볼 수 있습니다. 셀을 클릭해 직접 편집하면 칸반에 즉시 반영됩니다.' },
+      { icon: '◆', title: 'AI 회의록 파서', body: '헤더의 "AI 파서" 버튼을 클릭하고 회의록을 붙여넣으면 Gemini AI가 자동으로 태스크를 추출합니다.' },
+      { icon: '↑', title: '발행 탭', body: '태스크를 완료로 표시한 뒤 발행 탭에서 개발 회고록 블로그 포스트를 자동으로 생성할 수 있습니다.' },
+      { icon: '⚙', title: '설정', body: '파이프라인 단계 이름을 팀 워크플로우에 맞게 변경하고, 이메일로 팀원을 초대할 수 있습니다.' },
+    ],
     aiParserBtn: '◆ AI 파서',
     syncLogBtn:  'SYNC LOG',
     shareBtn:    '공유',
@@ -1234,15 +1264,75 @@ function SettingsView({ user, stageLabels, setStageLabels }) {
 }
 
 // ─── WORKSPACE ───────────────────────────────────────────────────────────────
+// ─── TUTORIAL ────────────────────────────────────────────────────────────────
+function TutorialModal({ open, onClose }) {
+  const { t } = useLang()
+  const [step, setStep] = useState(0)
+  const steps = t('tutorialSteps')
+  if (!open) return null
+  const current = steps[step]
+  const isLast = step === steps.length - 1
+
+  return (
+    <Overlay onClick={onClose}>
+      <ModalShell onClick={e => e.stopPropagation()} style={{ maxWidth: 420, padding: 0, overflow: 'hidden' }}>
+        {/* Progress bar */}
+        <div style={{ height: 3, background: Z.border }}>
+          <div style={{ height: '100%', width: `${((step + 1) / steps.length) * 100}%`, background: Z.emerald, transition: 'width .3s' }} />
+        </div>
+        <div style={{ padding: '28px 28px 24px' }}>
+          {/* Step counter */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <span style={{ fontSize: 11, color: Z.muted, fontWeight: 700, letterSpacing: 1 }}>{t('tutorialTitle').toUpperCase()}</span>
+            <span style={{ fontSize: 11, color: Z.muted }}>{step + 1} / {steps.length}</span>
+          </div>
+          {/* Icon + content */}
+          <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 10, background: `${Z.emerald}22`, border: `1px solid ${Z.emerald}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+              {current.icon}
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8, letterSpacing: -0.3 }}>{current.title}</div>
+              <div style={{ fontSize: 13, color: Z.muted, lineHeight: 1.6 }}>{current.body}</div>
+            </div>
+          </div>
+          {/* Dot indicators */}
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
+            {steps.map((_, i) => (
+              <div key={i} onClick={() => setStep(i)} style={{ width: i === step ? 16 : 6, height: 6, borderRadius: 3, background: i === step ? Z.emerald : Z.border, transition: 'all .2s', cursor: 'pointer' }} />
+            ))}
+          </div>
+          {/* Actions */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: Z.muted, fontSize: 12, cursor: 'pointer', padding: '6px 0' }}>{t('tutorialSkip')}</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {step > 0 && (
+                <button onClick={() => setStep(s => s - 1)} style={{ background: Z.surface, border: `1px solid ${Z.border}`, color: Z.text, borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{t('tutorialPrev')}</button>
+              )}
+              <button
+                onClick={() => isLast ? onClose() : setStep(s => s + 1)}
+                style={{ background: Z.emerald, border: 'none', color: '#052e16', borderRadius: 7, padding: '7px 18px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+              >
+                {isLast ? t('tutorialDone') : t('tutorialNext')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </ModalShell>
+    </Overlay>
+  )
+}
+
 function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   const { t } = useLang()
   const [tasks, setTasks]           = useState(INITIAL_TASKS)
   const [activeTab, setActiveTab]   = useState('kanban')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [aiOpen, setAiOpen]         = useState(false)
-  const [shareOpen, setShareOpen]   = useState(false)
-  const [detailTask, setDetailTask] = useState(null)
-  const [toast, setToast]           = useState(null)
+  const [shareOpen, setShareOpen]       = useState(false)
+  const [detailTask, setDetailTask]     = useState(null)
+  const [toast, setToast]               = useState(null)
+  const [tutorialOpen, setTutorialOpen] = useState(!user?.sandbox)
   // P1: customizable pipeline labels
   const [stageLabels, setStageLabels] = useState({})
   const stageLabel = useCallback(key => stageLabels[key] || t(`stage.${key}`), [stageLabels, t])
@@ -1322,6 +1412,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
           <LangToggle />
+          {!isMobile && <Btn variant="ghost" small onClick={() => setTutorialOpen(true)}>{t('tutorialBtn')}</Btn>}
           {!isMobile && <Btn variant="default" small onClick={() => setShareOpen(true)}>{t('shareBtn')}</Btn>}
           <Btn variant="primary" small onClick={() => setAiOpen(true)}>{t('aiParserBtn')}</Btn>
           <button onClick={openDrawer} style={{ position: 'relative', background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: Z.muted, fontSize: 11, fontWeight: 700 }}>
@@ -1369,6 +1460,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
       <AIParserModal open={aiOpen} onClose={() => setAiOpen(false)} onConfirm={onAIConfirm} addLog={addLog} />
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
       <TaskDetailModal task={detailTask} open={!!detailTask} onClose={() => setDetailTask(null)} onUpdate={onDetailUpdate} stageLabel={stageLabel} />
+      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </div>
   )
