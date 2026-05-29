@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
+import { loadGIS, requestToken, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId } from '../lib/gapi'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const Z = {
@@ -1163,7 +1164,7 @@ ${t('articleInsightsBody')(task.assignee, task.dueDate)}
 }
 
 // ─── SETTINGS VIEW ───────────────────────────────────────────────────────────
-function SettingsView({ user, stageLabels, setStageLabels }) {
+function SettingsView({ user, stageLabels, setStageLabels, spreadsheetId, syncing }) {
   const { t } = useLang()
   const [isPublic, setIsPublic]         = useState(true)
   const [notifications, setNotifications] = useState(true)
@@ -1194,6 +1195,35 @@ function SettingsView({ user, stageLabels, setStageLabels }) {
 
   return (
     <div style={{ maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
+      {/* Google Sheets connection card */}
+      <div style={{ background: Z.surface, border: `1px solid ${spreadsheetId ? Z.emerald : Z.border}`, borderRadius: 8, padding: '16px 18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1, marginBottom: 10 }}>GOOGLE SHEETS DATABASE</div>
+        {user?.sandbox ? (
+          <div style={{ fontSize: 12, color: Z.amber }}>⚠ Sandbox mode — sign in with Google to connect your Drive</div>
+        ) : syncing ? (
+          <div style={{ fontSize: 12, color: Z.amber }}>● Connecting to Google Drive…</div>
+        ) : spreadsheetId ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+              <span style={{ color: Z.emerald, fontWeight: 700 }}>● Connected</span>
+            </div>
+            <div style={{ fontSize: 11, color: Z.muted, wordBreak: 'break-all' }}>
+              Spreadsheet ID: <code style={{ color: Z.text, fontSize: 10 }}>{spreadsheetId}</code>
+            </div>
+            <a
+              href={`https://docs.google.com/spreadsheets/d/${spreadsheetId}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 12, color: Z.indigo, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+            >
+              ↗ Open in Google Sheets
+            </a>
+          </div>
+        ) : (
+          <div style={{ fontSize: 12, color: Z.muted }}>Not connected</div>
+        )}
+      </div>
       {/* Toggles */}
       <div>
         {toggleItems.map((item, i) => (
@@ -1328,7 +1358,7 @@ function TutorialModal({ open, onClose }) {
 
 function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   const { t } = useLang()
-  const [tasks, setTasks]           = useState(INITIAL_TASKS)
+  const [tasks, setTasks]           = useState(user?.sandbox ? INITIAL_TASKS : [])
   const [activeTab, setActiveTab]   = useState('kanban')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [aiOpen, setAiOpen]         = useState(false)
@@ -1336,9 +1366,14 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   const [detailTask, setDetailTask]     = useState(null)
   const [toast, setToast]               = useState(null)
   const [tutorialOpen, setTutorialOpen] = useState(!user?.sandbox)
-  // P1: customizable pipeline labels
-  const [stageLabels, setStageLabels] = useState({})
+  const [stageLabels, setStageLabels]   = useState({})
   const stageLabel = useCallback(key => stageLabels[key] || t(`stage.${key}`), [stageLabels, t])
+
+  // Sheets state
+  const [spreadsheetId, setSpreadsheetId] = useState(null)
+  const [sheetId, setSheetId]             = useState(0)
+  const [syncing, setSyncing]             = useState(false)
+  const [syncError, setSyncError]         = useState(null)
 
   const [logs, setLogs] = useState(() => [
     makeLog(t('initLog1'), 'success'),
@@ -1356,30 +1391,134 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
 
   const openDrawer = () => { setDrawerOpen(true); setNewLogCount(0) }
 
-  const onStageChange = (id, sk) => setTasks(prev => prev.map(tk => tk.id===id ? { ...tk, stage: sk } : tk))
-  const onUpdateTask  = (id, field, val) => setTasks(prev => prev.map(tk => tk.id===id ? { ...tk, [field]: val } : tk))
-  const onAddTask     = (task) => { setTasks(prev => [...prev, task]); addLog(`New task added: "${task.title}"`, 'success') }
+  // ── Connect to Google Sheets on mount (non-sandbox) ──────────────────────
+  useEffect(() => {
+    if (user?.sandbox) return
+    let cancelled = false
+    const connect = async () => {
+      setSyncing(true)
+      setSyncError(null)
+      try {
+        addLog('Connecting to Google Drive…', 'info')
+        const sid = await findOrCreateSpreadsheet()
+        if (cancelled) return
+        setSpreadsheetId(sid)
+        const numericSheetId = await getSheetId(sid)
+        setSheetId(numericSheetId)
+        addLog(`Spreadsheet ready: ${sid}`, 'success')
+        const loaded = await loadTasks(sid)
+        if (cancelled) return
+        setTasks(loaded.length > 0 ? loaded : INITIAL_TASKS)
+        if (loaded.length === 0) {
+          // Write initial demo tasks to sheet
+          for (const task of INITIAL_TASKS) {
+            const row = await appendTask(sid, task)
+            setTasks(prev => prev.map(tk => tk.id === task.id ? { ...tk, rowNum: row } : tk))
+          }
+          addLog('Demo tasks written to sheet', 'success')
+        } else {
+          addLog(`Loaded ${loaded.length} tasks from sheet`, 'success')
+        }
+      } catch (e) {
+        if (!cancelled) setSyncError(e.message)
+        addLog(`Connection failed: ${e.message}`, 'error')
+      } finally {
+        if (!cancelled) setSyncing(false)
+      }
+    }
+    connect()
+    return () => { cancelled = true }
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onDeleteTask = (id) => {
+  // ── Sheets-aware CRUD helpers ────────────────────────────────────────────
+  const syncUpdate = useCallback(async (task) => {
+    if (!spreadsheetId || !task.rowNum) return
+    try {
+      await updateTaskRow(spreadsheetId, task.rowNum, task)
+      addLog(t('sheetDoneLog')(task.rowNum, task.stage), 'success')
+    } catch (e) {
+      addLog(`Sync error: ${e.message}`, 'error')
+    }
+  }, [spreadsheetId, addLog, t])
+
+  const onStageChange = useCallback((id, sk) => {
+    setTasks(prev => {
+      const updated = prev.map(tk => tk.id === id ? { ...tk, stage: sk } : tk)
+      const task = updated.find(tk => tk.id === id)
+      syncUpdate(task)
+      return updated
+    })
+  }, [syncUpdate])
+
+  const onUpdateTask = useCallback((id, field, val) => {
+    setTasks(prev => {
+      const updated = prev.map(tk => tk.id === id ? { ...tk, [field]: val } : tk)
+      const task = updated.find(tk => tk.id === id)
+      syncUpdate(task)
+      return updated
+    })
+  }, [syncUpdate])
+
+  const onAddTask = useCallback(async (task) => {
+    setTasks(prev => [...prev, task])
+    addLog(`New task added: "${task.title}"`, 'success')
+    if (spreadsheetId) {
+      try {
+        const rowNum = await appendTask(spreadsheetId, task)
+        setTasks(prev => prev.map(tk => tk.id === task.id ? { ...tk, rowNum } : tk))
+        addLog(`Sheet row ${rowNum} created`, 'success')
+      } catch (e) {
+        addLog(`Sheet append failed: ${e.message}`, 'error')
+      }
+    }
+  }, [spreadsheetId, addLog])
+
+  const onDeleteTask = useCallback(async (id) => {
     const task = tasks.find(tk => tk.id === id)
     setTasks(prev => prev.filter(tk => tk.id !== id))
     addLog(t('deleteLog')(task.title), 'info')
-  }
+    if (spreadsheetId && task.rowNum) {
+      try {
+        await deleteTaskRow(spreadsheetId, sheetId, task.rowNum)
+        // Re-index rowNums after deletion
+        setTasks(prev => prev.map(tk => ({
+          ...tk,
+          rowNum: tk.rowNum > task.rowNum ? tk.rowNum - 1 : tk.rowNum,
+        })))
+        addLog(`Sheet row ${task.rowNum} deleted`, 'success')
+      } catch (e) {
+        addLog(`Sheet delete failed: ${e.message}`, 'error')
+      }
+    }
+  }, [tasks, spreadsheetId, sheetId, addLog, t])
 
-  const onPublish = async (id) => {
-    const task = tasks.find(tk => tk.id===id)
+  const onPublish = useCallback(async (id) => {
+    const task = tasks.find(tk => tk.id === id)
     addLog(t('publishReqLog')(task.title), 'ai')
-    setTasks(prev => prev.map(tk => tk.id===id ? { ...tk, published: true } : tk))
-    await sim(400)
-    addLog(t('publishDoneLog')(task.title.replace(/\s+/g,'-').toLowerCase()), 'success')
-  }
+    const updated = { ...task, published: true }
+    setTasks(prev => prev.map(tk => tk.id === id ? updated : tk))
+    await syncUpdate(updated)
+    addLog(t('publishDoneLog')(task.title.replace(/\s+/g, '-').toLowerCase()), 'success')
+  }, [tasks, syncUpdate, addLog, t])
 
-  const onDetailUpdate = (updated) => {
-    setTasks(prev => prev.map(tk => tk.id===updated.id ? updated : tk))
-    addLog(t('sheetSyncLog')(updated.id, 'details'), 'success')
-  }
+  const onDetailUpdate = useCallback((updated) => {
+    setTasks(prev => prev.map(tk => tk.id === updated.id ? updated : tk))
+    syncUpdate(updated)
+  }, [syncUpdate])
 
-  const onAIConfirm = (newTasks) => setTasks(prev => [...prev, ...newTasks])
+  const onAIConfirm = useCallback(async (newTasks) => {
+    setTasks(prev => [...prev, ...newTasks])
+    if (spreadsheetId) {
+      for (const task of newTasks) {
+        try {
+          const rowNum = await appendTask(spreadsheetId, task)
+          setTasks(prev => prev.map(tk => tk.id === task.id ? { ...tk, rowNum } : tk))
+        } catch (e) {
+          addLog(`Sheet append failed: ${e.message}`, 'error')
+        }
+      }
+    }
+  }, [spreadsheetId, addLog])
 
   const tabs = [
     { id: 'kanban',   label: t('tabKanban'),   icon: '⬡' },
@@ -1390,6 +1529,14 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+
+      {/* Sync error banner */}
+      {syncError && (
+        <div style={{ background: `${Z.red}22`, borderBottom: `1px solid ${Z.red}44`, padding: '8px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, fontSize: 12 }}>
+          <span style={{ color: Z.red }}>⚠ Google Sheets sync error: {syncError}</span>
+          <button onClick={() => setSyncError(null)} style={{ background: 'none', border: `1px solid ${Z.red}`, color: Z.red, borderRadius: 5, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>Dismiss</button>
+        </div>
+      )}
 
       {/* Sandbox banner (P0) */}
       {user?.sandbox && (
@@ -1414,6 +1561,13 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
           </div>
         )}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Sheets connection status */}
+          {!user?.sandbox && !isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: syncing ? Z.amber : syncError ? Z.red : spreadsheetId ? Z.emerald : Z.muted }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: syncing ? Z.amber : syncError ? Z.red : spreadsheetId ? Z.emerald : Z.muted, display: 'inline-block', flexShrink: 0 }} />
+              {syncing ? 'Syncing…' : syncError ? 'Sync error' : spreadsheetId ? 'Sheets connected' : 'Connecting…'}
+            </div>
+          )}
           <LangToggle />
           {!isMobile && <Btn variant="ghost" small onClick={() => setTutorialOpen(true)}>{t('tutorialBtn')}</Btn>}
           {!isMobile && <Btn variant="default" small onClick={() => setShareOpen(true)}>{t('shareBtn')}</Btn>}
@@ -1443,7 +1597,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
             addLog={addLog} stageLabel={stageLabel} />
         )}
         {activeTab === 'blog'     && <AutopressView tasks={tasks} addLog={addLog} />}
-        {activeTab === 'settings' && <SettingsView user={user} stageLabels={stageLabels} setStageLabels={setStageLabels} />}
+        {activeTab === 'settings' && <SettingsView user={user} stageLabels={stageLabels} setStageLabels={setStageLabels} spreadsheetId={spreadsheetId} syncing={syncing} />}
       </main>
 
       {/* Mobile bottom nav */}
@@ -1571,10 +1725,23 @@ function AIDemo() {
 function Landing({ onSignIn, onSandbox }) {
   const { t } = useLang()
   const [signingIn, setSigningIn] = useState(false)
+  const [authError, setAuthError] = useState(null)
+
   const handleSignIn = async () => {
     setSigningIn(true)
-    await sim(900)
-    onSignIn({ name: t('demoUserName'), email: t('demoUserEmail') })
+    setAuthError(null)
+    try {
+      await loadGIS()
+      const token = await requestToken()
+      // Fetch user profile
+      const profile = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json())
+      onSignIn({ name: profile.name, email: profile.email, picture: profile.picture })
+    } catch (e) {
+      setAuthError(e.message || 'Sign-in failed')
+      setSigningIn(false)
+    }
   }
   const features = [
     { icon: '⬡', title: t('feat1Title'), desc: t('feat1Desc') },
@@ -1611,6 +1778,7 @@ function Landing({ onSignIn, onSandbox }) {
           <Btn variant="ghost" onClick={onSandbox} style={{ fontSize: 14 }}>{t('tryGuest')}</Btn>
         </div>
         <div style={{ fontSize: 11, color: Z.muted }}>{t('scopeNote')}</div>
+        {authError && <div style={{ fontSize: 12, color: Z.red, marginTop: 8 }}>⚠ {authError}</div>}
       </div>
       {/* Widgets */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginBottom: 60 }}>
@@ -1660,7 +1828,11 @@ export default function App() {
 
   const handleSignIn  = (userData) => enter(userData)
   const handleSandbox = () => enter({ name: 'Guest', email: '', sandbox: true })
-  const handleSignOut = () => { setScene('landing'); setUser(null) }
+  const handleSignOut = () => {
+    import('../lib/gapi').then(m => m.clearToken())
+    setScene('landing')
+    setUser(null)
+  }
 
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>
