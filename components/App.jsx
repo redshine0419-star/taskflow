@@ -1733,13 +1733,13 @@ function Landing({ onSignIn, onSandbox }) {
     try {
       await loadGIS()
       const token = await requestToken()
-      // Fetch user profile
       const profile = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${token}` },
       }).then(r => r.json())
       onSignIn({ name: profile.name, email: profile.email, picture: profile.picture })
     } catch (e) {
-      setAuthError(e.message || 'Sign-in failed')
+      setAuthError(e.message || 'Sign-in failed. Check browser popup blocker.')
+    } finally {
       setSigningIn(false)
     }
   }
