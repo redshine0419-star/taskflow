@@ -1731,14 +1731,19 @@ function Landing({ onSignIn, onSandbox }) {
     setSigningIn(true)
     setAuthError(null)
     try {
+      setAuthError('Step 1: Loading GIS…')
       await loadGIS()
+      setAuthError('Step 2: Requesting token…')
       const token = await requestToken()
+      setAuthError('Step 3: Fetching profile…')
       const profile = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${token}` },
       }).then(r => r.json())
+      setAuthError('Step 4: Signing in…')
       onSignIn({ name: profile.name, email: profile.email, picture: profile.picture })
+      setAuthError(null)
     } catch (e) {
-      setAuthError(e.message || 'Sign-in failed. Check browser popup blocker.')
+      setAuthError('Error: ' + (e.message || 'Sign-in failed'))
     } finally {
       setSigningIn(false)
     }
