@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
-import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId } from '../lib/gapi'
+import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId, loadProjects, appendProject, updateProject, deleteProject, getProjectsSheetId } from '../lib/gapi'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const Z = {
@@ -76,11 +76,40 @@ const TR = {
     syncLogBtn:  'SYNC LOG',
     shareBtn:    'Share',
     signOut:     'Sign out',
-    // workspace — tabs  (P1: SEO → Publish)
+    // workspace — tabs
+    tabProjects: 'Projects',
     tabKanban:   'Kanban',
     tabSheet:    'Sheet',
+    tabMyTasks:  'My Tasks',
     tabPublish:  'Publish',
     tabSettings: 'Settings',
+    // projects view
+    projectsTitle:    'Projects',
+    newProject:       '+ New Project',
+    projectTasks:     (n) => `${n} task${n !== 1 ? 's' : ''}`,
+    editProject:      'Edit',
+    deleteProject:    'Delete',
+    projectModalNew:  'New Project',
+    projectModalEdit: 'Edit Project',
+    projectName:      'Project Name',
+    projectDesc:      'Description',
+    projectColor:     'Color',
+    saveProject:      'Save',
+    allProjects:      'All Projects',
+    confirmDeleteProject: 'Delete this project? Tasks will remain.',
+    // my tasks view
+    myTasksTitle: 'My Tasks',
+    myTasksEmpty: 'No tasks assigned to you',
+    myTasksDueSoon: 'Due soon',
+    // kanban filters
+    filterAssignee: 'Assignee',
+    filterPriority: 'Priority',
+    filterSort:     'Sort',
+    filterAll:      'All',
+    sortDefault:    'Default',
+    sortDueDate:    'Due Date',
+    sortPriority:   'Priority',
+    clearFilters:   'Clear',
     // sandbox banner
     sandboxBanner:   '👋 You\'re in sandbox mode — data is not saved.',
     sandboxSignIn:   'Sign in to save →',
@@ -269,10 +298,36 @@ Attendees: Alex, Jordan, Sam
     syncLogBtn:  'SYNC LOG',
     shareBtn:    '공유',
     signOut:     '로그아웃',
+    tabProjects: '프로젝트',
     tabKanban:   '칸반',
     tabSheet:    '시트',
+    tabMyTasks:  '내 태스크',
     tabPublish:  '발행',
     tabSettings: '설정',
+    projectsTitle:    '프로젝트',
+    newProject:       '+ 새 프로젝트',
+    projectTasks:     (n) => `태스크 ${n}개`,
+    editProject:      '수정',
+    deleteProject:    '삭제',
+    projectModalNew:  '새 프로젝트',
+    projectModalEdit: '프로젝트 수정',
+    projectName:      '프로젝트 이름',
+    projectDesc:      '설명',
+    projectColor:     '색상',
+    saveProject:      '저장',
+    allProjects:      '전체 프로젝트',
+    confirmDeleteProject: '이 프로젝트를 삭제할까요? 태스크는 유지됩니다.',
+    myTasksTitle: '내 태스크',
+    myTasksEmpty: '담당 태스크가 없습니다',
+    myTasksDueSoon: '마감 임박',
+    filterAssignee: '담당자',
+    filterPriority: '우선순위',
+    filterSort:     '정렬',
+    filterAll:      '전체',
+    sortDefault:    '기본',
+    sortDueDate:    '마감일순',
+    sortPriority:   '우선순위순',
+    clearFilters:   '초기화',
     sandboxBanner: '👋 샌드박스 모드입니다 — 데이터는 저장되지 않습니다.',
     sandboxSignIn: '로그인하고 저장하기 →',
     noTasks:    '태스크 없음',
@@ -407,14 +462,16 @@ const PRIORITY_KEYS = ['high', 'medium', 'low']
 let nextTaskId = 100
 
 const INITIAL_TASKS = [
-  { id: 1,  title: 'Homepage Renewal Planning',     stage: 'planning',   assignee: 'Alex',   dueDate: '2026-06-10', priority: 'high',   rowNum: 2, published: false, desc: '', comments: [] },
-  { id: 2,  title: 'Login UI Wireframe',            stage: 'design',     assignee: 'Jordan', dueDate: '2026-06-15', priority: 'medium', rowNum: 3, published: false, desc: '', comments: [] },
-  { id: 3,  title: 'Main Landing Publishing',       stage: 'publishing', assignee: 'Sam',    dueDate: '2026-06-20', priority: 'medium', rowNum: 4, published: false, desc: '', comments: [] },
-  { id: 4,  title: 'API Auth Module',               stage: 'dev',        assignee: 'Casey',  dueDate: '2026-06-25', priority: 'high',   rowNum: 5, published: false, desc: '', comments: [] },
-  { id: 5,  title: 'Dashboard Component Design',    stage: 'planning',   assignee: 'Morgan', dueDate: '2026-07-01', priority: 'low',    rowNum: 6, published: false, desc: '', comments: [] },
-  { id: 6,  title: 'Mobile Responsive Design',      stage: 'design',     assignee: 'Jordan', dueDate: '2026-07-05', priority: 'high',   rowNum: 7, published: false, desc: '', comments: [] },
-  { id: 7,  title: 'Search Feature Implementation', stage: 'dev',        assignee: 'Alex',   dueDate: '2026-07-10', priority: 'medium', rowNum: 8, published: true,  desc: '', comments: [] },
+  { id: 1,  title: 'Homepage Renewal Planning',     stage: 'planning',   assignee: 'Alex',   dueDate: '2026-06-10', priority: 'high',   rowNum: 2, published: false, desc: '', comments: [], projectId: '' },
+  { id: 2,  title: 'Login UI Wireframe',            stage: 'design',     assignee: 'Jordan', dueDate: '2026-06-15', priority: 'medium', rowNum: 3, published: false, desc: '', comments: [], projectId: '' },
+  { id: 3,  title: 'Main Landing Publishing',       stage: 'publishing', assignee: 'Sam',    dueDate: '2026-06-20', priority: 'medium', rowNum: 4, published: false, desc: '', comments: [], projectId: '' },
+  { id: 4,  title: 'API Auth Module',               stage: 'dev',        assignee: 'Casey',  dueDate: '2026-06-25', priority: 'high',   rowNum: 5, published: false, desc: '', comments: [], projectId: '' },
+  { id: 5,  title: 'Dashboard Component Design',    stage: 'planning',   assignee: 'Morgan', dueDate: '2026-07-01', priority: 'low',    rowNum: 6, published: false, desc: '', comments: [], projectId: '' },
+  { id: 6,  title: 'Mobile Responsive Design',      stage: 'design',     assignee: 'Jordan', dueDate: '2026-07-05', priority: 'high',   rowNum: 7, published: false, desc: '', comments: [], projectId: '' },
+  { id: 7,  title: 'Search Feature Implementation', stage: 'dev',        assignee: 'Alex',   dueDate: '2026-07-10', priority: 'medium', rowNum: 8, published: true,  desc: '', comments: [], projectId: '' },
 ]
+
+const PROJECT_COLORS = ['#6366f1', '#14b8a6', '#f97316', '#ef4444', '#eab308', '#34d399']
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 let logId = 0
@@ -930,12 +987,221 @@ function TaskCard({ task, isMobile, onStageChange, onPublish, onDelete, onDetail
   )
 }
 
+// ─── PROJECT MODAL ───────────────────────────────────────────────────────────
+function ProjectModal({ open, onClose, onSave, initial }) {
+  const { t } = useLang()
+  const [form, setForm] = useState({ name: '', description: '', color: PROJECT_COLORS[0] })
+  useEffect(() => {
+    if (open) setForm(initial ? { name: initial.name, description: initial.description || '', color: initial.color || PROJECT_COLORS[0] } : { name: '', description: '', color: PROJECT_COLORS[0] })
+  }, [open, initial])
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const save = () => { if (!form.name.trim()) return; onSave(form); onClose() }
+  if (!open) return null
+  return (
+    <ModalShell onClose={onClose} maxWidth={440}>
+      <div style={{ padding: '18px 24px', borderBottom: `1px solid ${Z.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{initial ? t('projectModalEdit') : t('projectModalNew')}</div>
+        <Btn variant="ghost" small onClick={onClose}>✕</Btn>
+      </div>
+      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('projectName')} *</div>
+          <input autoFocus value={form.name} onChange={e => set('name', e.target.value)} onKeyDown={e => e.key === 'Enter' && save()}
+            style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '7px 10px', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('projectDesc')}</div>
+          <input value={form.description} onChange={e => set('description', e.target.value)}
+            style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '7px 10px', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: Z.muted, marginBottom: 8, fontWeight: 600 }}>{t('projectColor')}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {PROJECT_COLORS.map(c => (
+              <div key={c} onClick={() => set('color', c)} style={{ width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer', border: form.color === c ? `3px solid ${Z.text}` : `3px solid transparent`, transition: 'border .15s', boxSizing: 'border-box' }} />
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <Btn variant="ghost" onClick={onClose}>{t('cancel')}</Btn>
+        <Btn variant="primary" onClick={save} disabled={!form.name.trim()}>{t('saveProject')}</Btn>
+      </div>
+    </ModalShell>
+  )
+}
+
+// ─── PROJECTS VIEW ────────────────────────────────────────────────────────────
+function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDeleteProject, onSelectProject }) {
+  const { t } = useLang()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState(null)
+
+  const handleEdit = (e, project) => {
+    e.stopPropagation()
+    setEditingProject(project)
+    setModalOpen(true)
+  }
+  const handleDelete = (e, project) => {
+    e.stopPropagation()
+    if (window.confirm(t('confirmDeleteProject'))) onDeleteProject(project.id)
+  }
+  const handleSave = (form) => {
+    if (editingProject) onEditProject({ ...editingProject, ...form })
+    else onCreateProject(form)
+    setEditingProject(null)
+  }
+  const handleClose = () => { setModalOpen(false); setEditingProject(null) }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>{t('projectsTitle')}</div>
+        <Btn variant="primary" onClick={() => { setEditingProject(null); setModalOpen(true) }}>{t('newProject')}</Btn>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+        {projects.map(project => {
+          const count = tasks.filter(tk => tk.projectId === project.id).length
+          return (
+            <div key={project.id} onClick={() => onSelectProject(project.id)}
+              style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', transition: 'border-color .15s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = project.color}
+              onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
+            >
+              <div style={{ display: 'flex' }}>
+                <div style={{ width: 5, background: project.color, flexShrink: 0 }} />
+                <div style={{ padding: '14px 16px', flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.name}</div>
+                  {project.description && <div style={{ fontSize: 12, color: Z.muted, marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.description}</div>}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, color: Z.muted }}>{t('projectTasks')(count)}</span>
+                    <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                      <Btn variant="ghost" small onClick={e => handleEdit(e, project)}>{t('editProject')}</Btn>
+                      <Btn variant="danger" small onClick={e => handleDelete(e, project)}>{t('deleteProject')}</Btn>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+        {projects.length === 0 && (
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 60, color: Z.muted, fontSize: 13 }}>
+            {t('newProject')}
+          </div>
+        )}
+      </div>
+      <ProjectModal open={modalOpen} onClose={handleClose} onSave={handleSave} initial={editingProject} />
+    </div>
+  )
+}
+
+// ─── MY TASKS VIEW ────────────────────────────────────────────────────────────
+function MyTasksView({ tasks, projects, user, onDetail }) {
+  const { t } = useLang()
+  const myTasks = tasks.filter(tk => tk.assignee && user?.name && tk.assignee.toLowerCase() === user.name.toLowerCase())
+
+  const isDueSoon = (dueDate) => {
+    if (!dueDate) return false
+    const diff = (new Date(dueDate) - new Date()) / (1000 * 60 * 60 * 24)
+    return diff >= 0 && diff <= 3
+  }
+
+  // Group by projectId
+  const groups = {}
+  myTasks.forEach(tk => {
+    const pid = tk.projectId || '__none__'
+    if (!groups[pid]) groups[pid] = []
+    groups[pid].push(tk)
+  })
+
+  const getProjectName = (pid) => {
+    if (pid === '__none__') return t('allProjects')
+    return projects.find(p => p.id === pid)?.name || pid
+  }
+  const getProjectColor = (pid) => {
+    if (pid === '__none__') return Z.muted
+    return projects.find(p => p.id === pid)?.color || Z.muted
+  }
+
+  if (myTasks.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 8 }}>
+        <div style={{ fontSize: 32 }}>✓</div>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>{t('myTasksTitle')}</div>
+        <div style={{ fontSize: 12, color: Z.muted }}>{t('myTasksEmpty')}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ fontSize: 16, fontWeight: 700 }}>{t('myTasksTitle')}</div>
+      {Object.entries(groups).map(([pid, groupTasks]) => (
+        <div key={pid}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: getProjectColor(pid), flexShrink: 0 }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: Z.muted, letterSpacing: 0.5 }}>{getProjectName(pid).toUpperCase()}</span>
+            <span style={{ fontSize: 10, background: Z.border, borderRadius: 10, padding: '1px 7px', color: Z.muted }}>{groupTasks.length}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {groupTasks.map(tk => (
+              <div key={tk.id} onClick={() => onDetail(tk)}
+                style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '10px 14px', cursor: 'pointer', transition: 'border-color .15s', display: 'flex', alignItems: 'center', gap: 10 }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = Z.indigo}
+                onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tk.title}</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Badge color={Z.indigo}>{t(`stage.${tk.stage}`)}</Badge>
+                    <PriorityBadge priorityKey={tk.priority} />
+                    {tk.dueDate && (
+                      <span style={{ fontSize: 11, color: isDueSoon(tk.dueDate) ? Z.red : Z.muted, fontWeight: isDueSoon(tk.dueDate) ? 700 : 400 }}>
+                        📅 {tk.dueDate}{isDueSoon(tk.dueDate) ? ` — ${t('myTasksDueSoon')}` : ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
 function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, addLog, stageLabel, totalTaskCount }) {
   const { t } = useLang()
   const [activeStageIdx, setActiveStageIdx] = useState(0)
   const [addingStage, setAddingStage] = useState(null)
+  const [filterAssignee, setFilterAssignee] = useState('all')
+  const [filterPriority, setFilterPriority] = useState('all')
+  const [sortBy, setSortBy] = useState('default')
   const visibleStages = isMobile ? [STAGE_KEYS[activeStageIdx]] : STAGE_KEYS
+
+  const assignees = ['all', ...Array.from(new Set(tasks.map(tk => tk.assignee).filter(Boolean)))]
+  const priorityOpts = [
+    { value: 'all', label: t('filterAll') },
+    { value: 'high', label: t('priority.high') },
+    { value: 'medium', label: t('priority.medium') },
+    { value: 'low', label: t('priority.low') },
+  ]
+  const sortOpts = [
+    { value: 'default', label: t('sortDefault') },
+    { value: 'dueDate', label: t('sortDueDate') },
+    { value: 'priority', label: t('sortPriority') },
+  ]
+  const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
+  const hasFilters = filterAssignee !== 'all' || filterPriority !== 'all' || sortBy !== 'default'
+
+  let filteredTasks = tasks
+  if (filterAssignee !== 'all') filteredTasks = filteredTasks.filter(tk => tk.assignee === filterAssignee)
+  if (filterPriority !== 'all') filteredTasks = filteredTasks.filter(tk => tk.priority === filterPriority)
+  if (sortBy === 'dueDate') filteredTasks = [...filteredTasks].sort((a, b) => (a.dueDate || '9999') < (b.dueDate || '9999') ? -1 : 1)
+  else if (sortBy === 'priority') filteredTasks = [...filteredTasks].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 1) - (PRIORITY_ORDER[b.priority] ?? 1))
 
   // Empty state when no tasks at all
   if (totalTaskCount === 0) {
@@ -952,6 +1218,17 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
 
   return (
     <div>
+      {/* Filter bar */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterAssignee')}:</span>
+        <Select value={filterAssignee} onChange={setFilterAssignee}
+          options={assignees.map(a => ({ value: a, label: a === 'all' ? t('filterAll') : a }))} />
+        <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterPriority')}:</span>
+        <Select value={filterPriority} onChange={setFilterPriority} options={priorityOpts} />
+        <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterSort')}:</span>
+        <Select value={sortBy} onChange={setSortBy} options={sortOpts} />
+        {hasFilters && <Btn variant="ghost" small onClick={() => { setFilterAssignee('all'); setFilterPriority('all'); setSortBy('default') }}>{t('clearFilters')}</Btn>}
+      </div>
       {isMobile && (
         <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
           {STAGE_KEYS.map((key, i) => (
@@ -967,7 +1244,7 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
       )}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${STAGE_KEYS.length},1fr)`, gap: 12 }}>
         {visibleStages.map(sk => {
-          const col = tasks.filter(task => task.stage === sk)
+          const col = filteredTasks.filter(task => task.stage === sk)
           return (
             <div key={sk}>
               {!isMobile && (
@@ -1358,8 +1635,10 @@ function TutorialModal({ open, onClose }) {
 
 function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   const { t } = useLang()
-  const [tasks, setTasks]           = useState(user?.sandbox ? INITIAL_TASKS : [])
-  const [activeTab, setActiveTab]   = useState('kanban')
+  const [tasks, setTasks]                   = useState(user?.sandbox ? INITIAL_TASKS : [])
+  const [projects, setProjects]             = useState([])
+  const [selectedProjectId, setSelectedProjectId] = useState(null)
+  const [activeTab, setActiveTab]           = useState('projects')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [aiOpen, setAiOpen]         = useState(false)
   const [shareOpen, setShareOpen]       = useState(false)
@@ -1373,10 +1652,11 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   const stageLabel = useCallback(key => stageLabels[key] || t(`stage.${key}`), [stageLabels, t])
 
   // Sheets state
-  const [spreadsheetId, setSpreadsheetId] = useState(null)
-  const [sheetId, setSheetId]             = useState(0)
-  const [syncing, setSyncing]             = useState(false)
-  const [syncError, setSyncError]         = useState(null)
+  const [spreadsheetId, setSpreadsheetId]   = useState(null)
+  const [sheetId, setSheetId]               = useState(0)
+  const [projectsSheetId, setProjectsSheetId] = useState(null)
+  const [syncing, setSyncing]               = useState(false)
+  const [syncError, setSyncError]           = useState(null)
 
   const [logs, setLogs] = useState(() => [
     makeLog(t('initLog1'), 'success'),
@@ -1408,7 +1688,11 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
         setSpreadsheetId(sid)
         const numericSheetId = await getSheetId(sid)
         setSheetId(numericSheetId)
+        const numericProjectsSheetId = await getProjectsSheetId(sid)
+        setProjectsSheetId(numericProjectsSheetId)
         addLog(`Spreadsheet ready: ${sid}`, 'success')
+        const loadedProjects = await loadProjects(sid)
+        if (!cancelled) setProjects(loadedProjects)
         const loaded = await loadTasks(sid)
         if (cancelled) return
         setTasks(loaded.length > 0 ? loaded : INITIAL_TASKS)
@@ -1463,18 +1747,20 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   }, [syncUpdate])
 
   const onAddTask = useCallback(async (task) => {
-    setTasks(prev => [...prev, task])
+    const taskWithProject = { ...task, projectId: selectedProjectId || task.projectId || '' }
+    const taskToAdd = taskWithProject
+    setTasks(prev => [...prev, taskToAdd])
     addLog(`New task added: "${task.title}"`, 'success')
     if (spreadsheetId) {
       try {
-        const rowNum = await appendTask(spreadsheetId, task)
-        setTasks(prev => prev.map(tk => tk.id === task.id ? { ...tk, rowNum } : tk))
+        const rowNum = await appendTask(spreadsheetId, taskToAdd)
+        setTasks(prev => prev.map(tk => tk.id === taskToAdd.id ? { ...tk, rowNum } : tk))
         addLog(`Sheet row ${rowNum} created`, 'success')
       } catch (e) {
         addLog(`Sheet append failed: ${e.message}`, 'error')
       }
     }
-  }, [spreadsheetId, addLog])
+  }, [spreadsheetId, addLog, selectedProjectId])
 
   const onDeleteTask = useCallback(async (id) => {
     const task = tasks.find(tk => tk.id === id)
@@ -1523,12 +1809,53 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
     }
   }, [spreadsheetId, addLog])
 
+  // ── Project CRUD ──────────────────────────────────────────────────────────
+  const onCreateProject = useCallback(async (form) => {
+    const project = { id: `proj_${Date.now()}`, name: form.name, color: form.color, description: form.description, createdAt: new Date().toISOString() }
+    setProjects(prev => [...prev, project])
+    if (spreadsheetId) {
+      try {
+        const rowNum = await appendProject(spreadsheetId, project)
+        setProjects(prev => prev.map(p => p.id === project.id ? { ...p, rowNum } : p))
+      } catch (e) { addLog(`Project append failed: ${e.message}`, 'error') }
+    }
+  }, [spreadsheetId, addLog])
+
+  const onEditProject = useCallback(async (updated) => {
+    setProjects(prev => prev.map(p => p.id === updated.id ? updated : p))
+    if (spreadsheetId && updated.rowNum) {
+      try { await updateProject(spreadsheetId, updated.rowNum, updated) }
+      catch (e) { addLog(`Project update failed: ${e.message}`, 'error') }
+    }
+  }, [spreadsheetId, addLog])
+
+  const onDeleteProject = useCallback(async (projectId) => {
+    const project = projects.find(p => p.id === projectId)
+    setProjects(prev => prev.filter(p => p.id !== projectId))
+    if (spreadsheetId && project?.rowNum && projectsSheetId != null) {
+      try {
+        await deleteProject(spreadsheetId, projectsSheetId, project.rowNum)
+        setProjects(prev => prev.map(p => ({ ...p, rowNum: p.rowNum > project.rowNum ? p.rowNum - 1 : p.rowNum })))
+      } catch (e) { addLog(`Project delete failed: ${e.message}`, 'error') }
+    }
+  }, [projects, spreadsheetId, projectsSheetId, addLog])
+
   const tabs = [
+    { id: 'projects', label: t('tabProjects'), icon: '◈' },
     { id: 'kanban',   label: t('tabKanban'),   icon: '⬡' },
     { id: 'sheet',    label: t('tabSheet'),    icon: '⊞' },
+    { id: 'mytasks',  label: t('tabMyTasks'),  icon: '✓' },
     { id: 'blog',     label: t('tabPublish'),  icon: '↑' },
     { id: 'settings', label: t('tabSettings'), icon: '⚙' },
   ]
+
+  // Project-filtered tasks for kanban/sheet
+  const filteredByProject = selectedProjectId
+    ? tasks.filter(tk => tk.projectId === selectedProjectId)
+    : tasks
+
+  const selectedProject = projects.find(p => p.id === selectedProjectId)
+  const projectLabel = selectedProject ? selectedProject.name : t('allProjects')
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -1554,6 +1881,13 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
       {/* Header */}
       <header style={{ borderBottom: `1px solid ${Z.border}`, padding: isMobile ? '10px 16px' : '10px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 20, background: Z.bg }}>
         <div onClick={onSignOut} style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, cursor: 'pointer' }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
+        {(activeTab === 'kanban' || activeTab === 'sheet') && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span style={{ color: Z.muted }}>›</span>
+            {selectedProject && <div style={{ width: 8, height: 8, borderRadius: '50%', background: selectedProject.color }} />}
+            <span style={{ color: Z.muted, cursor: selectedProjectId ? 'pointer' : 'default' }} onClick={() => selectedProjectId && setSelectedProjectId(null)}>{projectLabel}</span>
+          </div>
+        )}
         {!isMobile && (
           <div style={{ display: 'flex', gap: 2, marginLeft: 8 }}>
             {tabs.map(tab => (
@@ -1593,17 +1927,25 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
 
       {/* Main */}
       <main style={{ flex: 1, padding: isMobile ? '16px 16px 80px' : '24px', maxWidth: 1200, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+        {activeTab === 'projects' && (
+          <ProjectsView projects={projects} tasks={tasks}
+            onCreateProject={onCreateProject} onEditProject={onEditProject} onDeleteProject={onDeleteProject}
+            onSelectProject={(pid) => { setSelectedProjectId(pid); setActiveTab('kanban') }} />
+        )}
         {activeTab === 'kanban' && (
-          <KanbanView tasks={tasks} isMobile={isMobile}
+          <KanbanView tasks={filteredByProject} isMobile={isMobile}
             onStageChange={onStageChange} onPublish={onPublish}
             onDelete={onDeleteTask} onDetail={setDetailTask}
             onAdd={onAddTask} addLog={addLog}
-            stageLabel={stageLabel} totalTaskCount={tasks.length} />
+            stageLabel={stageLabel} totalTaskCount={filteredByProject.length} />
         )}
         {activeTab === 'sheet' && (
-          <SpreadsheetView tasks={tasks} onUpdateTask={onUpdateTask}
+          <SpreadsheetView tasks={filteredByProject} onUpdateTask={onUpdateTask}
             onDeleteTask={onDeleteTask} onAddTask={onAddTask}
             addLog={addLog} stageLabel={stageLabel} />
+        )}
+        {activeTab === 'mytasks' && (
+          <MyTasksView tasks={tasks} projects={projects} user={user} onDetail={setDetailTask} />
         )}
         {activeTab === 'blog'     && <AutopressView tasks={tasks} addLog={addLog} />}
         {activeTab === 'settings' && <SettingsView user={user} stageLabels={stageLabels} setStageLabels={setStageLabels} spreadsheetId={spreadsheetId} syncing={syncing} />}
@@ -1862,7 +2204,7 @@ export default function App() {
     if (!result) return
     if (result.error) { console.error('Auth error:', result.error); return }
     if (result.user) enter(result.user)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // mount-only intentional
 
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>
