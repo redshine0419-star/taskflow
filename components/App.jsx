@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId, loadProjects, appendProject, updateProject, deleteProject, getProjectsSheetId, loadSubTasks, appendSubTask, updateSubTaskRow, deleteSubTaskRow, getSubTasksSheetId, loadMembers, appendMember, updateMemberRow, deleteMemberRow, getMembersSheetId } from '../lib/gapi'
 import { generateAiPmReport } from '../lib/aipm'
+import { exportTasksToExcel } from '../lib/excel'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const Z = {
@@ -280,6 +281,13 @@ Attendees: Alex, Jordan, Sam
     reportHistory:  'Report History',
     generating:     'Generating...',
     noApiKey:       'Set NEXT_PUBLIC_GEMINI_API_KEY to use AI PM',
+    // P4 Gantt + Excel
+    gantt:          'Gantt',
+    exportExcel:    'Export Excel',
+    zoomWeek:       'Week',
+    zoomMonth:      'Month',
+    zoomQuarter:    'Quarter',
+    noDateTasks:    'Tasks without dates are not shown',
   },
 
   ko: {
@@ -516,6 +524,13 @@ Attendees: Alex, Jordan, Sam
     reportHistory:  '보고서 기록',
     generating:     '생성 중...',
     noApiKey:       'AI PM을 사용하려면 NEXT_PUBLIC_GEMINI_API_KEY를 설정하세요',
+    // P4 Gantt + Excel
+    gantt:          '간트',
+    exportExcel:    '엑셀 내보내기',
+    zoomWeek:       '주',
+    zoomMonth:      '월',
+    zoomQuarter:    '분기',
+    noDateTasks:    '날짜 없는 태스크는 표시되지 않습니다',
   },
 }
 
@@ -1544,9 +1559,238 @@ function MyTasksView({ tasks, projects, user, onDetail }) {
   )
 }
 
-// ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
-function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels }) {
+// ─── GANTT VIEW ──────────────────────────────────────────────────────────────
+const STAGE_COLORS = {
+  planning:   '#818cf8',
+  design:     '#34d399',
+  publishing: '#fbbf24',
+  dev:        '#f87171',
+}
+
+function GanttView({ tasks, onOpenTask, stageLabel }) {
   const { t } = useLang()
+  const [zoom, setZoom] = useState('normal') // normal | month | quarter
+
+  const DAY_WIDTH = zoom === 'normal' ? 28 : zoom === 'month' ? 14 : 8
+  const LEFT_COL = 140
+
+  // Only tasks with at least a dueDate
+  const datedTasks = tasks.filter(tk => tk.dueDate)
+
+  // Date range
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  let startDate = new Date(today)
+  if (datedTasks.length > 0) {
+    const allDates = datedTasks.flatMap(tk => {
+      const dates = [new Date(tk.dueDate)]
+      if (tk.startDate) dates.push(new Date(tk.startDate))
+      return dates
+    })
+    const earliest = new Date(Math.min(...allDates.map(d => d.getTime())))
+    // Start 2 days before earliest
+    startDate = new Date(earliest)
+    startDate.setDate(startDate.getDate() - 2)
+  }
+
+  const totalDays = 60 + (zoom === 'quarter' ? 60 : zoom === 'month' ? 30 : 0)
+  const timelineWidth = totalDays * DAY_WIDTH
+
+  const dateToX = (dateStr) => {
+    const d = new Date(dateStr)
+    d.setHours(0, 0, 0, 0)
+    const diff = (d.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    return diff * DAY_WIDTH
+  }
+
+  const todayX = (() => {
+    const diff = (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+    return diff * DAY_WIDTH
+  })()
+
+  // Build header: months + days
+  const headerDays = []
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(startDate)
+    d.setDate(d.getDate() + i)
+    headerDays.push(d)
+  }
+
+  // Month groups
+  const monthGroups = []
+  let curMonth = null
+  let curStart = 0
+  headerDays.forEach((d, i) => {
+    const key = `${d.getFullYear()}-${d.getMonth()}`
+    if (key !== curMonth) {
+      if (curMonth !== null) monthGroups.push({ label: `${curMonth}`, start: curStart, end: i })
+      curMonth = key
+      curStart = i
+    }
+  })
+  if (curMonth !== null) monthGroups.push({ label: curMonth, start: curStart, end: headerDays.length })
+
+  // Group tasks by stage
+  const grouped = STAGE_KEYS.map(sk => ({
+    stage: sk,
+    tasks: datedTasks.filter(tk => tk.stage === sk),
+  }))
+
+  const PRIORITY_COLORS = { high: Z.red, medium: Z.amber, low: Z.muted }
+
+  const zoomOpts = [
+    { value: 'normal', label: t('zoomWeek') },
+    { value: 'month',  label: t('zoomMonth') },
+    { value: 'quarter', label: t('zoomQuarter') },
+  ]
+
+  const ROW_H = 36
+
+  return (
+    <div>
+      {/* Zoom controls */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center' }}>
+        {zoomOpts.map(o => (
+          <button key={o.value} onClick={() => setZoom(o.value)} style={{
+            padding: '4px 12px', borderRadius: 6, border: `1px solid ${zoom === o.value ? Z.indigo : Z.border}`,
+            background: zoom === o.value ? Z.indigo + '22' : 'transparent',
+            color: zoom === o.value ? Z.indigo : Z.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>{o.label}</button>
+        ))}
+        <span style={{ fontSize: 11, color: Z.muted, marginLeft: 8 }}>{t('noDateTasks')}</span>
+      </div>
+
+      {/* Gantt grid */}
+      <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden', fontFamily: 'inherit' }}>
+        {/* Left fixed column */}
+        <div style={{ width: LEFT_COL, flexShrink: 0, borderRight: `1px solid ${Z.border}`, background: Z.surface, zIndex: 5 }}>
+          {/* Header spacer */}
+          <div style={{ height: 44, borderBottom: `1px solid ${Z.border}`, background: Z.bg }} />
+          {grouped.map(({ stage, tasks: stageTasks }) => {
+            if (stageTasks.length === 0) return null
+            return (
+              <div key={stage}>
+                {/* Stage header */}
+                <div style={{ padding: '6px 10px', fontSize: 10, fontWeight: 700, color: STAGE_COLORS[stage] || Z.muted, background: Z.bg, borderBottom: `1px solid ${Z.border}`, letterSpacing: 0.5 }}>
+                  {stageLabel(stage).toUpperCase()}
+                </div>
+                {stageTasks.map(tk => (
+                  <div key={tk.id} style={{ height: ROW_H, display: 'flex', alignItems: 'center', gap: 6, padding: '0 8px', borderBottom: `1px solid ${Z.border}`, background: Z.surface }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: PRIORITY_COLORS[tk.priority] || Z.muted, flexShrink: 0 }} />
+                    {tk.isKeyTask && <span style={{ fontSize: 10, color: Z.amber, flexShrink: 0 }}>⭐</span>}
+                    <span style={{ fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, cursor: 'pointer', color: Z.text }}
+                      onClick={() => onOpenTask(tk)}
+                      title={tk.title}
+                    >{tk.title}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Scrollable timeline */}
+        <div style={{ flex: 1, overflowX: 'auto', overflowY: 'visible', position: 'relative' }}>
+          {/* Header: month row */}
+          <div style={{ display: 'flex', height: 22, borderBottom: `1px solid ${Z.border}`, background: Z.bg, minWidth: timelineWidth, position: 'sticky', top: 0, zIndex: 4 }}>
+            {monthGroups.map((mg, mi) => {
+              const [yr, mon] = mg.label.split('-')
+              const d = new Date(Number(yr), Number(mon), 1)
+              const label = d.toLocaleString('en-US', { month: 'short', year: '2-digit' })
+              return (
+                <div key={mi} style={{ width: (mg.end - mg.start) * DAY_WIDTH, flexShrink: 0, fontSize: 10, fontWeight: 700, color: Z.muted, padding: '3px 6px', borderRight: `1px solid ${Z.border}`, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {label}
+                </div>
+              )
+            })}
+          </div>
+          {/* Header: day row */}
+          <div style={{ display: 'flex', height: 22, borderBottom: `1px solid ${Z.border}`, background: Z.bg, minWidth: timelineWidth, position: 'sticky', top: 22, zIndex: 4 }}>
+            {headerDays.map((d, i) => (
+              <div key={i} style={{ width: DAY_WIDTH, flexShrink: 0, fontSize: 9, color: d.getDay() === 0 || d.getDay() === 6 ? Z.red : Z.muted, textAlign: 'center', lineHeight: '22px', borderRight: `1px solid ${Z.border}22`, position: 'relative' }}>
+                {zoom === 'normal' || d.getDate() % (zoom === 'month' ? 3 : 7) === 1 ? d.getDate() : ''}
+              </div>
+            ))}
+          </div>
+
+          {/* Task rows */}
+          <div style={{ minWidth: timelineWidth, position: 'relative' }}>
+            {/* Today line */}
+            {todayX >= 0 && todayX <= timelineWidth && (
+              <div style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 1, background: Z.red, zIndex: 3, pointerEvents: 'none', borderLeft: `1.5px dashed ${Z.red}` }} />
+            )}
+
+            {grouped.map(({ stage, tasks: stageTasks }) => {
+              if (stageTasks.length === 0) return null
+              const stageColor = STAGE_COLORS[stage] || Z.muted
+              return (
+                <div key={stage}>
+                  {/* Stage header row (invisible, just height alignment) */}
+                  <div style={{ height: 24, background: Z.bg, borderBottom: `1px solid ${Z.border}` }} />
+                  {stageTasks.map(tk => {
+                    const hasStart = !!tk.startDate
+                    const hasDue = !!tk.dueDate
+                    const startX = hasStart ? dateToX(tk.startDate) : dateToX(tk.dueDate)
+                    const endX = hasDue ? dateToX(tk.dueDate) + DAY_WIDTH : startX + DAY_WIDTH
+                    const barWidth = Math.max(endX - startX, DAY_WIDTH)
+                    const assigneeInitial = tk.assignee ? tk.assignee[0].toUpperCase() : ''
+
+                    return (
+                      <div key={tk.id} style={{ height: ROW_H, borderBottom: `1px solid ${Z.border}`, position: 'relative', background: Z.surface }}>
+                        {/* Day column backgrounds (alternating weekend) */}
+                        {headerDays.map((d, di) => (
+                          (d.getDay() === 0 || d.getDay() === 6) ? (
+                            <div key={di} style={{ position: 'absolute', top: 0, bottom: 0, left: di * DAY_WIDTH, width: DAY_WIDTH, background: Z.bg + '88', pointerEvents: 'none' }} />
+                          ) : null
+                        ))}
+                        {/* Bar */}
+                        {startX < timelineWidth && (
+                          <div
+                            onClick={() => onOpenTask(tk)}
+                            title={tk.title}
+                            style={{
+                              position: 'absolute',
+                              top: 6, height: ROW_H - 12,
+                              left: Math.max(0, startX),
+                              width: barWidth,
+                              background: stageColor + 'aa',
+                              border: `1px solid ${stageColor}`,
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 6, paddingRight: 4,
+                              overflow: 'hidden',
+                              zIndex: 2,
+                              transition: 'opacity .1s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                          >
+                            <span style={{ fontSize: 10, fontWeight: 600, color: Z.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tk.title}</span>
+                            {assigneeInitial && (
+                              <span style={{ width: 16, height: 16, borderRadius: '50%', background: stageColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#000', flexShrink: 0 }}>
+                                {assigneeInitial}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
+function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels, onExportExcel }) {
+  const { t } = useLang()
+  const [viewMode, setViewMode] = useState('kanban') // 'kanban' | 'gantt'
   const [activeStageIdx, setActiveStageIdx] = useState(0)
   const [addingStage, setAddingStage] = useState(null)
   const [filterAssignee, setFilterAssignee] = useState('all')
@@ -1601,87 +1845,115 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
 
   return (
     <div>
-      {/* Filter bar */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterAssignee')}:</span>
-        <Select value={filterAssignee} onChange={setFilterAssignee}
-          options={assignees.map(a => ({ value: a, label: a === 'all' ? t('filterAll') : a }))} />
-        <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterPriority')}:</span>
-        <Select value={filterPriority} onChange={setFilterPriority} options={priorityOpts} />
-        <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterSort')}:</span>
-        <Select value={sortBy} onChange={setSortBy} options={sortOpts} />
-        <button
-          onClick={() => setKeyTasksOnly(v => !v)}
-          style={{
-            padding: '4px 10px', borderRadius: 6, border: `1px solid ${keyTasksOnly ? Z.amber : Z.border}`,
-            background: keyTasksOnly ? Z.amber + '22' : 'transparent',
-            color: keyTasksOnly ? Z.amber : Z.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          }}
-        >⭐ {t('keyTasksOnly')}</button>
-        {hasFilters && <Btn variant="ghost" small onClick={() => { setFilterAssignee('all'); setFilterPriority('all'); setSortBy('default'); setKeyTasksOnly(false) }}>{t('clearFilters')}</Btn>}
-      </div>
-      {isMobile && (
-        <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
-          {STAGE_KEYS.map((key, i) => (
-            <button key={key} onClick={() => setActiveStageIdx(i)} style={{
-              flex: 1, padding: '8px 4px',
-              background: i === activeStageIdx ? Z.indigo+'33' : 'transparent',
-              border: 'none', borderRight: i < STAGE_KEYS.length-1 ? `1px solid ${Z.border}` : 'none',
-              color: i === activeStageIdx ? Z.indigo : Z.muted,
-              fontSize: 12, fontWeight: i === activeStageIdx ? 700 : 400, cursor: 'pointer',
-            }}>{stageLabel(key)}</button>
+      {/* Top toolbar: view mode + Excel */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+        {/* View mode toggle */}
+        <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 6, overflow: 'hidden' }}>
+          {[{ id: 'kanban', label: '⬡ ' + t('tabKanban') }, { id: 'gantt', label: '▬ ' + t('gantt') }].map(m => (
+            <button key={m.id} onClick={() => setViewMode(m.id)} style={{
+              padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+              background: viewMode === m.id ? Z.border : 'transparent',
+              color: viewMode === m.id ? Z.text : Z.muted,
+              transition: 'background .15s, color .15s',
+            }}>{m.label}</button>
           ))}
         </div>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${STAGE_KEYS.length},1fr)`, gap: 12 }}>
-        {visibleStages.map(sk => {
-          const col = filteredTasks.filter(task => task.stage === sk)
-          const isDragOver = dragOverStage === sk
-          return (
-            <div key={sk}>
-              {!isMobile && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${Z.border}` }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: Z.muted }}>{stageLabel(sk)}</span>
-                  <span style={{ fontSize: 10, background: Z.border, borderRadius: 10, padding: '1px 7px', color: Z.muted }}>{col.length}</span>
-                </div>
-              )}
-              <div
-                onDragOver={e => { e.preventDefault(); setDragOverStage(sk) }}
-                onDragLeave={() => setDragOverStage(null)}
-                onDrop={e => handleDrop(e, sk)}
-                style={{
-                  display: 'flex', flexDirection: 'column', gap: 8, minHeight: 60,
-                  borderRadius: 8, transition: 'border .15s',
-                  border: isDragOver ? `2px dashed ${Z.indigo}` : '2px solid transparent',
-                  padding: isDragOver ? '4px' : '0',
-                }}
-              >
-                {col.map(task => (
-                  <TaskCard key={task.id} task={task} isMobile={isMobile}
-                    onStageChange={onStageChange} onPublish={onPublish}
-                    onDelete={onDelete} onDetail={onDetail}
-                    onToggleKeyTask={onToggleKeyTask}
-                    addLog={addLog} stageLabel={stageLabel} labels={labels} />
-                ))}
-                {/* + Add task button per column */}
-                <button onClick={() => setAddingStage(sk)} style={{
-                  border: `1px dashed ${Z.border}`, borderRadius: 8, padding: '9px',
-                  background: 'transparent', color: Z.muted, fontSize: 12, cursor: 'pointer',
-                  width: '100%', textAlign: 'center', transition: 'border-color .15s, color .15s',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = Z.indigo; e.currentTarget.style.color = Z.indigo }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.color = Z.muted }}
-                >
-                  {t('addTask')}
-                </button>
-              </div>
-            </div>
-          )
-        })}
+        <div style={{ marginLeft: 'auto' }}>
+          <Btn variant="default" small onClick={onExportExcel}>📥 {t('exportExcel')}</Btn>
+        </div>
       </div>
-      <AddTaskModal open={!!addingStage} onClose={() => setAddingStage(null)}
-        onAdd={task => { onAdd(task); setAddingStage(null) }}
-        defaultStage={addingStage} stageLabel={stageLabel} />
+
+      {/* Gantt view */}
+      {viewMode === 'gantt' && (
+        <GanttView tasks={filteredTasks} onOpenTask={onDetail} stageLabel={stageLabel} />
+      )}
+
+      {/* Kanban board */}
+      {viewMode === 'kanban' && (
+        <>
+          {/* Filter bar */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterAssignee')}:</span>
+            <Select value={filterAssignee} onChange={setFilterAssignee}
+              options={assignees.map(a => ({ value: a, label: a === 'all' ? t('filterAll') : a }))} />
+            <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterPriority')}:</span>
+            <Select value={filterPriority} onChange={setFilterPriority} options={priorityOpts} />
+            <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterSort')}:</span>
+            <Select value={sortBy} onChange={setSortBy} options={sortOpts} />
+            <button
+              onClick={() => setKeyTasksOnly(v => !v)}
+              style={{
+                padding: '4px 10px', borderRadius: 6, border: `1px solid ${keyTasksOnly ? Z.amber : Z.border}`,
+                background: keyTasksOnly ? Z.amber + '22' : 'transparent',
+                color: keyTasksOnly ? Z.amber : Z.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              }}
+            >⭐ {t('keyTasksOnly')}</button>
+            {hasFilters && <Btn variant="ghost" small onClick={() => { setFilterAssignee('all'); setFilterPriority('all'); setSortBy('default'); setKeyTasksOnly(false) }}>{t('clearFilters')}</Btn>}
+          </div>
+          {isMobile && (
+            <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+              {STAGE_KEYS.map((key, i) => (
+                <button key={key} onClick={() => setActiveStageIdx(i)} style={{
+                  flex: 1, padding: '8px 4px',
+                  background: i === activeStageIdx ? Z.indigo+'33' : 'transparent',
+                  border: 'none', borderRight: i < STAGE_KEYS.length-1 ? `1px solid ${Z.border}` : 'none',
+                  color: i === activeStageIdx ? Z.indigo : Z.muted,
+                  fontSize: 12, fontWeight: i === activeStageIdx ? 700 : 400, cursor: 'pointer',
+                }}>{stageLabel(key)}</button>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${STAGE_KEYS.length},1fr)`, gap: 12 }}>
+            {visibleStages.map(sk => {
+              const col = filteredTasks.filter(task => task.stage === sk)
+              const isDragOver = dragOverStage === sk
+              return (
+                <div key={sk}>
+                  {!isMobile && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: `1px solid ${Z.border}` }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: Z.muted }}>{stageLabel(sk)}</span>
+                      <span style={{ fontSize: 10, background: Z.border, borderRadius: 10, padding: '1px 7px', color: Z.muted }}>{col.length}</span>
+                    </div>
+                  )}
+                  <div
+                    onDragOver={e => { e.preventDefault(); setDragOverStage(sk) }}
+                    onDragLeave={() => setDragOverStage(null)}
+                    onDrop={e => handleDrop(e, sk)}
+                    style={{
+                      display: 'flex', flexDirection: 'column', gap: 8, minHeight: 60,
+                      borderRadius: 8, transition: 'border .15s',
+                      border: isDragOver ? `2px dashed ${Z.indigo}` : '2px solid transparent',
+                      padding: isDragOver ? '4px' : '0',
+                    }}
+                  >
+                    {col.map(task => (
+                      <TaskCard key={task.id} task={task} isMobile={isMobile}
+                        onStageChange={onStageChange} onPublish={onPublish}
+                        onDelete={onDelete} onDetail={onDetail}
+                        onToggleKeyTask={onToggleKeyTask}
+                        addLog={addLog} stageLabel={stageLabel} labels={labels} />
+                    ))}
+                    {/* + Add task button per column */}
+                    <button onClick={() => setAddingStage(sk)} style={{
+                      border: `1px dashed ${Z.border}`, borderRadius: 8, padding: '9px',
+                      background: 'transparent', color: Z.muted, fontSize: 12, cursor: 'pointer',
+                      width: '100%', textAlign: 'center', transition: 'border-color .15s, color .15s',
+                    }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = Z.indigo; e.currentTarget.style.color = Z.indigo }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.color = Z.muted }}
+                    >
+                      {t('addTask')}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <AddTaskModal open={!!addingStage} onClose={() => setAddingStage(null)}
+            onAdd={task => { onAdd(task); setAddingStage(null) }}
+            defaultStage={addingStage} stageLabel={stageLabel} />
+        </>
+      )}
     </div>
   )
 }
@@ -2861,7 +3133,10 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
             onAdd={onAddTask} addLog={addLog}
             onToggleKeyTask={onToggleKeyTask}
             stageLabel={stageLabel} totalTaskCount={filteredByProject.length}
-            labels={labels} />
+            labels={labels}
+            allSubTasks={allSubTasks}
+            allMembers={allMembers}
+            onExportExcel={() => exportTasksToExcel(filteredByProject, allSubTasks, allMembers, labels)} />
         )}
         {activeTab === 'sheet' && (
           <SpreadsheetView tasks={filteredByProject} onUpdateTask={onUpdateTask}
