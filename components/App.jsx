@@ -5,17 +5,33 @@ import { generateAiPmReport } from '../lib/aipm'
 import { exportTasksToExcel } from '../lib/excel'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
-const Z = {
+const DARK = {
   bg:      '#09090b',
   surface: '#18181b',
   border:  '#27272a',
   text:    '#f4f4f5',
-  muted:   '#a1a1aa',
-  emerald: '#34d399',
-  indigo:  '#818cf8',
-  red:     '#f87171',
-  amber:   '#fbbf24',
+  muted:   '#71717a',
+  emerald: '#10b981',
+  indigo:  '#6366f1',
+  red:     '#ef4444',
+  amber:   '#f59e0b',
 }
+
+const LIGHT = {
+  bg:      '#f8fafc',
+  surface: '#ffffff',
+  border:  '#e2e8f0',
+  text:    '#0f172a',
+  muted:   '#64748b',
+  emerald: '#059669',
+  indigo:  '#4f46e5',
+  red:     '#dc2626',
+  amber:   '#d97706',
+}
+
+// ─── THEME CONTEXT ───────────────────────────────────────────────────────────
+const ThemeCtx = createContext(DARK)
+const useTheme = () => useContext(ThemeCtx)
 
 // ─── I18N ────────────────────────────────────────────────────────────────────
 const TR = {
@@ -587,6 +603,7 @@ const sim = (d = 400) => new Promise(r => setTimeout(r, d))
 // ─── ATOMS ───────────────────────────────────────────────────────────────────
 function LangToggle() {
   const { lang, setLang } = useLang()
+  const Z = useTheme()
   return (
     <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 6, overflow: 'hidden', flexShrink: 0 }}>
       {['en', 'ko'].map(l => (
@@ -602,7 +619,9 @@ function LangToggle() {
   )
 }
 
-function Badge({ children, color = Z.muted }) {
+function Badge({ children, color }) {
+  const Z = useTheme()
+  if (color === undefined) color = Z.muted
   return (
     <span style={{
       display: 'inline-block', padding: '1px 7px', borderRadius: 4,
@@ -614,11 +633,13 @@ function Badge({ children, color = Z.muted }) {
 
 function PriorityBadge({ priorityKey }) {
   const { t } = useLang()
+  const Z = useTheme()
   const colors = { high: Z.red, medium: Z.amber, low: Z.muted }
   return <Badge color={colors[priorityKey] || Z.muted}>{t(`priority.${priorityKey}`)}</Badge>
 }
 
 function Btn({ children, onClick, variant = 'default', small, style, disabled }) {
+  const Z = useTheme()
   const base = {
     display: 'inline-flex', alignItems: 'center', gap: 6,
     border: 'none', borderRadius: 6,
@@ -643,6 +664,7 @@ function Btn({ children, onClick, variant = 'default', small, style, disabled })
 }
 
 function Select({ value, onChange, options, style }) {
+  const Z = useTheme()
   const norm = options.map(o => typeof o === 'string' ? { value: o, label: o } : o)
   return (
     <select value={value} onChange={e => onChange(e.target.value)} style={{
@@ -656,6 +678,7 @@ function Select({ value, onChange, options, style }) {
 }
 
 function Toggle({ checked, onChange }) {
+  const Z = useTheme()
   return (
     <div onClick={() => onChange(!checked)} style={{
       width: 36, height: 20, borderRadius: 10,
@@ -677,7 +700,9 @@ function Overlay({ onClick }) {
   return <div onClick={onClick} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 55 }} />
 }
 
+
 function ModalShell({ children, maxWidth = 560, onClose }) {
+  const Z = useTheme()
   return (
     <>
       <Overlay onClick={onClose} />
@@ -701,6 +726,7 @@ function ModalShell({ children, maxWidth = 560, onClose }) {
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ msg, onDone }) {
+  const Z = useTheme()
   useEffect(() => { const id = setTimeout(onDone, 2200); return () => clearTimeout(id) }, [onDone])
   return (
     <div style={{
@@ -716,6 +742,7 @@ function Toast({ msg, onDone }) {
 // ─── SIDE DRAWER ─────────────────────────────────────────────────────────────
 function SideDrawer({ open, onClose, logs }) {
   const { t } = useLang()
+  const Z = useTheme()
   return (
     <>
       {open && <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 40 }} />}
@@ -753,6 +780,7 @@ function SideDrawer({ open, onClose, logs }) {
 // ─── ADD TASK MODAL (P0) ─────────────────────────────────────────────────────
 function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel }) {
   const { t } = useLang()
+  const Z = useTheme()
   const stageOptions = STAGE_KEYS.map(k => ({ value: k, label: stageLabel(k) }))
   const priorityOptions = PRIORITY_KEYS.map(k => ({ value: k, label: t(`priority.${k}`) }))
   const [form, setForm] = useState({ title: '', assignee: '', dueDate: '', priority: 'medium', stage: defaultStage || 'planning' })
@@ -807,7 +835,7 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel }) {
           <div>
             <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('fieldDueDate')}</div>
             <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)}
-              style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }} />
+              style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', colorScheme: 'auto' }} />
           </div>
         </div>
       </div>
@@ -822,6 +850,7 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel }) {
 // ─── LABEL MANAGER MODAL ─────────────────────────────────────────────────────
 function LabelManagerModal({ open, onClose, labels, setLabels }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(LABEL_PRESET_COLORS[0])
 
@@ -875,6 +904,7 @@ function LabelManagerModal({ open, onClose, labels, setLabels }) {
 
 // ─── COMMENT TEXT RENDERER (highlights @mentions) ───────────────────────────
 function CommentText({ text }) {
+  const Z = useTheme()
   const parts = text.split(/(@\w[\w\s]*?\b)/g)
   return (
     <span>
@@ -892,6 +922,7 @@ function CommentText({ text }) {
 // ─── TASK DETAIL MODAL (P2) ──────────────────────────────────────────────────
 function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, onAddSubTask, onToggleSubTask, onUpdateSubTask, onDeleteSubTask, labels, setLabels, projectMembers, currentUser }) {
   const { t } = useLang()
+  const Z = useTheme()
   const stageOptions    = STAGE_KEYS.map(k => ({ value: k, label: stageLabel(k) }))
   const priorityOptions = PRIORITY_KEYS.map(k => ({ value: k, label: t(`priority.${k}`) }))
   const [form, setForm] = useState(null)
@@ -1007,7 +1038,7 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, 
             <div>
               <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldDueDate').toUpperCase()}</div>
               <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)}
-                style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }} />
+                style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box', colorScheme: 'auto' }} />
             </div>
           </div>
           {/* Labels */}
@@ -1057,7 +1088,7 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, 
                   <input value={st.assignee} onChange={e => onUpdateSubTask(st.id, 'assignee', e.target.value)}
                     placeholder="assignee" style={{ width: 70, background: 'transparent', border: 'none', color: Z.muted, fontSize: 11, outline: 'none' }} />
                   <input type="date" value={st.dueDate} onChange={e => onUpdateSubTask(st.id, 'dueDate', e.target.value)}
-                    style={{ width: 100, background: 'transparent', border: 'none', color: Z.muted, fontSize: 11, outline: 'none', colorScheme: 'dark' }} />
+                    style={{ width: 100, background: 'transparent', border: 'none', color: Z.muted, fontSize: 11, outline: 'none', colorScheme: 'auto' }} />
                   <button onClick={() => onDeleteSubTask(st.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.muted, fontSize: 11, padding: '1px 3px' }}
                     onMouseEnter={e => e.currentTarget.style.color = Z.red}
                     onMouseLeave={e => e.currentTarget.style.color = Z.muted}
@@ -1163,6 +1194,7 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, 
 // ─── SHARE MODAL (P0) ────────────────────────────────────────────────────────
 function ShareModal({ open, onClose }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [copied, setCopied] = useState(false)
   const fakeUrl = 'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/edit'
 
@@ -1196,6 +1228,7 @@ function ShareModal({ open, onClose }) {
 // ─── AI PARSER MODAL ─────────────────────────────────────────────────────────
 function AIParserModal({ open, onClose, onConfirm, addLog }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
@@ -1291,6 +1324,7 @@ function AIParserModal({ open, onClose, onConfirm, addLog }) {
 // ─── TASK CARD ────────────────────────────────────────────────────────────────
 function TaskCard({ task, isMobile, onStageChange, onPublish, onDelete, onDetail, onToggleKeyTask, addLog, stageLabel, labels }) {
   const { t } = useLang()
+  const Z = useTheme()
   const stageIdx = STAGE_KEYS.indexOf(task.stage)
 
   const moveStage = async (dir) => {
@@ -1362,6 +1396,7 @@ function TaskCard({ task, isMobile, onStageChange, onPublish, onDelete, onDetail
 // ─── PROJECT MODAL ───────────────────────────────────────────────────────────
 function ProjectModal({ open, onClose, onSave, initial }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [form, setForm] = useState({ name: '', description: '', color: PROJECT_COLORS[0] })
   useEffect(() => {
     if (open) setForm(initial ? { name: initial.name, description: initial.description || '', color: initial.color || PROJECT_COLORS[0] } : { name: '', description: '', color: PROJECT_COLORS[0] })
@@ -1406,6 +1441,7 @@ function ProjectModal({ open, onClose, onSave, initial }) {
 // ─── PROJECTS VIEW ────────────────────────────────────────────────────────────
 function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDeleteProject, onSelectProject }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState(null)
 
@@ -1471,6 +1507,7 @@ function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDelet
 // ─── MY TASKS VIEW ────────────────────────────────────────────────────────────
 function MyTasksView({ tasks, projects, user, onDetail }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [keyTasksOnly, setKeyTasksOnly] = useState(false)
   const myTasks = tasks.filter(tk => tk.assignee && user?.name && tk.assignee.toLowerCase() === user.name.toLowerCase())
   const displayTasks = keyTasksOnly ? myTasks.filter(tk => tk.isKeyTask) : myTasks
@@ -1569,6 +1606,7 @@ const STAGE_COLORS = {
 
 function GanttView({ tasks, onOpenTask, stageLabel }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [zoom, setZoom] = useState('normal') // normal | month | quarter
 
   const DAY_WIDTH = zoom === 'normal' ? 28 : zoom === 'month' ? 14 : 8
@@ -1790,6 +1828,7 @@ function GanttView({ tasks, onOpenTask, stageLabel }) {
 // ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
 function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels, onExportExcel }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [viewMode, setViewMode] = useState('kanban') // 'kanban' | 'gantt'
   const [activeStageIdx, setActiveStageIdx] = useState(0)
   const [addingStage, setAddingStage] = useState(null)
@@ -1960,6 +1999,7 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
 
 // ─── INLINE INPUT ────────────────────────────────────────────────────────────
 function InlineInput({ value, onChange, type = 'text' }) {
+  const Z = useTheme()
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(value)
   if (!editing && val !== value) setVal(value)
@@ -1983,6 +2023,7 @@ function InlineInput({ value, onChange, type = 'text' }) {
 // ─── SPREADSHEET VIEW ────────────────────────────────────────────────────────
 function SpreadsheetView({ tasks, onUpdateTask, onDeleteTask, onAddTask, addLog, stageLabel }) {
   const { t } = useLang()
+  const Z = useTheme()
   const stageOptions    = STAGE_KEYS.map(k => ({ value: k, label: stageLabel(k) }))
   const priorityOptions = PRIORITY_KEYS.map(k => ({ value: k, label: t(`priority.${k}`) }))
   const [addModal, setAddModal] = useState(false)
@@ -2050,6 +2091,7 @@ function SpreadsheetView({ tasks, onUpdateTask, onDeleteTask, onAddTask, addLog,
 // ─── AUTOPRESS VIEW ──────────────────────────────────────────────────────────
 function AutopressView({ tasks, addLog }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [selected, setSelected] = useState(null)
   const [article, setArticle] = useState(null)
   const [generating, setGenerating] = useState(false)
@@ -2118,6 +2160,7 @@ ${t('articleInsightsBody')(task.assignee, task.dueDate)}
 // ─── SETTINGS VIEW ───────────────────────────────────────────────────────────
 function SettingsView({ user, stageLabels, setStageLabels, spreadsheetId, syncing }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [isPublic, setIsPublic]         = useState(true)
   const [notifications, setNotifications] = useState(true)
   const [autoSync, setAutoSync]         = useState(true)
@@ -2248,6 +2291,7 @@ function SettingsView({ user, stageLabels, setStageLabels, spreadsheetId, syncin
 // ─── MEMBER PROFILE MODAL ────────────────────────────────────────────────────
 function MemberProfileModal({ open, onClose, member, onSave, canEdit }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [form, setForm] = useState({ jobTitle: '', responsibilities: '', workStyle: '' })
   useEffect(() => {
     if (member) setForm({ jobTitle: member.jobTitle || '', responsibilities: member.responsibilities || '', workStyle: member.workStyle || '' })
@@ -2296,6 +2340,7 @@ function MemberProfileModal({ open, onClose, member, onSave, canEdit }) {
 // ─── WORK TEAM TAB ────────────────────────────────────────────────────────────
 function WorkTeamTab({ projects, allMembers, onAddMember, onUpdateMember, onDeleteMember, currentUser }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [selectedProjId, setSelectedProjId] = useState(projects[0]?.id || null)
   const [addingEmail, setAddingEmail] = useState('')
   const [addingOpen, setAddingOpen] = useState(false)
@@ -2434,6 +2479,7 @@ function WorkTeamTab({ projects, allMembers, onAddMember, onUpdateMember, onDele
 // ─── AI PM VIEW ──────────────────────────────────────────────────────────────
 function AiPmView({ members, tasks, subTasks }) {
   const { t, lang } = useLang()
+  const Z = useTheme()
   const [reportLang, setReportLang] = useState(lang)
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState('')
@@ -2633,6 +2679,7 @@ function AiPmView({ members, tasks, subTasks }) {
 // ─── TUTORIAL ────────────────────────────────────────────────────────────────
 function TutorialModal({ open, onClose }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [step, setStep] = useState(0)
   const steps = t('tutorialSteps')
   if (!open) return null
@@ -2692,8 +2739,9 @@ function TutorialModal({ open, onClose }) {
   )
 }
 
-function Workspace({ user, onSignOut, onSignIn, isMobile }) {
+function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [tasks, setTasks]                   = useState(user?.sandbox ? INITIAL_TASKS : [])
   const [projects, setProjects]             = useState([])
   const [selectedProjectId, setSelectedProjectId] = useState(null)
@@ -3099,6 +3147,9 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
               {syncing ? 'Syncing…' : syncError ? 'Sync error' : spreadsheetId ? 'Sheets connected' : 'Connecting…'}
             </div>
           )}
+          <button onClick={onToggleDark} title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 14, color: Z.muted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {darkMode ? '☀️' : '🌙'}
+          </button>
           <LangToggle />
           {!isMobile && <Btn variant="ghost" small onClick={() => setTutorialOpen(true)}>{t('tutorialBtn')}</Btn>}
           {!isMobile && <Btn variant="default" small onClick={() => setShareOpen(true)}>{t('shareBtn')}</Btn>}
@@ -3209,6 +3260,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
 
 function SyncShowcase() {
   const { t } = useLang()
+  const Z = useTheme()
   const [stages, setStages]     = useState([0, 1, 3])
   const [activeCell, setActiveCell] = useState(null)
   const [apiLogs, setApiLogs]   = useState([])
@@ -3268,6 +3320,7 @@ function SyncShowcase() {
 
 function AIDemo() {
   const { t } = useLang()
+  const Z = useTheme()
   const [text, setText]     = useState('')
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -3304,8 +3357,9 @@ function AIDemo() {
 }
 
 // ─── LANDING ─────────────────────────────────────────────────────────────────
-function Landing({ onSandbox, onResume }) {
+function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
   const { t } = useLang()
+  const Z = useTheme()
   const [redirecting, setRedirecting] = useState(false)
   const [authError, setAuthError] = useState(() => {
     if (typeof window === 'undefined') return null
@@ -3336,6 +3390,9 @@ function Landing({ onSandbox, onResume }) {
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 0', borderBottom: `1px solid ${Z.border}`, marginBottom: 64, gap: 12, flexWrap: 'wrap' }}>
         <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: -0.5 }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button onClick={onToggleDark} title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 14, color: Z.muted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {darkMode ? '☀️' : '🌙'}
+          </button>
           <LangToggle />
           <Btn variant="ghost" onClick={onSandbox}>{t('tryGuest')}</Btn>
           <Btn variant="emerald" onClick={handleSignIn} disabled={redirecting}>{redirecting ? t('signingIn') : t('signInGoogle')}</Btn>
@@ -3383,6 +3440,23 @@ function Landing({ onSandbox, onResume }) {
 // ─── APP ROOT ────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang]             = useState('en')
+  const [darkMode, setDarkMode]     = useState(() => {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('tf_dark_mode')
+        if (saved !== null) return saved === 'true'
+      } catch (e) { void e }
+    }
+    return true
+  })
+  const Z = darkMode ? DARK : LIGHT
+  const toggleDark = () => {
+    setDarkMode(d => {
+      const next = !d
+      try { localStorage.setItem('tf_dark_mode', String(next)) } catch (e) { void e }
+      return next
+    })
+  }
   const [user, setUser]             = useState(null)
   const [scene, setScene]           = useState(() => {
     // Restore session on load — avoids flash to landing on refresh
@@ -3435,11 +3509,13 @@ export default function App() {
   }, []) // mount-only intentional
 
   return (
-    <LangContext.Provider value={{ lang, setLang, t }}>
-      <div style={{ fontFamily: "'Inter',system-ui,-apple-system,sans-serif", background: Z.bg, color: Z.text, minHeight: '100vh', fontSize: 14, lineHeight: 1.5, opacity: transitioning ? 0 : 1, transition: 'opacity .3s' }}>
-        {scene === 'landing'    && <Landing onSandbox={handleSandbox} onResume={user ? () => setScene('workspace') : null} />}
-        {scene === 'workspace'  && <Workspace user={user} onSignOut={handleSignOut} onSignIn={() => enter({ name: t('demoUserName'), email: t('demoUserEmail') })} isMobile={isMobile} />}
-      </div>
-    </LangContext.Provider>
+    <ThemeCtx.Provider value={Z}>
+      <LangContext.Provider value={{ lang, setLang, t }}>
+        <div style={{ fontFamily: "'Inter',system-ui,-apple-system,sans-serif", background: Z.bg, color: Z.text, minHeight: '100vh', fontSize: 14, lineHeight: 1.5, opacity: transitioning ? 0 : 1, transition: 'opacity .3s' }}>
+          {scene === 'landing'    && <Landing onSandbox={handleSandbox} onResume={user ? () => setScene('workspace') : null} onToggleDark={toggleDark} darkMode={darkMode} />}
+          {scene === 'workspace'  && <Workspace user={user} onSignOut={handleSignOut} onSignIn={() => enter({ name: t('demoUserName'), email: t('demoUserEmail') })} isMobile={isMobile} onToggleDark={toggleDark} darkMode={darkMode} />}
+        </div>
+      </LangContext.Provider>
+    </ThemeCtx.Provider>
   )
 }
