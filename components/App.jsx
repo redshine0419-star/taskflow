@@ -1734,7 +1734,7 @@ function AIDemo() {
 }
 
 // ─── LANDING ─────────────────────────────────────────────────────────────────
-function Landing({ onSandbox }) {
+function Landing({ onSandbox, onResume }) {
   const { t } = useLang()
   const [redirecting, setRedirecting] = useState(false)
   const [authError, setAuthError] = useState(() => {
@@ -1782,8 +1782,8 @@ function Landing({ onSandbox }) {
         </h1>
         <p style={{ fontSize: 15, color: Z.muted, maxWidth: 520, margin: '0 auto 32px' }}>{t('heroBody')}</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-          <Btn variant="emerald" onClick={handleSignIn} disabled={redirecting} style={{ fontSize: 14, padding: '10px 24px' }}>
-            {redirecting ? t('signingIn') : t('ctaStart')}
+          <Btn variant="emerald" onClick={onResume ?? handleSignIn} disabled={redirecting} style={{ fontSize: 14, padding: '10px 24px' }}>
+            {onResume ? t('ctaStart') : redirecting ? t('signingIn') : t('ctaStart')}
           </Btn>
           {/* P0: sandbox CTA in hero too */}
           <Btn variant="ghost" onClick={onSandbox} style={{ fontSize: 14 }}>{t('tryGuest')}</Btn>
@@ -1867,7 +1867,7 @@ export default function App() {
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>
       <div style={{ fontFamily: "'Inter',system-ui,-apple-system,sans-serif", background: Z.bg, color: Z.text, minHeight: '100vh', fontSize: 14, lineHeight: 1.5, opacity: transitioning ? 0 : 1, transition: 'opacity .3s' }}>
-        {scene === 'landing'    && <Landing onSandbox={handleSandbox} />}
+        {scene === 'landing'    && <Landing onSandbox={handleSandbox} onResume={user ? () => setScene('workspace') : null} />}
         {scene === 'workspace'  && <Workspace user={user} onSignOut={handleSignOut} onSignIn={() => enter({ name: t('demoUserName'), email: t('demoUserEmail') })} isMobile={isMobile} />}
       </div>
     </LangContext.Provider>
