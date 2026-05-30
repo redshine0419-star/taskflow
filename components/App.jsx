@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
-import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId, loadProjects, appendProject, updateProject, deleteProject, getProjectsSheetId } from '../lib/gapi'
+import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId, loadProjects, appendProject, updateProject, deleteProject, getProjectsSheetId, loadSubTasks, appendSubTask, updateSubTaskRow, deleteSubTaskRow, getSubTasksSheetId } from '../lib/gapi'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const Z = {
@@ -246,6 +246,17 @@ Attendees: Alex, Jordan, Sam
     emptyStateTitle: 'No tasks here yet',
     emptyStateDesc:  'Add your first task to kick off the workflow',
     emptyStateAdd:   '+ Create first task',
+    // P1 features
+    subtasks:        'Subtasks',
+    addSubtask:      'Add subtask',
+    labels:          'Labels',
+    manageLabels:    'Manage labels',
+    keyTask:         'Key task',
+    keyTasksOnly:    'Key tasks only',
+    labelName:       'Label name',
+    labelColor:      'Color',
+    addLabel:        'Add label',
+    noLabels:        'No labels yet',
   },
 
   ko: {
@@ -449,6 +460,17 @@ Attendees: Alex, Jordan, Sam
     emptyStateTitle: '태스크가 없습니다',
     emptyStateDesc:  '첫 번째 태스크를 추가해 워크플로우를 시작하세요',
     emptyStateAdd:   '+ 첫 태스크 만들기',
+    // P1 features
+    subtasks:        '서브태스크',
+    addSubtask:      '서브태스크 추가',
+    labels:          '라벨',
+    manageLabels:    '라벨 관리',
+    keyTask:         '핵심 태스크',
+    keyTasksOnly:    '핵심 태스크만',
+    labelName:       '라벨 이름',
+    labelColor:      '색상',
+    addLabel:        '라벨 추가',
+    noLabels:        '라벨이 없습니다',
   },
 }
 
@@ -462,16 +484,35 @@ const PRIORITY_KEYS = ['high', 'medium', 'low']
 let nextTaskId = 100
 
 const INITIAL_TASKS = [
-  { id: 1,  title: 'Homepage Renewal Planning',     stage: 'planning',   assignee: 'Alex',   dueDate: '2026-06-10', priority: 'high',   rowNum: 2, published: false, desc: '', comments: [], projectId: '' },
-  { id: 2,  title: 'Login UI Wireframe',            stage: 'design',     assignee: 'Jordan', dueDate: '2026-06-15', priority: 'medium', rowNum: 3, published: false, desc: '', comments: [], projectId: '' },
-  { id: 3,  title: 'Main Landing Publishing',       stage: 'publishing', assignee: 'Sam',    dueDate: '2026-06-20', priority: 'medium', rowNum: 4, published: false, desc: '', comments: [], projectId: '' },
-  { id: 4,  title: 'API Auth Module',               stage: 'dev',        assignee: 'Casey',  dueDate: '2026-06-25', priority: 'high',   rowNum: 5, published: false, desc: '', comments: [], projectId: '' },
-  { id: 5,  title: 'Dashboard Component Design',    stage: 'planning',   assignee: 'Morgan', dueDate: '2026-07-01', priority: 'low',    rowNum: 6, published: false, desc: '', comments: [], projectId: '' },
-  { id: 6,  title: 'Mobile Responsive Design',      stage: 'design',     assignee: 'Jordan', dueDate: '2026-07-05', priority: 'high',   rowNum: 7, published: false, desc: '', comments: [], projectId: '' },
-  { id: 7,  title: 'Search Feature Implementation', stage: 'dev',        assignee: 'Alex',   dueDate: '2026-07-10', priority: 'medium', rowNum: 8, published: true,  desc: '', comments: [], projectId: '' },
+  { id: 1,  title: 'Homepage Renewal Planning',     stage: 'planning',   assignee: 'Alex',   dueDate: '2026-06-10', priority: 'high',   rowNum: 2, published: false, desc: '', comments: [], projectId: '', labelIds: [], isKeyTask: false },
+  { id: 2,  title: 'Login UI Wireframe',            stage: 'design',     assignee: 'Jordan', dueDate: '2026-06-15', priority: 'medium', rowNum: 3, published: false, desc: '', comments: [], projectId: '', labelIds: [], isKeyTask: false },
+  { id: 3,  title: 'Main Landing Publishing',       stage: 'publishing', assignee: 'Sam',    dueDate: '2026-06-20', priority: 'medium', rowNum: 4, published: false, desc: '', comments: [], projectId: '', labelIds: [], isKeyTask: false },
+  { id: 4,  title: 'API Auth Module',               stage: 'dev',        assignee: 'Casey',  dueDate: '2026-06-25', priority: 'high',   rowNum: 5, published: false, desc: '', comments: [], projectId: '', labelIds: [], isKeyTask: false },
+  { id: 5,  title: 'Dashboard Component Design',    stage: 'planning',   assignee: 'Morgan', dueDate: '2026-07-01', priority: 'low',    rowNum: 6, published: false, desc: '', comments: [], projectId: '', labelIds: [], isKeyTask: false },
+  { id: 6,  title: 'Mobile Responsive Design',      stage: 'design',     assignee: 'Jordan', dueDate: '2026-07-05', priority: 'high',   rowNum: 7, published: false, desc: '', comments: [], projectId: '', labelIds: [], isKeyTask: false },
+  { id: 7,  title: 'Search Feature Implementation', stage: 'dev',        assignee: 'Alex',   dueDate: '2026-07-10', priority: 'medium', rowNum: 8, published: true,  desc: '', comments: [], projectId: '', labelIds: [], isKeyTask: false },
 ]
 
 const PROJECT_COLORS = ['#6366f1', '#14b8a6', '#f97316', '#ef4444', '#eab308', '#34d399']
+
+const DEFAULT_LABELS = [
+  { id: 'l1', name: 'Bug',     color: '#ef4444' },
+  { id: 'l2', name: 'Feature', color: '#6366f1' },
+  { id: 'l3', name: 'Design',  color: '#f97316' },
+  { id: 'l4', name: 'Docs',    color: '#14b8a6' },
+]
+const LABEL_PRESET_COLORS = ['#ef4444','#f97316','#eab308','#34d399','#14b8a6','#6366f1','#a855f7','#ec4899']
+
+function loadLabels() {
+  try {
+    const raw = localStorage.getItem('tf_labels')
+    if (raw) return JSON.parse(raw)
+  } catch (e) { void e }
+  return DEFAULT_LABELS
+}
+function saveLabels(labels) {
+  try { localStorage.setItem('tf_labels', JSON.stringify(labels)) } catch (e) { void e }
+}
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 let logId = 0
@@ -717,13 +758,69 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel }) {
   )
 }
 
+// ─── LABEL MANAGER MODAL ─────────────────────────────────────────────────────
+function LabelManagerModal({ open, onClose, labels, setLabels }) {
+  const { t } = useLang()
+  const [newName, setNewName] = useState('')
+  const [newColor, setNewColor] = useState(LABEL_PRESET_COLORS[0])
+
+  const addLabel = () => {
+    if (!newName.trim()) return
+    const label = { id: `l_${Date.now()}`, name: newName.trim(), color: newColor }
+    const updated = [...labels, label]
+    setLabels(updated)
+    saveLabels(updated)
+    setNewName('')
+  }
+
+  const deleteLabel = (id) => {
+    const updated = labels.filter(l => l.id !== id)
+    setLabels(updated)
+    saveLabels(updated)
+  }
+
+  if (!open) return null
+  return (
+    <ModalShell onClose={onClose} maxWidth={400}>
+      <div style={{ padding: '18px 24px', borderBottom: `1px solid ${Z.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{t('manageLabels')}</div>
+        <Btn variant="ghost" small onClick={onClose}>✕</Btn>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {labels.length === 0 && <div style={{ color: Z.muted, fontSize: 12 }}>{t('noLabels')}</div>}
+        {labels.map(l => (
+          <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: l.color, flexShrink: 0, display: 'inline-block' }} />
+            <span style={{ flex: 1, fontSize: 13 }}>{l.name}</span>
+            <Btn variant="danger" small onClick={() => deleteLabel(l.id)}>✕</Btn>
+          </div>
+        ))}
+        <div style={{ borderTop: `1px solid ${Z.border}`, paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('addLabel')}</div>
+          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder={t('labelName')}
+            onKeyDown={e => e.key === 'Enter' && addLabel()}
+            style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 8px', outline: 'none' }} />
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {LABEL_PRESET_COLORS.map(c => (
+              <div key={c} onClick={() => setNewColor(c)} style={{ width: 22, height: 22, borderRadius: 4, background: c, cursor: 'pointer', border: newColor === c ? `2px solid ${Z.text}` : '2px solid transparent', boxSizing: 'border-box' }} />
+            ))}
+          </div>
+          <Btn variant="primary" small onClick={addLabel} disabled={!newName.trim()}>{t('addLabel')}</Btn>
+        </div>
+      </div>
+    </ModalShell>
+  )
+}
+
 // ─── TASK DETAIL MODAL (P2) ──────────────────────────────────────────────────
-function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel }) {
+function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, onAddSubTask, onToggleSubTask, onUpdateSubTask, onDeleteSubTask, labels, setLabels }) {
   const { t } = useLang()
   const stageOptions    = STAGE_KEYS.map(k => ({ value: k, label: stageLabel(k) }))
   const priorityOptions = PRIORITY_KEYS.map(k => ({ value: k, label: t(`priority.${k}`) }))
   const [form, setForm] = useState(null)
   const [commentText, setCommentText] = useState('')
+  const [newSubtask, setNewSubtask] = useState('')
+  const [labelManagerOpen, setLabelManagerOpen] = useState(false)
 
   useEffect(() => { if (task) setForm({ ...task }) }, [task])
 
@@ -740,73 +837,152 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel }) {
 
   const save = () => { onUpdate(form); onClose() }
 
+  const addSubtask = () => {
+    if (!newSubtask.trim()) return
+    const st = { id: `st_${Date.now()}`, taskId: String(task.id), title: newSubtask.trim(), done: false, assignee: '', dueDate: '' }
+    onAddSubTask(st)
+    setNewSubtask('')
+  }
+
+  const toggleLabel = (labelId) => {
+    const current = form.labelIds || []
+    const next = current.includes(labelId) ? current.filter(id => id !== labelId) : [...current, labelId]
+    set('labelIds', next)
+  }
+
+  const taskSubTasks = subTasks || []
+  const doneCount = taskSubTasks.filter(s => s.done).length
+  const totalCount = taskSubTasks.length
+
   return (
-    <ModalShell onClose={onClose} maxWidth={600}>
-      <div style={{ padding: '18px 24px', borderBottom: `1px solid ${Z.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>{t('detailTitle')}</div>
-        <Btn variant="ghost" small onClick={onClose}>✕</Btn>
-      </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Title */}
-        <input value={form.title} onChange={e => set('title', e.target.value)}
-          style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 15, fontWeight: 700, padding: '8px 10px', outline: 'none', boxSizing: 'border-box' }} />
-        {/* Meta row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldStage').toUpperCase()}</div>
-            <Select value={form.stage} onChange={v => set('stage', v)} options={stageOptions} style={{ width: '100%' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldPriority').toUpperCase()}</div>
-            <Select value={form.priority} onChange={v => set('priority', v)} options={priorityOptions} style={{ width: '100%' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldAssignee').toUpperCase()}</div>
-            <input value={form.assignee} onChange={e => set('assignee', e.target.value)}
-              style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box' }} />
-          </div>
-          <div>
-            <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldDueDate').toUpperCase()}</div>
-            <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)}
-              style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }} />
-          </div>
+    <>
+      <ModalShell onClose={onClose} maxWidth={600}>
+        <div style={{ padding: '18px 24px', borderBottom: `1px solid ${Z.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{t('detailTitle')}</div>
+          <Btn variant="ghost" small onClick={onClose}>✕</Btn>
         </div>
-        {/* Description */}
-        <div>
-          <div style={{ fontSize: 10, color: Z.muted, marginBottom: 6, fontWeight: 700, letterSpacing: 1 }}>{t('descLabel').toUpperCase()}</div>
-          <textarea value={form.desc || ''} onChange={e => set('desc', e.target.value)} placeholder={t('descPlaceholder')} rows={4}
-            style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '8px 10px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-        </div>
-        {/* Comments */}
-        <div>
-          <div style={{ fontSize: 10, color: Z.muted, marginBottom: 10, fontWeight: 700, letterSpacing: 1 }}>{t('commentsLabel').toUpperCase()}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-            {(form.comments || []).map(c => (
-              <div key={c.id} style={{ display: 'flex', gap: 8 }}>
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: Z.indigo + '44', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: Z.indigo }}>
-                  {c.author[0]}
-                </div>
-                <div style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '6px 10px', flex: 1 }}>
-                  <div style={{ fontSize: 10, color: Z.muted, marginBottom: 2 }}>{c.author} · {c.time}</div>
-                  <div style={{ fontSize: 12 }}>{c.text}</div>
-                </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Title */}
+          <input value={form.title} onChange={e => set('title', e.target.value)}
+            style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 15, fontWeight: 700, padding: '8px 10px', outline: 'none', boxSizing: 'border-box' }} />
+          {/* Meta row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldStage').toUpperCase()}</div>
+              <Select value={form.stage} onChange={v => set('stage', v)} options={stageOptions} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldPriority').toUpperCase()}</div>
+              <Select value={form.priority} onChange={v => set('priority', v)} options={priorityOptions} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldAssignee').toUpperCase()}</div>
+              <input value={form.assignee} onChange={e => set('assignee', e.target.value)}
+                style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldDueDate').toUpperCase()}</div>
+              <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)}
+                style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }} />
+            </div>
+          </div>
+          {/* Labels */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: Z.muted, fontWeight: 700, letterSpacing: 1 }}>{t('labels').toUpperCase()}</div>
+              <button onClick={() => setLabelManagerOpen(true)} style={{ background: 'none', border: 'none', color: Z.indigo, fontSize: 11, cursor: 'pointer', padding: 0 }}>{t('manageLabels')}</button>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {labels.map(l => {
+                const active = (form.labelIds || []).includes(l.id)
+                return (
+                  <button key={l.id} onClick={() => toggleLabel(l.id)} style={{
+                    padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${l.color}44`,
+                    background: active ? l.color + '33' : 'transparent',
+                    color: active ? l.color : Z.muted,
+                    transition: 'all .1s',
+                  }}>{l.name}</button>
+                )
+              })}
+            </div>
+          </div>
+          {/* Description */}
+          <div>
+            <div style={{ fontSize: 10, color: Z.muted, marginBottom: 6, fontWeight: 700, letterSpacing: 1 }}>{t('descLabel').toUpperCase()}</div>
+            <textarea value={form.desc || ''} onChange={e => set('desc', e.target.value)} placeholder={t('descPlaceholder')} rows={4}
+              style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '8px 10px', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+          </div>
+          {/* Subtasks */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: Z.muted, fontWeight: 700, letterSpacing: 1 }}>{t('subtasks').toUpperCase()}</div>
+              {totalCount > 0 && <span style={{ fontSize: 11, color: Z.muted }}>{doneCount}/{totalCount}</span>}
+            </div>
+            {/* Progress bar */}
+            {totalCount > 0 && (
+              <div style={{ height: 4, background: Z.border, borderRadius: 2, marginBottom: 10, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${(doneCount / totalCount) * 100}%`, background: Z.emerald, borderRadius: 2, transition: 'width .3s' }} />
               </div>
-            ))}
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {taskSubTasks.map(st => (
+                <div key={st.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '6px 10px' }}>
+                  <input type="checkbox" checked={st.done} onChange={() => onToggleSubTask(st.id)}
+                    style={{ accentColor: Z.emerald, width: 14, height: 14, flexShrink: 0, cursor: 'pointer' }} />
+                  <span style={{ flex: 1, fontSize: 12, textDecoration: st.done ? 'line-through' : 'none', color: st.done ? Z.muted : Z.text }}>{st.title}</span>
+                  <input value={st.assignee} onChange={e => onUpdateSubTask(st.id, 'assignee', e.target.value)}
+                    placeholder="assignee" style={{ width: 70, background: 'transparent', border: 'none', color: Z.muted, fontSize: 11, outline: 'none' }} />
+                  <input type="date" value={st.dueDate} onChange={e => onUpdateSubTask(st.id, 'dueDate', e.target.value)}
+                    style={{ width: 100, background: 'transparent', border: 'none', color: Z.muted, fontSize: 11, outline: 'none', colorScheme: 'dark' }} />
+                  <button onClick={() => onDeleteSubTask(st.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.muted, fontSize: 11, padding: '1px 3px' }}
+                    onMouseEnter={e => e.currentTarget.style.color = Z.red}
+                    onMouseLeave={e => e.currentTarget.style.color = Z.muted}
+                  >✕</button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <input value={newSubtask} onChange={e => setNewSubtask(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addSubtask()}
+                placeholder={t('addSubtask')}
+                style={{ flex: 1, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 10px', outline: 'none' }} />
+              <Btn variant="default" small onClick={addSubtask} disabled={!newSubtask.trim()}>{t('addSubtask')}</Btn>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={commentText} onChange={e => setCommentText(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && postComment()}
-              placeholder={t('commentPlaceholder')}
-              style={{ flex: 1, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 10px', outline: 'none' }} />
-            <Btn variant="default" small onClick={postComment}>{t('postComment')}</Btn>
+          {/* Comments */}
+          <div>
+            <div style={{ fontSize: 10, color: Z.muted, marginBottom: 10, fontWeight: 700, letterSpacing: 1 }}>{t('commentsLabel').toUpperCase()}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+              {(form.comments || []).map(c => (
+                <div key={c.id} style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: Z.indigo + '44', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: Z.indigo }}>
+                    {c.author[0]}
+                  </div>
+                  <div style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '6px 10px', flex: 1 }}>
+                    <div style={{ fontSize: 10, color: Z.muted, marginBottom: 2 }}>{c.author} · {c.time}</div>
+                    <div style={{ fontSize: 12 }}>{c.text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={commentText} onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && postComment()}
+                placeholder={t('commentPlaceholder')}
+                style={{ flex: 1, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 10px', outline: 'none' }} />
+              <Btn variant="default" small onClick={postComment}>{t('postComment')}</Btn>
+            </div>
           </div>
         </div>
-      </div>
-      <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <Btn variant="ghost" onClick={onClose}>{t('closeDetail')}</Btn>
-        <Btn variant="primary" onClick={save}>{t('saveDetail')}</Btn>
-      </div>
-    </ModalShell>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Btn variant="ghost" onClick={onClose}>{t('closeDetail')}</Btn>
+          <Btn variant="primary" onClick={save}>{t('saveDetail')}</Btn>
+        </div>
+      </ModalShell>
+      {labelManagerOpen && (
+        <LabelManagerModal open={labelManagerOpen} onClose={() => setLabelManagerOpen(false)} labels={labels} setLabels={setLabels} />
+      )}
+    </>
   )
 }
 
@@ -939,7 +1115,7 @@ function AIParserModal({ open, onClose, onConfirm, addLog }) {
 }
 
 // ─── TASK CARD ────────────────────────────────────────────────────────────────
-function TaskCard({ task, isMobile, onStageChange, onPublish, onDelete, onDetail, addLog, stageLabel }) {
+function TaskCard({ task, isMobile, onStageChange, onPublish, onDelete, onDetail, onToggleKeyTask, addLog, stageLabel, labels }) {
   const { t } = useLang()
   const stageIdx = STAGE_KEYS.indexOf(task.stage)
 
@@ -950,19 +1126,41 @@ function TaskCard({ task, isMobile, onStageChange, onPublish, onDelete, onDetail
     sim(350).then(() => addLog(t('sheetDoneLog')(task.rowNum, stageLabel(nk)), 'success'))
   }
 
+  const taskLabels = (labels || []).filter(l => (task.labelIds || []).includes(l.id))
+
   return (
-    <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div
+      draggable={true}
+      onDragStart={e => e.dataTransfer.setData('taskId', String(task.id))}
+      style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, cursor: 'grab' }}
+    >
       {/* Title row */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
         <div onClick={() => onDetail(task)} style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.4, flex: 1, cursor: 'pointer' }}
           onMouseEnter={e => e.currentTarget.style.color = Z.indigo}
           onMouseLeave={e => e.currentTarget.style.color = Z.text}
         >{task.title}</div>
+        {/* Star (key task) */}
+        <button
+          onClick={() => onToggleKeyTask && onToggleKeyTask(task.id)}
+          title={t('keyTask')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: '1px 3px', flexShrink: 0, color: task.isKeyTask ? Z.amber : Z.muted }}
+          onMouseEnter={e => { e.currentTarget.style.color = Z.amber }}
+          onMouseLeave={e => { e.currentTarget.style.color = task.isKeyTask ? Z.amber : Z.muted }}
+        >⭐</button>
         <button onClick={() => onDelete(task.id)} title={t('deleteTask')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.muted, fontSize: 11, padding: '1px 4px', borderRadius: 4, flexShrink: 0 }}
           onMouseEnter={e => e.currentTarget.style.color = Z.red}
           onMouseLeave={e => e.currentTarget.style.color = Z.muted}
         >✕</button>
       </div>
+      {/* Label badges */}
+      {taskLabels.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {taskLabels.map(l => (
+            <span key={l.id} style={{ display: 'inline-block', padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: l.color + '28', color: l.color, border: `1px solid ${l.color}44` }}>{l.name}</span>
+          ))}
+        </div>
+      )}
       {/* Meta */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', fontSize: 11, color: Z.muted }}>
         {task.assignee && <span>👤 {task.assignee}</span>}
@@ -1099,7 +1297,9 @@ function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDelet
 // ─── MY TASKS VIEW ────────────────────────────────────────────────────────────
 function MyTasksView({ tasks, projects, user, onDetail }) {
   const { t } = useLang()
+  const [keyTasksOnly, setKeyTasksOnly] = useState(false)
   const myTasks = tasks.filter(tk => tk.assignee && user?.name && tk.assignee.toLowerCase() === user.name.toLowerCase())
+  const displayTasks = keyTasksOnly ? myTasks.filter(tk => tk.isKeyTask) : myTasks
 
   const isDueSoon = (dueDate) => {
     if (!dueDate) return false
@@ -1109,7 +1309,7 @@ function MyTasksView({ tasks, projects, user, onDetail }) {
 
   // Group by projectId
   const groups = {}
-  myTasks.forEach(tk => {
+  displayTasks.forEach(tk => {
     const pid = tk.projectId || '__none__'
     if (!groups[pid]) groups[pid] = []
     groups[pid].push(tk)
@@ -1136,7 +1336,17 @@ function MyTasksView({ tasks, projects, user, onDetail }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <div style={{ fontSize: 16, fontWeight: 700 }}>{t('myTasksTitle')}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>{t('myTasksTitle')}</div>
+        <button
+          onClick={() => setKeyTasksOnly(v => !v)}
+          style={{
+            padding: '4px 10px', borderRadius: 6, border: `1px solid ${keyTasksOnly ? Z.amber : Z.border}`,
+            background: keyTasksOnly ? Z.amber + '22' : 'transparent',
+            color: keyTasksOnly ? Z.amber : Z.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}
+        >⭐ {t('keyTasksOnly')}</button>
+      </div>
       {Object.entries(groups).map(([pid, groupTasks]) => (
         <div key={pid}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -1152,7 +1362,10 @@ function MyTasksView({ tasks, projects, user, onDetail }) {
                 onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tk.title}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {tk.isKeyTask && <span style={{ color: Z.amber, fontSize: 12 }}>⭐</span>}
+                    {tk.title}
+                  </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                     <Badge color={Z.indigo}>{t(`stage.${tk.stage}`)}</Badge>
                     <PriorityBadge priorityKey={tk.priority} />
@@ -1173,13 +1386,15 @@ function MyTasksView({ tasks, projects, user, onDetail }) {
 }
 
 // ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
-function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, addLog, stageLabel, totalTaskCount }) {
+function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels }) {
   const { t } = useLang()
   const [activeStageIdx, setActiveStageIdx] = useState(0)
   const [addingStage, setAddingStage] = useState(null)
   const [filterAssignee, setFilterAssignee] = useState('all')
   const [filterPriority, setFilterPriority] = useState('all')
   const [sortBy, setSortBy] = useState('default')
+  const [keyTasksOnly, setKeyTasksOnly] = useState(false)
+  const [dragOverStage, setDragOverStage] = useState(null)
   const visibleStages = isMobile ? [STAGE_KEYS[activeStageIdx]] : STAGE_KEYS
 
   const assignees = ['all', ...Array.from(new Set(tasks.map(tk => tk.assignee).filter(Boolean)))]
@@ -1195,13 +1410,22 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
     { value: 'priority', label: t('sortPriority') },
   ]
   const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
-  const hasFilters = filterAssignee !== 'all' || filterPriority !== 'all' || sortBy !== 'default'
+  const hasFilters = filterAssignee !== 'all' || filterPriority !== 'all' || sortBy !== 'default' || keyTasksOnly
 
   let filteredTasks = tasks
   if (filterAssignee !== 'all') filteredTasks = filteredTasks.filter(tk => tk.assignee === filterAssignee)
   if (filterPriority !== 'all') filteredTasks = filteredTasks.filter(tk => tk.priority === filterPriority)
+  if (keyTasksOnly) filteredTasks = filteredTasks.filter(tk => tk.isKeyTask)
   if (sortBy === 'dueDate') filteredTasks = [...filteredTasks].sort((a, b) => (a.dueDate || '9999') < (b.dueDate || '9999') ? -1 : 1)
   else if (sortBy === 'priority') filteredTasks = [...filteredTasks].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 1) - (PRIORITY_ORDER[b.priority] ?? 1))
+
+  const handleDrop = (e, targetStage) => {
+    e.preventDefault()
+    setDragOverStage(null)
+    const taskId = Number(e.dataTransfer.getData('taskId'))
+    if (!taskId) return
+    onStageChange(taskId, targetStage)
+  }
 
   // Empty state when no tasks at all
   if (totalTaskCount === 0) {
@@ -1227,7 +1451,15 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
         <Select value={filterPriority} onChange={setFilterPriority} options={priorityOpts} />
         <span style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('filterSort')}:</span>
         <Select value={sortBy} onChange={setSortBy} options={sortOpts} />
-        {hasFilters && <Btn variant="ghost" small onClick={() => { setFilterAssignee('all'); setFilterPriority('all'); setSortBy('default') }}>{t('clearFilters')}</Btn>}
+        <button
+          onClick={() => setKeyTasksOnly(v => !v)}
+          style={{
+            padding: '4px 10px', borderRadius: 6, border: `1px solid ${keyTasksOnly ? Z.amber : Z.border}`,
+            background: keyTasksOnly ? Z.amber + '22' : 'transparent',
+            color: keyTasksOnly ? Z.amber : Z.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}
+        >⭐ {t('keyTasksOnly')}</button>
+        {hasFilters && <Btn variant="ghost" small onClick={() => { setFilterAssignee('all'); setFilterPriority('all'); setSortBy('default'); setKeyTasksOnly(false) }}>{t('clearFilters')}</Btn>}
       </div>
       {isMobile && (
         <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
@@ -1245,6 +1477,7 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : `repeat(${STAGE_KEYS.length},1fr)`, gap: 12 }}>
         {visibleStages.map(sk => {
           const col = filteredTasks.filter(task => task.stage === sk)
+          const isDragOver = dragOverStage === sk
           return (
             <div key={sk}>
               {!isMobile && (
@@ -1253,12 +1486,23 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
                   <span style={{ fontSize: 10, background: Z.border, borderRadius: 10, padding: '1px 7px', color: Z.muted }}>{col.length}</span>
                 </div>
               )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div
+                onDragOver={e => { e.preventDefault(); setDragOverStage(sk) }}
+                onDragLeave={() => setDragOverStage(null)}
+                onDrop={e => handleDrop(e, sk)}
+                style={{
+                  display: 'flex', flexDirection: 'column', gap: 8, minHeight: 60,
+                  borderRadius: 8, transition: 'border .15s',
+                  border: isDragOver ? `2px dashed ${Z.indigo}` : '2px solid transparent',
+                  padding: isDragOver ? '4px' : '0',
+                }}
+              >
                 {col.map(task => (
                   <TaskCard key={task.id} task={task} isMobile={isMobile}
                     onStageChange={onStageChange} onPublish={onPublish}
                     onDelete={onDelete} onDetail={onDetail}
-                    addLog={addLog} stageLabel={stageLabel} />
+                    onToggleKeyTask={onToggleKeyTask}
+                    addLog={addLog} stageLabel={stageLabel} labels={labels} />
                 ))}
                 {/* + Add task button per column */}
                 <button onClick={() => setAddingStage(sk)} style={{
@@ -1651,6 +1895,14 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   const [stageLabels, setStageLabels]   = useState({})
   const stageLabel = useCallback(key => stageLabels[key] || t(`stage.${key}`), [stageLabels, t])
 
+  // Subtasks
+  const [allSubTasks, setAllSubTasks] = useState([])
+  const [detailSubTasks, setDetailSubTasks] = useState([])
+  const [subTasksSheetId, setSubTasksSheetId] = useState(null)
+
+  // Labels (localStorage)
+  const [labels, setLabels] = useState(() => loadLabels())
+
   // Sheets state
   const [spreadsheetId, setSpreadsheetId]   = useState(null)
   const [sheetId, setSheetId]               = useState(0)
@@ -1690,9 +1942,13 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
         setSheetId(numericSheetId)
         const numericProjectsSheetId = await getProjectsSheetId(sid)
         setProjectsSheetId(numericProjectsSheetId)
+        const numericSubTasksSheetId = await getSubTasksSheetId(sid)
+        setSubTasksSheetId(numericSubTasksSheetId)
         addLog(`Spreadsheet ready: ${sid}`, 'success')
         const loadedProjects = await loadProjects(sid)
         if (!cancelled) setProjects(loadedProjects)
+        const loadedSubTasks = await loadSubTasks(sid)
+        if (!cancelled) setAllSubTasks(loadedSubTasks)
         const loaded = await loadTasks(sid)
         if (cancelled) return
         setTasks(loaded.length > 0 ? loaded : INITIAL_TASKS)
@@ -1794,6 +2050,70 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
     setTasks(prev => prev.map(tk => tk.id === updated.id ? updated : tk))
     syncUpdate(updated)
   }, [syncUpdate])
+
+  const onToggleKeyTask = useCallback((id) => {
+    setTasks(prev => {
+      const updated = prev.map(tk => tk.id === id ? { ...tk, isKeyTask: !tk.isKeyTask } : tk)
+      const task = updated.find(tk => tk.id === id)
+      syncUpdate(task)
+      return updated
+    })
+  }, [syncUpdate])
+
+  // ── SubTask CRUD ─────────────────────────────────────────────────────────
+  const openDetailWithSubTasks = useCallback((task) => {
+    setDetailTask(task)
+    setDetailSubTasks(allSubTasks.filter(s => s.taskId === String(task.id)))
+  }, [allSubTasks])
+
+  const onAddSubTask = useCallback(async (st) => {
+    setAllSubTasks(prev => [...prev, st])
+    setDetailSubTasks(prev => [...prev, st])
+    if (spreadsheetId) {
+      try {
+        const rowNum = await appendSubTask(spreadsheetId, st)
+        const withRow = { ...st, rowNum }
+        setAllSubTasks(prev => prev.map(s => s.id === st.id ? withRow : s))
+        setDetailSubTasks(prev => prev.map(s => s.id === st.id ? withRow : s))
+      } catch (e) { addLog(`SubTask append failed: ${e.message}`, 'error') }
+    }
+  }, [spreadsheetId, addLog])
+
+  const onToggleSubTask = useCallback((stId) => {
+    setAllSubTasks(prev => {
+      const updated = prev.map(s => s.id === stId ? { ...s, done: !s.done } : s)
+      const st = updated.find(s => s.id === stId)
+      if (spreadsheetId && st?.rowNum) {
+        updateSubTaskRow(spreadsheetId, st.rowNum, st).catch(e => addLog(`SubTask update failed: ${e.message}`, 'error'))
+      }
+      return updated
+    })
+    setDetailSubTasks(prev => prev.map(s => s.id === stId ? { ...s, done: !s.done } : s))
+  }, [spreadsheetId, addLog])
+
+  const onUpdateSubTask = useCallback((stId, field, value) => {
+    setAllSubTasks(prev => {
+      const updated = prev.map(s => s.id === stId ? { ...s, [field]: value } : s)
+      const st = updated.find(s => s.id === stId)
+      if (spreadsheetId && st?.rowNum) {
+        updateSubTaskRow(spreadsheetId, st.rowNum, st).catch(e => addLog(`SubTask update failed: ${e.message}`, 'error'))
+      }
+      return updated
+    })
+    setDetailSubTasks(prev => prev.map(s => s.id === stId ? { ...s, [field]: value } : s))
+  }, [spreadsheetId, addLog])
+
+  const onDeleteSubTask = useCallback(async (stId) => {
+    const st = allSubTasks.find(s => s.id === stId)
+    setAllSubTasks(prev => prev.filter(s => s.id !== stId))
+    setDetailSubTasks(prev => prev.filter(s => s.id !== stId))
+    if (spreadsheetId && st?.rowNum && subTasksSheetId != null) {
+      try {
+        await deleteSubTaskRow(spreadsheetId, subTasksSheetId, st.rowNum)
+        setAllSubTasks(prev => prev.map(s => ({ ...s, rowNum: s.rowNum > st.rowNum ? s.rowNum - 1 : s.rowNum })))
+      } catch (e) { addLog(`SubTask delete failed: ${e.message}`, 'error') }
+    }
+  }, [allSubTasks, spreadsheetId, subTasksSheetId, addLog])
 
   const onAIConfirm = useCallback(async (newTasks) => {
     setTasks(prev => [...prev, ...newTasks])
@@ -1935,9 +2255,11 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
         {activeTab === 'kanban' && (
           <KanbanView tasks={filteredByProject} isMobile={isMobile}
             onStageChange={onStageChange} onPublish={onPublish}
-            onDelete={onDeleteTask} onDetail={setDetailTask}
+            onDelete={onDeleteTask} onDetail={openDetailWithSubTasks}
             onAdd={onAddTask} addLog={addLog}
-            stageLabel={stageLabel} totalTaskCount={filteredByProject.length} />
+            onToggleKeyTask={onToggleKeyTask}
+            stageLabel={stageLabel} totalTaskCount={filteredByProject.length}
+            labels={labels} />
         )}
         {activeTab === 'sheet' && (
           <SpreadsheetView tasks={filteredByProject} onUpdateTask={onUpdateTask}
@@ -1945,7 +2267,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
             addLog={addLog} stageLabel={stageLabel} />
         )}
         {activeTab === 'mytasks' && (
-          <MyTasksView tasks={tasks} projects={projects} user={user} onDetail={setDetailTask} />
+          <MyTasksView tasks={tasks} projects={projects} user={user} onDetail={openDetailWithSubTasks} />
         )}
         {activeTab === 'blog'     && <AutopressView tasks={tasks} addLog={addLog} />}
         {activeTab === 'settings' && <SettingsView user={user} stageLabels={stageLabels} setStageLabels={setStageLabels} spreadsheetId={spreadsheetId} syncing={syncing} />}
@@ -1967,7 +2289,17 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
       <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} logs={logs} />
       <AIParserModal open={aiOpen} onClose={() => setAiOpen(false)} onConfirm={onAIConfirm} addLog={addLog} />
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
-      <TaskDetailModal task={detailTask} open={!!detailTask} onClose={() => setDetailTask(null)} onUpdate={onDetailUpdate} stageLabel={stageLabel} />
+      <TaskDetailModal
+        task={detailTask} open={!!detailTask}
+        onClose={() => { setDetailTask(null); setDetailSubTasks([]) }}
+        onUpdate={onDetailUpdate} stageLabel={stageLabel}
+        subTasks={detailSubTasks}
+        onAddSubTask={onAddSubTask}
+        onToggleSubTask={onToggleSubTask}
+        onUpdateSubTask={onUpdateSubTask}
+        onDeleteSubTask={onDeleteSubTask}
+        labels={labels} setLabels={setLabels}
+      />
       <TutorialModal open={tutorialOpen} onClose={() => {
         setTutorialOpen(false)
         try { localStorage.setItem('tf_tutorial_done', '1') } catch (e) { void e }
