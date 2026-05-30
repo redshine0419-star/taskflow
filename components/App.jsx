@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
-import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId, loadProjects, appendProject, updateProject, deleteProject, getProjectsSheetId, loadSubTasks, appendSubTask, updateSubTaskRow, deleteSubTaskRow, getSubTasksSheetId } from '../lib/gapi'
+import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId, loadProjects, appendProject, updateProject, deleteProject, getProjectsSheetId, loadSubTasks, appendSubTask, updateSubTaskRow, deleteSubTaskRow, getSubTasksSheetId, loadMembers, appendMember, updateMemberRow, deleteMemberRow, getMembersSheetId } from '../lib/gapi'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const Z = {
@@ -257,6 +257,19 @@ Attendees: Alex, Jordan, Sam
     labelColor:      'Color',
     addLabel:        'Add label',
     noLabels:        'No labels yet',
+    // P2 team members
+    tabTeam:          'Team',
+    addMember:        'Add member',
+    memberRole:       'Role',
+    jobTitle:         'Job title',
+    responsibilities: 'Responsibilities',
+    workStyle:        'Work style',
+    editProfile:      'Edit profile',
+    addComment:       'Add comment',
+    noMembers:        'No members yet',
+    memberNotFound:   'No registered user found with this email',
+    emailPlaceholder: 'Enter email address',
+    searchMember:     'Search & add',
   },
 
   ko: {
@@ -471,6 +484,19 @@ Attendees: Alex, Jordan, Sam
     labelColor:      '색상',
     addLabel:        '라벨 추가',
     noLabels:        '라벨이 없습니다',
+    // P2 team members
+    tabTeam:          '팀',
+    addMember:        '멤버 추가',
+    memberRole:       '역할',
+    jobTitle:         '직함',
+    responsibilities: '담당업무',
+    workStyle:        '업무스타일',
+    editProfile:      '프로필 편집',
+    addComment:       '댓글 추가',
+    noMembers:        '멤버가 없습니다',
+    memberNotFound:   '이 이메일은 등록된 사용자가 없습니다',
+    emailPlaceholder: '이메일 주소 입력',
+    searchMember:     '검색 및 추가',
   },
 }
 
@@ -482,6 +508,7 @@ const useLang = () => useContext(LangContext)
 const STAGE_KEYS    = ['planning', 'design', 'publishing', 'dev']
 const PRIORITY_KEYS = ['high', 'medium', 'low']
 let nextTaskId = 100
+let nextMemberId = 1000
 
 const INITIAL_TASKS = [
   { id: 1,  title: 'Homepage Renewal Planning',     stage: 'planning',   assignee: 'Alex',   dueDate: '2026-06-10', priority: 'high',   rowNum: 2, published: false, desc: '', comments: [], projectId: '', labelIds: [], isKeyTask: false },
@@ -812,8 +839,24 @@ function LabelManagerModal({ open, onClose, labels, setLabels }) {
   )
 }
 
+// ─── COMMENT TEXT RENDERER (highlights @mentions) ───────────────────────────
+function CommentText({ text }) {
+  const parts = text.split(/(@\w[\w\s]*?\b)/g)
+  return (
+    <span>
+      {parts.map((part, i) =>
+        part.startsWith('@') ? (
+          <span key={i} style={{ color: Z.indigo, fontWeight: 700 }}>{part}</span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </span>
+  )
+}
+
 // ─── TASK DETAIL MODAL (P2) ──────────────────────────────────────────────────
-function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, onAddSubTask, onToggleSubTask, onUpdateSubTask, onDeleteSubTask, labels, setLabels }) {
+function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, onAddSubTask, onToggleSubTask, onUpdateSubTask, onDeleteSubTask, labels, setLabels, projectMembers, currentUser }) {
   const { t } = useLang()
   const stageOptions    = STAGE_KEYS.map(k => ({ value: k, label: stageLabel(k) }))
   const priorityOptions = PRIORITY_KEYS.map(k => ({ value: k, label: t(`priority.${k}`) }))
@@ -821,6 +864,10 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, 
   const [commentText, setCommentText] = useState('')
   const [newSubtask, setNewSubtask] = useState('')
   const [labelManagerOpen, setLabelManagerOpen] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [editingCommentText, setEditingCommentText] = useState('')
+  const [mentionQuery, setMentionQuery] = useState(null) // {query, pos}
+  const commentInputRef = useRef(null)
 
   useEffect(() => { if (task) setForm({ ...task }) }, [task])
 
@@ -828,12 +875,55 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, 
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  const authorName = currentUser?.name || 'You'
+
   const postComment = () => {
     if (!commentText.trim()) return
-    const c = { id: Date.now(), author: 'You', text: commentText.trim(), time: new Date().toLocaleTimeString('en-US', { hour12: false }) }
+    const c = { id: Date.now(), author: authorName, text: commentText.trim(), createdAt: new Date().toISOString() }
     set('comments', [...(form.comments || []), c])
     setCommentText('')
+    setMentionQuery(null)
   }
+
+  const deleteComment = (cid) => {
+    set('comments', (form.comments || []).filter(c => c.id !== cid))
+  }
+
+  const saveEditComment = (cid) => {
+    set('comments', (form.comments || []).map(c => c.id === cid ? { ...c, text: editingCommentText } : c))
+    setEditingCommentId(null)
+  }
+
+  const handleCommentInput = (e) => {
+    const val = e.target.value
+    setCommentText(val)
+    // detect @
+    const cursor = e.target.selectionStart
+    const textBefore = val.slice(0, cursor)
+    const atIdx = textBefore.lastIndexOf('@')
+    if (atIdx !== -1 && (atIdx === 0 || /\s/.test(textBefore[atIdx - 1]))) {
+      const query = textBefore.slice(atIdx + 1)
+      if (!/\s/.test(query)) {
+        setMentionQuery({ query, pos: atIdx })
+        return
+      }
+    }
+    setMentionQuery(null)
+  }
+
+  const insertMention = (name) => {
+    if (mentionQuery === null) return
+    const before = commentText.slice(0, mentionQuery.pos)
+    const after = commentText.slice(mentionQuery.pos + 1 + mentionQuery.query.length)
+    const newText = `${before}@${name} ${after}`
+    setCommentText(newText)
+    setMentionQuery(null)
+    commentInputRef.current?.focus()
+  }
+
+  const filteredMentionMembers = mentionQuery !== null && projectMembers
+    ? projectMembers.filter(m => m.name.toLowerCase().startsWith(mentionQuery.query.toLowerCase()))
+    : []
 
   const save = () => { onUpdate(form); onClose() }
 
@@ -953,24 +1043,74 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, 
           <div>
             <div style={{ fontSize: 10, color: Z.muted, marginBottom: 10, fontWeight: 700, letterSpacing: 1 }}>{t('commentsLabel').toUpperCase()}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
-              {(form.comments || []).map(c => (
-                <div key={c.id} style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', background: Z.indigo + '44', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: Z.indigo }}>
-                    {c.author[0]}
+              {(form.comments || []).map(c => {
+                const isOwn = c.author === authorName
+                const timeDisplay = c.createdAt
+                  ? new Date(c.createdAt).toLocaleTimeString('en-US', { hour12: false })
+                  : (c.time || '')
+                return (
+                  <div key={c.id} style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: Z.indigo + '44', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: Z.indigo }}>
+                      {c.author?.[0] ?? '?'}
+                    </div>
+                    <div style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '6px 10px', flex: 1 }}>
+                      <div style={{ fontSize: 10, color: Z.muted, marginBottom: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>{c.author} · {timeDisplay}</span>
+                        {isOwn && editingCommentId !== c.id && (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button onClick={() => { setEditingCommentId(c.id); setEditingCommentText(c.text) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.muted, fontSize: 10, padding: '1px 3px' }}
+                              onMouseEnter={e => e.currentTarget.style.color = Z.indigo}
+                              onMouseLeave={e => e.currentTarget.style.color = Z.muted}
+                            >Edit</button>
+                            <button onClick={() => deleteComment(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.muted, fontSize: 10, padding: '1px 3px' }}
+                              onMouseEnter={e => e.currentTarget.style.color = Z.red}
+                              onMouseLeave={e => e.currentTarget.style.color = Z.muted}
+                            >✕</button>
+                          </div>
+                        )}
+                      </div>
+                      {editingCommentId === c.id ? (
+                        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                          <input autoFocus value={editingCommentText} onChange={e => setEditingCommentText(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveEditComment(c.id); if (e.key === 'Escape') setEditingCommentId(null) }}
+                            style={{ flex: 1, background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 4, color: Z.text, fontSize: 12, padding: '3px 6px', outline: 'none' }} />
+                          <Btn variant="primary" small onClick={() => saveEditComment(c.id)}>Save</Btn>
+                          <Btn variant="ghost" small onClick={() => setEditingCommentId(null)}>✕</Btn>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12 }}><CommentText text={c.text} /></div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '6px 10px', flex: 1 }}>
-                    <div style={{ fontSize: 10, color: Z.muted, marginBottom: 2 }}>{c.author} · {c.time}</div>
-                    <div style={{ fontSize: 12 }}>{c.text}</div>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input value={commentText} onChange={e => setCommentText(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && postComment()}
-                placeholder={t('commentPlaceholder')}
-                style={{ flex: 1, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 10px', outline: 'none' }} />
-              <Btn variant="default" small onClick={postComment}>{t('postComment')}</Btn>
+            {/* Comment input with @mention */}
+            <div style={{ position: 'relative' }}>
+              {mentionQuery !== null && filteredMentionMembers.length > 0 && (
+                <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 6, zIndex: 20, maxHeight: 140, overflowY: 'auto', marginBottom: 4 }}>
+                  {filteredMentionMembers.map(m => (
+                    <div key={m.id} onClick={() => insertMention(m.name)}
+                      style={{ padding: '7px 12px', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}
+                      onMouseEnter={e => e.currentTarget.style.background = Z.bg}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: Z.indigo + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: Z.indigo, flexShrink: 0 }}>
+                        {m.name[0]}
+                      </div>
+                      <span style={{ color: Z.indigo, fontWeight: 600 }}>@{m.name}</span>
+                      {m.jobTitle && <span style={{ color: Z.muted, fontSize: 11 }}>{m.jobTitle}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input ref={commentInputRef} value={commentText} onChange={handleCommentInput}
+                  onKeyDown={e => { if (e.key === 'Enter' && !mentionQuery) postComment(); if (e.key === 'Escape') setMentionQuery(null) }}
+                  placeholder={t('commentPlaceholder')}
+                  style={{ flex: 1, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 10px', outline: 'none' }} />
+                <Btn variant="default" small onClick={postComment}>{t('postComment')}</Btn>
+              </div>
             </div>
           </div>
         </div>
@@ -1814,6 +1954,192 @@ function SettingsView({ user, stageLabels, setStageLabels, spreadsheetId, syncin
   )
 }
 
+// ─── MEMBER PROFILE MODAL ────────────────────────────────────────────────────
+function MemberProfileModal({ open, onClose, member, onSave, canEdit }) {
+  const { t } = useLang()
+  const [form, setForm] = useState({ jobTitle: '', responsibilities: '', workStyle: '' })
+  useEffect(() => {
+    if (member) setForm({ jobTitle: member.jobTitle || '', responsibilities: member.responsibilities || '', workStyle: member.workStyle || '' })
+  }, [member])
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const save = () => { onSave({ ...member, ...form }); onClose() }
+  if (!open || !member) return null
+  return (
+    <ModalShell onClose={onClose} maxWidth={440}>
+      <div style={{ padding: '18px 24px', borderBottom: `1px solid ${Z.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{t('editProfile')}</div>
+        <Btn variant="ghost" small onClick={onClose}>✕</Btn>
+      </div>
+      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Avatar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: Z.indigo + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: Z.indigo, flexShrink: 0 }}>
+            {member.avatarUrl ? <img src={member.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: '50%' }} /> : (member.name?.[0] ?? '?')}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700 }}>{member.name}</div>
+            <div style={{ fontSize: 12, color: Z.muted }}>{member.email}</div>
+            <Badge color={member.role === 'owner' ? Z.amber : member.role === 'admin' ? Z.indigo : Z.muted}>{member.role}</Badge>
+          </div>
+        </div>
+        {[
+          { key: 'jobTitle', label: t('jobTitle') },
+          { key: 'responsibilities', label: t('responsibilities') },
+          { key: 'workStyle', label: t('workStyle') },
+        ].map(({ key, label }) => (
+          <div key={key}>
+            <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{label}</div>
+            <input value={form[key]} onChange={e => set(key, e.target.value)} disabled={!canEdit}
+              style={{ width: '100%', background: canEdit ? Z.bg : Z.surface, border: `1px solid ${Z.border}`, borderRadius: 6, color: canEdit ? Z.text : Z.muted, fontSize: 13, padding: '7px 10px', outline: 'none', boxSizing: 'border-box', cursor: canEdit ? 'text' : 'default' }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <Btn variant="ghost" onClick={onClose}>{t('cancel')}</Btn>
+        {canEdit && <Btn variant="primary" onClick={save}>{t('saveProject')}</Btn>}
+      </div>
+    </ModalShell>
+  )
+}
+
+// ─── WORK TEAM TAB ────────────────────────────────────────────────────────────
+function WorkTeamTab({ projects, allMembers, onAddMember, onUpdateMember, onDeleteMember, currentUser }) {
+  const { t } = useLang()
+  const [selectedProjId, setSelectedProjId] = useState(projects[0]?.id || null)
+  const [addingEmail, setAddingEmail] = useState('')
+  const [addingOpen, setAddingOpen] = useState(false)
+  const [addError, setAddError] = useState('')
+  const [profileMember, setProfileMember] = useState(null)
+
+  // Keep selectedProjId in sync if projects list changes
+  useEffect(() => {
+    if (!selectedProjId && projects.length > 0) setSelectedProjId(projects[0].id)
+  }, [projects, selectedProjId])
+
+  const projectMembers = allMembers.filter(m => m.projectId === selectedProjId)
+  const ownerMember = projectMembers.find(m => m.role === 'owner')
+
+  const handleAddMember = () => {
+    if (!addingEmail.trim()) return
+    setAddError('')
+    const email = addingEmail.trim().toLowerCase()
+    // Check if already in project
+    if (projectMembers.some(m => m.email.toLowerCase() === email)) {
+      setAddError('Already a member of this project')
+      return
+    }
+    // Search existing users across all members
+    const existing = allMembers.find(m => m.email.toLowerCase() === email)
+    if (!existing) {
+      setAddError(t('memberNotFound'))
+      return
+    }
+    const newMember = {
+      id: `mem_${++nextMemberId}`,
+      projectId: selectedProjId,
+      email: existing.email,
+      name: existing.name,
+      role: 'member',
+      jobTitle: existing.jobTitle || '',
+      responsibilities: existing.responsibilities || '',
+      workStyle: existing.workStyle || '',
+      avatarUrl: existing.avatarUrl || '',
+    }
+    onAddMember(newMember)
+    setAddingEmail('')
+    setAddingOpen(false)
+    setAddError('')
+  }
+
+  const canEditProfile = (member) => {
+    if (!currentUser) return false
+    return currentUser.email?.toLowerCase() === member.email?.toLowerCase() || ownerMember?.email?.toLowerCase() === currentUser.email?.toLowerCase()
+  }
+
+  const roleBadgeColor = (role) => role === 'owner' ? Z.amber : role === 'admin' ? Z.indigo : Z.muted
+
+  if (projects.length === 0) {
+    return <div style={{ color: Z.muted, fontSize: 13, textAlign: 'center', paddingTop: 60 }}>{t('newProject')}</div>
+  }
+
+  return (
+    <div style={{ maxWidth: 640 }}>
+      {/* Project selector */}
+      {projects.length > 1 && (
+        <div style={{ marginBottom: 20 }}>
+          <Select value={selectedProjId || ''} onChange={setSelectedProjId} options={projects.map(p => ({ value: p.id, label: p.name }))} style={{ minWidth: 180 }} />
+        </div>
+      )}
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>{projects.find(p => p.id === selectedProjId)?.name || ''}</div>
+        <Btn variant="primary" small onClick={() => { setAddingOpen(v => !v); setAddError(''); setAddingEmail('') }}>{t('addMember')}</Btn>
+      </div>
+      {/* Add member inline form */}
+      {addingOpen && (
+        <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: 14, marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 11, color: Z.muted, fontWeight: 600 }}>{t('emailPlaceholder')}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input autoFocus value={addingEmail} onChange={e => { setAddingEmail(e.target.value); setAddError('') }}
+              onKeyDown={e => e.key === 'Enter' && handleAddMember()}
+              placeholder="email@example.com"
+              style={{ flex: 1, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '7px 10px', outline: 'none' }} />
+            <Btn variant="primary" small onClick={handleAddMember} disabled={!addingEmail.trim()}>{t('searchMember')}</Btn>
+            <Btn variant="ghost" small onClick={() => { setAddingOpen(false); setAddError(''); setAddingEmail('') }}>✕</Btn>
+          </div>
+          {addError && <div style={{ fontSize: 12, color: Z.red }}>{addError}</div>}
+        </div>
+      )}
+      {/* Member list */}
+      {projectMembers.length === 0 ? (
+        <div style={{ color: Z.muted, fontSize: 13, textAlign: 'center', padding: 40 }}>{t('noMembers')}</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {projectMembers.map(member => (
+            <div key={member.id} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'border-color .15s' }}
+              onClick={() => setProfileMember(member)}
+              onMouseEnter={e => e.currentTarget.style.borderColor = Z.indigo}
+              onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
+            >
+              {/* Avatar */}
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: Z.indigo + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: Z.indigo, flexShrink: 0 }}>
+                {member.avatarUrl ? <img src={member.avatarUrl} alt="" style={{ width: 38, height: 38, borderRadius: '50%' }} /> : (member.name?.[0] ?? '?')}
+              </div>
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{member.name}</div>
+                {member.jobTitle && <div style={{ fontSize: 11, color: Z.muted, marginTop: 1 }}>{member.jobTitle}</div>}
+                <div style={{ fontSize: 11, color: Z.muted }}>{member.email}</div>
+              </div>
+              {/* Role badge */}
+              <Badge color={roleBadgeColor(member.role)}>{member.role}</Badge>
+              {/* Delete (not owner) */}
+              {member.role !== 'owner' && ownerMember?.email?.toLowerCase() === currentUser?.email?.toLowerCase() && (
+                <button
+                  onClick={e => { e.stopPropagation(); onDeleteMember(member.id) }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.muted, fontSize: 13, padding: '2px 4px', borderRadius: 4, flexShrink: 0 }}
+                  onMouseEnter={ev => ev.currentTarget.style.color = Z.red}
+                  onMouseLeave={ev => ev.currentTarget.style.color = Z.muted}
+                >✕</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Profile modal */}
+      {profileMember && (
+        <MemberProfileModal
+          open={!!profileMember}
+          onClose={() => setProfileMember(null)}
+          member={profileMember}
+          canEdit={canEditProfile(profileMember)}
+          onSave={(updated) => { onUpdateMember(updated); setProfileMember(null) }}
+        />
+      )}
+    </div>
+  )
+}
+
 // ─── WORKSPACE ───────────────────────────────────────────────────────────────
 // ─── TUTORIAL ────────────────────────────────────────────────────────────────
 function TutorialModal({ open, onClose }) {
@@ -1900,6 +2226,10 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   const [detailSubTasks, setDetailSubTasks] = useState([])
   const [subTasksSheetId, setSubTasksSheetId] = useState(null)
 
+  // Members
+  const [allMembers, setAllMembers] = useState([])
+  const [membersSheetId, setMembersSheetId] = useState(null)
+
   // Labels (localStorage)
   const [labels, setLabels] = useState(() => loadLabels())
 
@@ -1944,11 +2274,15 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
         setProjectsSheetId(numericProjectsSheetId)
         const numericSubTasksSheetId = await getSubTasksSheetId(sid)
         setSubTasksSheetId(numericSubTasksSheetId)
+        const numericMembersSheetId = await getMembersSheetId(sid)
+        setMembersSheetId(numericMembersSheetId)
         addLog(`Spreadsheet ready: ${sid}`, 'success')
         const loadedProjects = await loadProjects(sid)
         if (!cancelled) setProjects(loadedProjects)
         const loadedSubTasks = await loadSubTasks(sid)
         if (!cancelled) setAllSubTasks(loadedSubTasks)
+        const loadedMembers = await loadMembers(sid)
+        if (!cancelled) setAllMembers(loadedMembers)
         const loaded = await loadTasks(sid)
         if (cancelled) return
         setTasks(loaded.length > 0 ? loaded : INITIAL_TASKS)
@@ -2115,6 +2449,36 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
     }
   }, [allSubTasks, spreadsheetId, subTasksSheetId, addLog])
 
+  // ── Member CRUD ───────────────────────────────────────────────────────────
+  const onAddMember = useCallback(async (member) => {
+    setAllMembers(prev => [...prev, member])
+    if (spreadsheetId) {
+      try {
+        const rowNum = await appendMember(spreadsheetId, member)
+        setAllMembers(prev => prev.map(m => m.id === member.id ? { ...m, rowNum } : m))
+      } catch (e) { addLog(`Member append failed: ${e.message}`, 'error') }
+    }
+  }, [spreadsheetId, addLog])
+
+  const onUpdateMember = useCallback(async (updated) => {
+    setAllMembers(prev => prev.map(m => m.id === updated.id ? updated : m))
+    if (spreadsheetId && updated.rowNum) {
+      try { await updateMemberRow(spreadsheetId, updated.rowNum, updated) }
+      catch (e) { addLog(`Member update failed: ${e.message}`, 'error') }
+    }
+  }, [spreadsheetId, addLog])
+
+  const onDeleteMember = useCallback(async (memberId) => {
+    const member = allMembers.find(m => m.id === memberId)
+    setAllMembers(prev => prev.filter(m => m.id !== memberId))
+    if (spreadsheetId && member?.rowNum && membersSheetId != null) {
+      try {
+        await deleteMemberRow(spreadsheetId, membersSheetId, member.rowNum)
+        setAllMembers(prev => prev.map(m => ({ ...m, rowNum: m.rowNum > member.rowNum ? m.rowNum - 1 : m.rowNum })))
+      } catch (e) { addLog(`Member delete failed: ${e.message}`, 'error') }
+    }
+  }, [allMembers, spreadsheetId, membersSheetId, addLog])
+
   const onAIConfirm = useCallback(async (newTasks) => {
     setTasks(prev => [...prev, ...newTasks])
     if (spreadsheetId) {
@@ -2139,7 +2503,26 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
         setProjects(prev => prev.map(p => p.id === project.id ? { ...p, rowNum } : p))
       } catch (e) { addLog(`Project append failed: ${e.message}`, 'error') }
     }
-  }, [spreadsheetId, addLog])
+    // Add current user as owner member
+    if (user && !user.sandbox) {
+      const ownerMember = {
+        id: `mem_${++nextMemberId}`,
+        projectId: project.id,
+        email: user.email || '',
+        name: user.name || '',
+        role: 'owner',
+        jobTitle: '', responsibilities: '', workStyle: '',
+        avatarUrl: user.picture || '',
+      }
+      setAllMembers(prev => [...prev, ownerMember])
+      if (spreadsheetId) {
+        try {
+          const mRowNum = await appendMember(spreadsheetId, ownerMember)
+          setAllMembers(prev => prev.map(m => m.id === ownerMember.id ? { ...m, rowNum: mRowNum } : m))
+        } catch (e) { addLog(`Member append failed: ${e.message}`, 'error') }
+      }
+    }
+  }, [spreadsheetId, addLog, user])
 
   const onEditProject = useCallback(async (updated) => {
     setProjects(prev => prev.map(p => p.id === updated.id ? updated : p))
@@ -2165,6 +2548,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
     { id: 'kanban',   label: t('tabKanban'),   icon: '⬡' },
     { id: 'sheet',    label: t('tabSheet'),    icon: '⊞' },
     { id: 'mytasks',  label: t('tabMyTasks'),  icon: '✓' },
+    { id: 'team',     label: t('tabTeam'),     icon: '👥' },
     { id: 'blog',     label: t('tabPublish'),  icon: '↑' },
     { id: 'settings', label: t('tabSettings'), icon: '⚙' },
   ]
@@ -2269,6 +2653,16 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
         {activeTab === 'mytasks' && (
           <MyTasksView tasks={tasks} projects={projects} user={user} onDetail={openDetailWithSubTasks} />
         )}
+        {activeTab === 'team' && (
+          <WorkTeamTab
+            projects={projects}
+            allMembers={allMembers}
+            onAddMember={onAddMember}
+            onUpdateMember={onUpdateMember}
+            onDeleteMember={onDeleteMember}
+            currentUser={user}
+          />
+        )}
         {activeTab === 'blog'     && <AutopressView tasks={tasks} addLog={addLog} />}
         {activeTab === 'settings' && <SettingsView user={user} stageLabels={stageLabels} setStageLabels={setStageLabels} spreadsheetId={spreadsheetId} syncing={syncing} />}
       </main>
@@ -2299,6 +2693,8 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
         onUpdateSubTask={onUpdateSubTask}
         onDeleteSubTask={onDeleteSubTask}
         labels={labels} setLabels={setLabels}
+        projectMembers={detailTask ? allMembers.filter(m => m.projectId === detailTask.projectId) : []}
+        currentUser={user}
       />
       <TutorialModal open={tutorialOpen} onClose={() => {
         setTutorialOpen(false)
