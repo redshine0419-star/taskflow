@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId, loadProjects, appendProject, updateProject, deleteProject, getProjectsSheetId, loadSubTasks, appendSubTask, updateSubTaskRow, deleteSubTaskRow, getSubTasksSheetId, loadMembers, appendMember, updateMemberRow, deleteMemberRow, getMembersSheetId } from '../lib/gapi'
+import { generateAiPmReport } from '../lib/aipm'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const Z = {
@@ -270,6 +271,15 @@ Attendees: Alex, Jordan, Sam
     memberNotFound:   'No registered user found with this email',
     emailPlaceholder: 'Enter email address',
     searchMember:     'Search & add',
+    // P3 AI PM
+    tabAiPm:        'AI PM',
+    generateReport: 'Generate Report',
+    copyReport:     'Copy',
+    sendSlack:      'Send to Slack',
+    slackWebhook:   'Slack Webhook URL',
+    reportHistory:  'Report History',
+    generating:     'Generating...',
+    noApiKey:       'Set NEXT_PUBLIC_GEMINI_API_KEY to use AI PM',
   },
 
   ko: {
@@ -497,6 +507,15 @@ Attendees: Alex, Jordan, Sam
     memberNotFound:   '이 이메일은 등록된 사용자가 없습니다',
     emailPlaceholder: '이메일 주소 입력',
     searchMember:     '검색 및 추가',
+    // P3 AI PM
+    tabAiPm:        'AI PM',
+    generateReport: '보고서 생성',
+    copyReport:     '복사',
+    sendSlack:      '슬랙 전송',
+    slackWebhook:   '슬랙 웹훅 URL',
+    reportHistory:  '보고서 기록',
+    generating:     '생성 중...',
+    noApiKey:       'AI PM을 사용하려면 NEXT_PUBLIC_GEMINI_API_KEY를 설정하세요',
   },
 }
 
@@ -2140,6 +2159,204 @@ function WorkTeamTab({ projects, allMembers, onAddMember, onUpdateMember, onDele
   )
 }
 
+// ─── AI PM VIEW ──────────────────────────────────────────────────────────────
+function AiPmView({ members, tasks, subTasks }) {
+  const { t, lang } = useLang()
+  const [reportLang, setReportLang] = useState(lang)
+  const [loading, setLoading] = useState(false)
+  const [report, setReport] = useState('')
+  const [error, setError] = useState('')
+  const [slackUrl, setSlackUrl] = useState(() => {
+    try { return localStorage.getItem('tf_slack_webhook') || '' } catch (e) { void e; return '' }
+  })
+  const [slackSending, setSlackSending] = useState(false)
+  const [slackResult, setSlackResult] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [history, setHistory] = useState(() => {
+    try { const raw = localStorage.getItem('tf_aipm_reports'); return raw ? JSON.parse(raw) : [] } catch (e) { void e; return [] }
+  })
+
+  const hasApiKey = !!process.env.NEXT_PUBLIC_GEMINI_API_KEY
+
+  const saveSlackUrl = (url) => {
+    setSlackUrl(url)
+    try { localStorage.setItem('tf_slack_webhook', url) } catch (e) { void e }
+  }
+
+  const generate = async () => {
+    setLoading(true)
+    setError('')
+    setReport('')
+    try {
+      const text = await generateAiPmReport({ members, tasks, subTasks, lang: reportLang })
+      setReport(text)
+      const entry = { text, ts: new Date().toISOString() }
+      setHistory(prev => {
+        const next = [entry, ...prev].slice(0, 3)
+        try { localStorage.setItem('tf_aipm_reports', JSON.stringify(next)) } catch (e) { void e }
+        return next
+      })
+    } catch (e) {
+      setError(e.message || 'Unknown error')
+    }
+    setLoading(false)
+  }
+
+  const copy = () => {
+    navigator.clipboard?.writeText(report).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const sendSlack = async () => {
+    if (!slackUrl || !report) return
+    setSlackSending(true)
+    setSlackResult('')
+    try {
+      const res = await fetch('/api/slack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl: slackUrl, text: '📊 AI PM Report\n\n' + report }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) setSlackResult(`Error: ${data.error || res.status}`)
+      else setSlackResult('✓ Sent!')
+    } catch (e) {
+      setSlackResult(`Error: ${e.message}`)
+    }
+    setSlackSending(false)
+  }
+
+  // Render report: parse ### headings into bold colored lines
+  const renderReport = (text) => {
+    return text.split('\n').map((line, i) => {
+      if (line.startsWith('### ')) {
+        return (
+          <div key={i} style={{ fontWeight: 700, fontSize: 14, color: Z.indigo, marginTop: 16, marginBottom: 4 }}>
+            {line.slice(4)}
+          </div>
+        )
+      }
+      if (line.startsWith('## ')) {
+        return (
+          <div key={i} style={{ fontWeight: 800, fontSize: 15, color: Z.emerald, marginTop: 20, marginBottom: 6 }}>
+            {line.slice(3)}
+          </div>
+        )
+      }
+      if (line.trim() === '') return <div key={i} style={{ height: 6 }} />
+      return (
+        <div key={i} style={{ fontSize: 13, color: Z.text, lineHeight: 1.7 }}>
+          {line}
+        </div>
+      )
+    })
+  }
+
+  return (
+    <div style={{ maxWidth: 800, display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Header bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, flex: 1 }}>✨ AI PM</div>
+        {/* Lang toggle */}
+        <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 6, overflow: 'hidden' }}>
+          {['ko', 'en'].map(l => (
+            <button key={l} onClick={() => setReportLang(l)} style={{
+              padding: '4px 10px', fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer',
+              background: reportLang === l ? Z.border : 'transparent',
+              color: reportLang === l ? Z.text : Z.muted,
+            }}>{l.toUpperCase()}</button>
+          ))}
+        </div>
+        <Btn variant="primary" onClick={generate} disabled={loading || !hasApiKey}>
+          {loading ? t('generating') : `✨ ${t('generateReport')}`}
+        </Btn>
+      </div>
+
+      {!hasApiKey && (
+        <div style={{ background: `${Z.amber}18`, border: `1px solid ${Z.amber}44`, borderRadius: 8, padding: '10px 16px', fontSize: 12, color: Z.amber }}>
+          {t('noApiKey')}
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background: `${Z.red}18`, border: `1px solid ${Z.red}44`, borderRadius: 8, padding: '10px 16px', fontSize: 12, color: Z.red }}>
+          ⚠ {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: Z.indigo, fontSize: 13, padding: 20 }}>
+          <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>◆</span>
+          {t('generating')}
+        </div>
+      )}
+
+      {report && !loading && (
+        <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '20px 24px' }}>
+          {/* Action row */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            <Btn variant={copied ? 'emerald' : 'default'} small onClick={copy}>
+              {copied ? '✓ Copied' : t('copyReport')}
+            </Btn>
+            <div style={{ display: 'flex', gap: 6, flex: 1, minWidth: 200 }}>
+              <input
+                value={slackUrl}
+                onChange={e => saveSlackUrl(e.target.value)}
+                placeholder={t('slackWebhook')}
+                style={{ flex: 1, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '4px 8px', outline: 'none' }}
+              />
+              <Btn variant="default" small onClick={sendSlack} disabled={slackSending || !slackUrl}>
+                {slackSending ? '…' : t('sendSlack')}
+              </Btn>
+            </div>
+            {slackResult && <span style={{ fontSize: 12, color: slackResult.startsWith('✓') ? Z.emerald : Z.red, alignSelf: 'center' }}>{slackResult}</span>}
+          </div>
+          {/* Report body */}
+          <div style={{ borderTop: `1px solid ${Z.border}`, paddingTop: 16 }}>
+            {renderReport(report)}
+          </div>
+        </div>
+      )}
+
+      {/* History */}
+      {history.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1, marginBottom: 8 }}>{t('reportHistory').toUpperCase()}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {history.map((h, i) => (
+              <div key={i}
+                onClick={() => setReport(h.text)}
+                style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '10px 14px', cursor: 'pointer', transition: 'border-color .15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = Z.indigo}
+                onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
+              >
+                <div style={{ fontSize: 11, color: Z.muted, marginBottom: 4 }}>{new Date(h.ts).toLocaleString()}</div>
+                <div style={{ fontSize: 12, color: Z.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {h.text.slice(0, 120)}…
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Slack URL persistent store row */}
+      {!report && (
+        <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1 }}>{t('slackWebhook').toUpperCase()}</div>
+          <input
+            value={slackUrl}
+            onChange={e => saveSlackUrl(e.target.value)}
+            placeholder="https://hooks.slack.com/services/..."
+            style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 10px', outline: 'none' }}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── WORKSPACE ───────────────────────────────────────────────────────────────
 // ─── TUTORIAL ────────────────────────────────────────────────────────────────
 function TutorialModal({ open, onClose }) {
@@ -2549,6 +2766,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
     { id: 'sheet',    label: t('tabSheet'),    icon: '⊞' },
     { id: 'mytasks',  label: t('tabMyTasks'),  icon: '✓' },
     { id: 'team',     label: t('tabTeam'),     icon: '👥' },
+    { id: 'aipm',     label: t('tabAiPm'),     icon: '✨' },
     { id: 'blog',     label: t('tabPublish'),  icon: '↑' },
     { id: 'settings', label: t('tabSettings'), icon: '⚙' },
   ]
@@ -2661,6 +2879,13 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
             onUpdateMember={onUpdateMember}
             onDeleteMember={onDeleteMember}
             currentUser={user}
+          />
+        )}
+        {activeTab === 'aipm'     && (
+          <AiPmView
+            members={selectedProjectId ? allMembers.filter(m => m.projectId === selectedProjectId) : allMembers}
+            tasks={filteredByProject}
+            subTasks={allSubTasks}
           />
         )}
         {activeTab === 'blog'     && <AutopressView tasks={tasks} addLog={addLog} />}
