@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
-import { startOAuthFlow, parseAuthFromURL, clearToken, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId } from '../lib/gapi'
+import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId } from '../lib/gapi'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const Z = {
@@ -1365,7 +1365,10 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
   const [shareOpen, setShareOpen]       = useState(false)
   const [detailTask, setDetailTask]     = useState(null)
   const [toast, setToast]               = useState(null)
-  const [tutorialOpen, setTutorialOpen] = useState(!user?.sandbox)
+  const [tutorialOpen, setTutorialOpen] = useState(() => {
+    if (user?.sandbox) return false
+    try { return !localStorage.getItem('tf_tutorial_done') } catch { return true }
+  })
   const [stageLabels, setStageLabels]   = useState({})
   const stageLabel = useCallback(key => stageLabels[key] || t(`stage.${key}`), [stageLabels, t])
 
@@ -1578,6 +1581,12 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
               <span style={{ position: 'absolute', top: -4, right: -4, background: Z.emerald, color: '#052e16', borderRadius: 10, fontSize: 9, padding: '1px 5px', fontWeight: 800 }}>{newLogCount}</span>
             )}
           </button>
+          {!isMobile && user && !user.sandbox && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: Z.muted }}>
+              {user.picture && <img src={user.picture} alt="" style={{ width: 22, height: 22, borderRadius: '50%' }} />}
+              <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</span>
+            </div>
+          )}
           {!isMobile && <Btn variant="ghost" small onClick={onSignOut}>{t('signOut')}</Btn>}
         </div>
       </header>
@@ -1617,7 +1626,10 @@ function Workspace({ user, onSignOut, onSignIn, isMobile }) {
       <AIParserModal open={aiOpen} onClose={() => setAiOpen(false)} onConfirm={onAIConfirm} addLog={addLog} />
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
       <TaskDetailModal task={detailTask} open={!!detailTask} onClose={() => setDetailTask(null)} onUpdate={onDetailUpdate} stageLabel={stageLabel} />
-      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
+      <TutorialModal open={tutorialOpen} onClose={() => {
+        setTutorialOpen(false)
+        try { localStorage.setItem('tf_tutorial_done', '1') } catch (e) { void e }
+      }} />
       {toast && <Toast msg={toast} onDone={() => setToast(null)} />}
     </div>
   )
@@ -1724,6 +1736,7 @@ function AIDemo() {
 // ─── LANDING ─────────────────────────────────────────────────────────────────
 function Landing({ onSandbox }) {
   const { t } = useLang()
+  const [redirecting, setRedirecting] = useState(false)
   const [authError, setAuthError] = useState(() => {
     if (typeof window === 'undefined') return null
     const p = new URLSearchParams(window.location.search)
@@ -1734,8 +1747,10 @@ function Landing({ onSandbox }) {
 
   const handleSignIn = () => {
     try {
+      setRedirecting(true)
       startOAuthFlow()
     } catch (e) {
+      setRedirecting(false)
       setAuthError(e.message || 'Sign-in failed')
     }
   }
@@ -1753,7 +1768,7 @@ function Landing({ onSandbox }) {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <LangToggle />
           <Btn variant="ghost" onClick={onSandbox}>{t('tryGuest')}</Btn>
-          <Btn variant="emerald" onClick={handleSignIn}>{t('signInGoogle')}</Btn>
+          <Btn variant="emerald" onClick={handleSignIn} disabled={redirecting}>{redirecting ? t('signingIn') : t('signInGoogle')}</Btn>
         </div>
       </nav>
       {/* Hero */}
@@ -1767,8 +1782,8 @@ function Landing({ onSandbox }) {
         </h1>
         <p style={{ fontSize: 15, color: Z.muted, maxWidth: 520, margin: '0 auto 32px' }}>{t('heroBody')}</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-          <Btn variant="emerald" onClick={handleSignIn} style={{ fontSize: 14, padding: '10px 24px' }}>
-            {t('ctaStart')}
+          <Btn variant="emerald" onClick={handleSignIn} disabled={redirecting} style={{ fontSize: 14, padding: '10px 24px' }}>
+            {redirecting ? t('signingIn') : t('ctaStart')}
           </Btn>
           {/* P0: sandbox CTA in hero too */}
           <Btn variant="ghost" onClick={onSandbox} style={{ fontSize: 14 }}>{t('tryGuest')}</Btn>
@@ -1798,12 +1813,24 @@ function Landing({ onSandbox }) {
 // ─── APP ROOT ────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang]             = useState('en')
-  const [scene, setScene]           = useState('landing')
   const [user, setUser]             = useState(null)
+  const [scene, setScene]           = useState(() => {
+    // Restore session on load — avoids flash to landing on refresh
+    if (typeof window === 'undefined') return 'landing'
+    const saved = loadSession()
+    if (saved) { setUser(saved); return 'workspace' } // will be set below
+    return 'landing'
+  })
   const [transitioning, setTrans]   = useState(false)
   const [isMobile, setIsMobile]     = useState(
     typeof window !== 'undefined' ? window.innerWidth < 768 : false
   )
+
+  // Restore session (proper initialization since useState initializer can't call setUser)
+  useEffect(() => {
+    const saved = loadSession()
+    if (saved && scene !== 'workspace') { setUser(saved); setScene('workspace') }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 768)
@@ -1824,18 +1851,18 @@ export default function App() {
 
   const handleSandbox = () => enter({ name: 'Guest', email: '', sandbox: true })
   const handleSignOut = () => {
-    clearToken()
+    clearSession()
     setScene('landing')
     setUser(null)
   }
 
-  // Handle OAuth redirect callback — must be after enter() is declared
+  // Handle OAuth redirect callback
   useEffect(() => {
     const result = parseAuthFromURL()
     if (!result) return
     if (result.error) { console.error('Auth error:', result.error); return }
     if (result.user) enter(result.user)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>
