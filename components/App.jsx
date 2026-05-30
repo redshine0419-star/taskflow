@@ -1853,8 +1853,8 @@ function ExcelImportModal({ onClose, onImport, currentProjectId }) {
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef(null)
 
-  const STAGE_OPTS = ['planning', 'design', 'publishing', 'dev']
-  const PRIORITY_OPTS = ['low', 'medium', 'high']
+  const STAGE_OPTS = ['기획', '디자인', '퍼블', '개발', '완료']
+  const PRIORITY_OPTS = ['낮음', '보통', '높음', '긴급']
 
   const handleFile = (f) => {
     if (!f) return
@@ -1871,10 +1871,6 @@ function ExcelImportModal({ onClose, onImport, currentProjectId }) {
 
   const analyze = async () => {
     if (!file) return
-    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-      setError(t('noGeminiKey'))
-      return
-    }
     setLoading(true)
     setError('')
     try {
@@ -1899,8 +1895,8 @@ function ExcelImportModal({ onClose, onImport, currentProjectId }) {
     onClose()
   }
 
-  const STAGE_LABEL = { planning: t('stage.planning'), design: t('stage.design'), publishing: t('stage.publishing'), dev: t('stage.dev') }
-  const PRIORITY_LABEL = { low: t('priority.low'), medium: t('priority.medium'), high: t('priority.high') }
+  const STAGE_LABEL = { '기획': '기획', '디자인': '디자인', '퍼블': '퍼블', '개발': '개발', '완료': '완료' }
+  const PRIORITY_LABEL = { '낮음': '낮음', '보통': '보통', '높음': '높음', '긴급': '긴급' }
 
   return (
     <ModalShell onClose={onClose} maxWidth={720}>
