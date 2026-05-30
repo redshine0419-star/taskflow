@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react'
 import { startOAuthFlow, parseAuthFromURL, clearSession, loadSession, findOrCreateSpreadsheet, loadTasks, appendTask, updateTaskRow, deleteTaskRow, getSheetId, loadProjects, appendProject, updateProject, deleteProject, getProjectsSheetId, loadSubTasks, appendSubTask, updateSubTaskRow, deleteSubTaskRow, getSubTasksSheetId, loadMembers, appendMember, updateMemberRow, deleteMemberRow, getMembersSheetId } from '../lib/gapi'
-import { generateAiPmReport } from '../lib/aipm'
-import { exportTasksToExcel } from '../lib/excel'
+import { generateAiPmReport, mapExcelToTasks } from '../lib/aipm'
+import { exportTasksToExcel, parseExcelFile } from '../lib/excel'
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 const DARK = {
@@ -300,6 +300,14 @@ Attendees: Alex, Jordan, Sam
     // P4 Gantt + Excel
     gantt:          'Gantt',
     exportExcel:    'Export Excel',
+    importExcel:    'Import Excel',
+    analyzeWithAi:  'Analyze with AI',
+    analyzing:      'Analyzing...',
+    previewImport:  'Preview',
+    importTasks:    (n) => `Import ${n} tasks`,
+    importSuccess:  'Imported successfully',
+    dropOrClick:    'Drop Excel file here or click to browse',
+    noGeminiKey:    'Set NEXT_PUBLIC_GEMINI_API_KEY to use AI import',
     zoomWeek:       'Week',
     zoomMonth:      'Month',
     zoomQuarter:    'Quarter',
@@ -543,6 +551,14 @@ Attendees: Alex, Jordan, Sam
     // P4 Gantt + Excel
     gantt:          '간트',
     exportExcel:    '엑셀 내보내기',
+    importExcel:    '엑셀 가져오기',
+    analyzeWithAi:  'AI로 분석',
+    analyzing:      '분석 중...',
+    previewImport:  '미리보기',
+    importTasks:    (n) => `${n}개 태스크 가져오기`,
+    importSuccess:  '가져오기 완료',
+    dropOrClick:    '엑셀 파일을 여기 드롭하거나 클릭하여 선택',
+    noGeminiKey:    'AI 가져오기를 사용하려면 NEXT_PUBLIC_GEMINI_API_KEY를 설정하세요',
     zoomWeek:       '주',
     zoomMonth:      '월',
     zoomQuarter:    '분기',
@@ -1825,8 +1841,216 @@ function GanttView({ tasks, onOpenTask, stageLabel }) {
   )
 }
 
+// ─── EXCEL IMPORT MODAL ──────────────────────────────────────────────────────
+function ExcelImportModal({ onClose, onImport, currentProjectId }) {
+  const { t } = useLang()
+  const Z = useTheme()
+  const [step, setStep] = useState('upload') // 'upload' | 'preview' | 'importing'
+  const [file, setFile] = useState(null)
+  const [parsedTasks, setParsedTasks] = useState([])
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef(null)
+
+  const STAGE_OPTS = ['planning', 'design', 'publishing', 'dev']
+  const PRIORITY_OPTS = ['low', 'medium', 'high']
+
+  const handleFile = (f) => {
+    if (!f) return
+    setFile(f)
+    setError('')
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    const f = e.dataTransfer.files?.[0]
+    if (f) handleFile(f)
+  }
+
+  const analyze = async () => {
+    if (!file) return
+    if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+      setError(t('noGeminiKey'))
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      const { headers, rows } = await parseExcelFile(file)
+      const tasks = await mapExcelToTasks({ headers, rows, projectId: currentProjectId })
+      setParsedTasks(tasks)
+      setStep('preview')
+    } catch (e) {
+      setError(e.message || 'Error analyzing file')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateTask = (idx, field, value) => {
+    setParsedTasks(prev => prev.map((tk, i) => i === idx ? { ...tk, [field]: value } : tk))
+  }
+
+  const doImport = async () => {
+    setStep('importing')
+    await onImport(parsedTasks)
+    onClose()
+  }
+
+  const STAGE_LABEL = { planning: t('stage.planning'), design: t('stage.design'), publishing: t('stage.publishing'), dev: t('stage.dev') }
+  const PRIORITY_LABEL = { low: t('priority.low'), medium: t('priority.medium'), high: t('priority.high') }
+
+  return (
+    <ModalShell onClose={onClose} maxWidth={720}>
+      {/* Header */}
+      <div style={{ padding: '18px 24px', borderBottom: `1px solid ${Z.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>📂 {t('importExcel')}</div>
+        <Btn variant="ghost" small onClick={onClose}>✕</Btn>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+        {step === 'upload' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Drop zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                border: `2px dashed ${dragOver ? Z.indigo : Z.border}`,
+                borderRadius: 10,
+                padding: '40px 24px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                background: dragOver ? `${Z.indigo}0f` : 'transparent',
+                transition: 'border-color .15s, background .15s',
+              }}
+            >
+              <div style={{ fontSize: 32, marginBottom: 10 }}>📄</div>
+              <div style={{ fontSize: 13, color: file ? Z.text : Z.muted, fontWeight: file ? 600 : 400 }}>
+                {file ? file.name : t('dropOrClick')}
+              </div>
+              <div style={{ fontSize: 11, color: Z.muted, marginTop: 6 }}>.xlsx · .xls · .csv</div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              style={{ display: 'none' }}
+              onChange={e => handleFile(e.target.files?.[0] || null)}
+            />
+            {error && (
+              <div style={{ fontSize: 12, color: Z.red, background: `${Z.red}18`, border: `1px solid ${Z.red}33`, borderRadius: 6, padding: '8px 12px' }}>
+                ⚠ {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 'preview' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 13, color: Z.muted }}>
+              {parsedTasks.length} {parsedTasks.length === 1 ? 'task' : 'tasks'} ready to import
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: Z.bg }}>
+                    {['Title', 'Stage', 'Priority', 'Assignee', 'Due Date', 'Key Task'].map(col => (
+                      <th key={col} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, fontSize: 11, color: Z.muted, borderBottom: `1px solid ${Z.border}`, whiteSpace: 'nowrap' }}>{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {parsedTasks.map((tk, idx) => (
+                    <tr key={tk.id} style={{ borderBottom: `1px solid ${Z.border}` }}>
+                      <td style={{ padding: '6px 10px', minWidth: 160 }}>
+                        <input
+                          value={tk.title}
+                          onChange={e => updateTask(idx, 'title', e.target.value)}
+                          style={{ background: 'transparent', border: 'none', color: Z.text, fontSize: 12, width: '100%', outline: 'none', padding: 0 }}
+                        />
+                      </td>
+                      <td style={{ padding: '6px 10px' }}>
+                        <select value={tk.stage} onChange={e => updateTask(idx, 'stage', e.target.value)}
+                          style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 4, color: Z.text, fontSize: 11, padding: '2px 4px', cursor: 'pointer' }}>
+                          {STAGE_OPTS.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
+                        </select>
+                      </td>
+                      <td style={{ padding: '6px 10px' }}>
+                        <select value={tk.priority} onChange={e => updateTask(idx, 'priority', e.target.value)}
+                          style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 4, color: Z.text, fontSize: 11, padding: '2px 4px', cursor: 'pointer' }}>
+                          {PRIORITY_OPTS.map(p => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
+                        </select>
+                      </td>
+                      <td style={{ padding: '6px 10px' }}>
+                        <input
+                          value={tk.assignee}
+                          onChange={e => updateTask(idx, 'assignee', e.target.value)}
+                          style={{ background: 'transparent', border: 'none', color: Z.text, fontSize: 12, width: 80, outline: 'none', padding: 0 }}
+                        />
+                      </td>
+                      <td style={{ padding: '6px 10px' }}>
+                        <input
+                          type="date"
+                          value={tk.dueDate}
+                          onChange={e => updateTask(idx, 'dueDate', e.target.value)}
+                          style={{ background: 'transparent', border: 'none', color: Z.text, fontSize: 11, outline: 'none', colorScheme: 'auto' }}
+                        />
+                      </td>
+                      <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={!!tk.isKeyTask}
+                          onChange={e => updateTask(idx, 'isKeyTask', e.target.checked)}
+                          style={{ accentColor: Z.amber, cursor: 'pointer' }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {step === 'importing' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: 12 }}>
+            <div style={{ fontSize: 24 }}>⏳</div>
+            <div style={{ fontSize: 13, color: Z.muted }}>{t('analyzing')}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+        {step === 'upload' && (
+          <>
+            <Btn variant="ghost" onClick={onClose}>{t('cancel')}</Btn>
+            <Btn variant="primary" onClick={analyze} disabled={!file || loading}>
+              {loading ? t('analyzing') : t('analyzeWithAi')}
+            </Btn>
+          </>
+        )}
+        {step === 'preview' && (
+          <>
+            <Btn variant="ghost" onClick={() => setStep('upload')}>← Back</Btn>
+            <Btn variant="emerald" onClick={doImport} disabled={parsedTasks.length === 0}>
+              {t('importTasks')(parsedTasks.length)}
+            </Btn>
+          </>
+        )}
+      </div>
+    </ModalShell>
+  )
+}
+
 // ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
-function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels, onExportExcel }) {
+function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels, onExportExcel, onImportExcel }) {
   const { t } = useLang()
   const Z = useTheme()
   const [viewMode, setViewMode] = useState('kanban') // 'kanban' | 'gantt'
@@ -1897,7 +2121,8 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
             }}>{m.label}</button>
           ))}
         </div>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <Btn variant="default" small onClick={onImportExcel}>📂 {t('importExcel')}</Btn>
           <Btn variant="default" small onClick={onExportExcel}>📥 {t('exportExcel')}</Btn>
         </div>
       </div>
@@ -2749,6 +2974,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [aiOpen, setAiOpen]         = useState(false)
   const [shareOpen, setShareOpen]       = useState(false)
+  const [importOpen, setImportOpen]     = useState(false)
   const [detailTask, setDetailTask]     = useState(null)
   const [toast, setToast]               = useState(null)
   const [tutorialOpen, setTutorialOpen] = useState(() => {
@@ -3030,6 +3256,23 @@ function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode
     }
   }, [spreadsheetId, addLog])
 
+  const onImportTasks = useCallback(async (newTasks) => {
+    const tasksWithProject = newTasks.map(tk => ({ ...tk, projectId: selectedProjectId || tk.projectId || '' }))
+    setTasks(prev => [...prev, ...tasksWithProject])
+    addLog(`Imported ${tasksWithProject.length} tasks from Excel`, 'success')
+    if (spreadsheetId) {
+      for (const task of tasksWithProject) {
+        try {
+          const rowNum = await appendTask(spreadsheetId, task)
+          setTasks(prev => prev.map(tk => tk.id === task.id ? { ...tk, rowNum } : tk))
+        } catch (e) {
+          addLog(`Sheet append failed: ${e.message}`, 'error')
+        }
+      }
+    }
+    setToast(t('importSuccess'))
+  }, [spreadsheetId, addLog, selectedProjectId, t])
+
   // ── Project CRUD ──────────────────────────────────────────────────────────
   const onCreateProject = useCallback(async (form) => {
     const project = { id: `proj_${Date.now()}`, name: form.name, color: form.color, description: form.description, createdAt: new Date().toISOString() }
@@ -3187,7 +3430,8 @@ function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode
             labels={labels}
             allSubTasks={allSubTasks}
             allMembers={allMembers}
-            onExportExcel={() => exportTasksToExcel(filteredByProject, allSubTasks, allMembers, labels)} />
+            onExportExcel={() => exportTasksToExcel(filteredByProject, allSubTasks, allMembers, labels)}
+            onImportExcel={() => setImportOpen(true)} />
         )}
         {activeTab === 'sheet' && (
           <SpreadsheetView tasks={filteredByProject} onUpdateTask={onUpdateTask}
@@ -3233,6 +3477,13 @@ function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode
       {/* Modals & drawers */}
       <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} logs={logs} />
       <AIParserModal open={aiOpen} onClose={() => setAiOpen(false)} onConfirm={onAIConfirm} addLog={addLog} />
+      {importOpen && (
+        <ExcelImportModal
+          onClose={() => setImportOpen(false)}
+          onImport={onImportTasks}
+          currentProjectId={selectedProjectId}
+        />
+      )}
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
       <TaskDetailModal
         task={detailTask} open={!!detailTask}
