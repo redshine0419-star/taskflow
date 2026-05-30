@@ -3457,13 +3457,13 @@ export default function App() {
       return next
     })
   }
-  const [user, setUser]             = useState(null)
+  const [user, setUser]             = useState(() => {
+    if (typeof window === 'undefined') return null
+    return loadSession() || null
+  })
   const [scene, setScene]           = useState(() => {
-    // Restore session on load — avoids flash to landing on refresh
     if (typeof window === 'undefined') return 'landing'
-    const saved = loadSession()
-    if (saved) { setUser(saved); return 'workspace' } // will be set below
-    return 'landing'
+    return loadSession() ? 'workspace' : 'landing'
   })
   const [transitioning, setTrans]   = useState(false)
   const [isMobile, setIsMobile]     = useState(
