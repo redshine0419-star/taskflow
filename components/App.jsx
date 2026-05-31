@@ -322,6 +322,12 @@ Attendees: Alex, Jordan, Sam
     inviteCopied:   '✓ Copied!',
     inviteNote:     'Share this link — they will be added to the project after signing in',
     unassigned:     'Unassigned',
+    viewCard:       'Card',
+    viewGantt:      'Gantt',
+    viewTable:      'Table',
+    colSettings:    'Column settings',
+    resetCols:      'Reset',
+    projectGantt:   'Project Timeline',
   },
 
   ko: {
@@ -583,6 +589,12 @@ Attendees: Alex, Jordan, Sam
     inviteCopied:   '✓ 복사됨',
     inviteNote:     '초대 링크를 공유하면 상대방이 로그인 후 자동으로 프로젝트에 추가됩니다',
     unassigned:     '배정 안 됨',
+    viewCard:       '카드',
+    viewGantt:      '간트',
+    viewTable:      '표',
+    colSettings:    '열 설정',
+    resetCols:      '초기화',
+    projectGantt:   '프로젝트 타임라인',
   },
 }
 
@@ -814,70 +826,271 @@ function SideDrawer({ open, onClose, logs }) {
 }
 
 // ─── ADD TASK MODAL (P0) ─────────────────────────────────────────────────────
-function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel }) {
+function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel, members }) {
   const { t } = useLang()
   const Z = useTheme()
   const stageOptions = STAGE_KEYS.map(k => ({ value: k, label: stageLabel(k) }))
   const priorityOptions = PRIORITY_KEYS.map(k => ({ value: k, label: t(`priority.${k}`) }))
-  const [form, setForm] = useState({ title: '', assignee: '', dueDate: '', priority: 'medium', stage: defaultStage || 'planning' })
 
-  // reset when opened
+  const [categories, setCategories] = useState(() => {
+    try { const r = localStorage.getItem('tf_categories'); return r ? JSON.parse(r) : [] } catch (e) { void e; return [] }
+  })
+  const [taskTypes, setTaskTypes] = useState(() => {
+    try { const r = localStorage.getItem('tf_taskTypes'); return r ? JSON.parse(r) : [] } catch (e) { void e; return [] }
+  })
+
+  const blankForm = () => ({
+    title: '', assignee: '', startDate: '', dueDate: '', priority: 'medium',
+    stage: defaultStage || 'planning', requester: '', category: '', taskType: '',
+    externalLink: '', isKeyTask: false,
+    stageStatuses: {
+      planning:   { status: '', startDate: '', dueDate: '' },
+      design:     { status: '', startDate: '', dueDate: '' },
+      publishing: { status: '', startDate: '', dueDate: '' },
+      dev:        { status: '', startDate: '', dueDate: '' },
+    },
+    subtasks: [],
+  })
+
+  const [form, setForm] = useState(blankForm)
+  const [stageOpen, setStageOpen] = useState(false)
+  const [subtaskOpen, setSubtaskOpen] = useState(false)
+  const [newSubtask, setNewSubtask] = useState('')
+
   useEffect(() => {
-    if (open) setForm({ title: '', assignee: '', dueDate: '', priority: 'medium', stage: defaultStage || 'planning' })
-  }, [open, defaultStage])
+    if (open) {
+      setForm(blankForm())
+      setStageOpen(false)
+      setSubtaskOpen(false)
+      setNewSubtask('')
+      try { const r = localStorage.getItem('tf_categories'); setCategories(r ? JSON.parse(r) : []) } catch (e) { void e }
+      try { const r = localStorage.getItem('tf_taskTypes'); setTaskTypes(r ? JSON.parse(r) : []) } catch (e) { void e }
+    }
+  }, [open, defaultStage]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  const setStageStatus = (stage, field, value) => {
+    setForm(f => ({ ...f, stageStatuses: { ...f.stageStatuses, [stage]: { ...f.stageStatuses[stage], [field]: value } } }))
+  }
+
+  const addSubtask = () => {
+    if (!newSubtask.trim()) return
+    setForm(f => ({ ...f, subtasks: [...f.subtasks, { title: newSubtask.trim() }] }))
+    setNewSubtask('')
+  }
+
+  const removeSubtask = (i) => {
+    setForm(f => ({ ...f, subtasks: f.subtasks.filter((_, idx) => idx !== i) }))
+  }
+
   const save = () => {
     if (!form.title.trim()) return
-    onAdd({ ...form, title: form.title.trim(), id: ++nextTaskId, rowNum: nextTaskId, published: false, desc: '', comments: [] })
+    onAdd({
+      ...form,
+      title: form.title.trim(),
+      id: ++nextTaskId,
+      rowNum: nextTaskId,
+      published: false,
+      desc: '',
+      comments: [],
+      labelIds: [],
+    })
     onClose()
   }
 
+  const inputStyle = {
+    width: '100%', background: Z.bg, border: `1px solid ${Z.border}`,
+    borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 8px',
+    outline: 'none', boxSizing: 'border-box',
+  }
+  const selectStyle = {
+    width: '100%', background: Z.bg, border: `1px solid ${Z.border}`,
+    borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 8px',
+    outline: 'none', cursor: 'pointer', boxSizing: 'border-box',
+  }
+  const labelStyle = { fontSize: 11, color: Z.muted, marginBottom: 4, fontWeight: 600 }
+
+  const memberOptions = members && members.length > 0
+    ? [{ value: '', label: t('unassigned') }, ...members.map(m => ({ value: m.name, label: m.name }))]
+    : null
+
   if (!open) return null
   return (
-    <ModalShell onClose={onClose} maxWidth={480}>
-      <div style={{ padding: '18px 24px', borderBottom: `1px solid ${Z.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <ModalShell onClose={onClose} maxWidth={640}>
+      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${Z.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontWeight: 700, fontSize: 15 }}>{t('addTaskTitle')}</div>
         <Btn variant="ghost" small onClick={onClose}>✕</Btn>
       </div>
-      <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Title */}
-        <div>
-          <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('fieldTitle')} *</div>
-          <input autoFocus value={form.title} onChange={e => set('title', e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && save()}
-            style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '7px 10px', outline: 'none', boxSizing: 'border-box' }}
-          />
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Title + key task toggle */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <div style={labelStyle}>{t('fieldTitle')} *</div>
+            <input autoFocus value={form.title} onChange={e => set('title', e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && save()}
+              style={inputStyle} />
+          </div>
+          <button
+            onClick={() => set('isKeyTask', !form.isKeyTask)}
+            title={t('keyTask')}
+            style={{ background: 'none', border: `1px solid ${form.isKeyTask ? Z.amber : Z.border}`, borderRadius: 6, padding: '6px 10px', cursor: 'pointer', fontSize: 16, color: form.isKeyTask ? Z.amber : Z.muted, flexShrink: 0, marginBottom: 0 }}
+          >⭐</button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {/* Stage */}
+
+        {/* Description */}
+        <div>
+          <div style={labelStyle}>{t('descLabel')}</div>
+          <textarea value={form.desc || ''} onChange={e => set('desc', e.target.value)}
+            placeholder={t('descPlaceholder')} rows={2}
+            style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} />
+        </div>
+
+        {/* Stage | Priority */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
-            <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('fieldStage')}</div>
-            <Select value={form.stage} onChange={v => set('stage', v)} options={stageOptions} style={{ width: '100%' }} />
+            <div style={labelStyle}>{t('fieldStage')}</div>
+            <select value={form.stage} onChange={e => set('stage', e.target.value)} style={selectStyle}>
+              {stageOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </div>
-          {/* Priority */}
           <div>
-            <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('fieldPriority')}</div>
-            <Select value={form.priority} onChange={v => set('priority', v)} options={priorityOptions} style={{ width: '100%' }} />
+            <div style={labelStyle}>{t('fieldPriority')}</div>
+            <select value={form.priority} onChange={e => set('priority', e.target.value)} style={selectStyle}>
+              {priorityOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
           </div>
-          {/* Assignee */}
+        </div>
+
+        {/* Start date | Due date */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
-            <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('fieldAssignee')}</div>
-            <input value={form.assignee} onChange={e => set('assignee', e.target.value)}
-              style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
+            <div style={labelStyle}>시작일</div>
+            <input type="date" value={form.startDate || ''} onChange={e => set('startDate', e.target.value)}
+              style={{ ...inputStyle, colorScheme: 'auto' }} />
           </div>
-          {/* Due date */}
           <div>
-            <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('fieldDueDate')}</div>
+            <div style={labelStyle}>{t('fieldDueDate')}</div>
             <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)}
-              style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', colorScheme: 'auto' }} />
+              style={{ ...inputStyle, colorScheme: 'auto' }} />
           </div>
+        </div>
+
+        {/* Assignee | Requester */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <div style={labelStyle}>{t('assignee')}</div>
+            {memberOptions ? (
+              <select value={form.assignee} onChange={e => set('assignee', e.target.value)} style={selectStyle}>
+                {memberOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            ) : (
+              <input value={form.assignee} onChange={e => set('assignee', e.target.value)} style={inputStyle} />
+            )}
+          </div>
+          <div>
+            <div style={labelStyle}>{t('requester')}</div>
+            <input value={form.requester} onChange={e => set('requester', e.target.value)} style={inputStyle} />
+          </div>
+        </div>
+
+        {/* Category | Task type */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <div style={labelStyle}>{t('category')}</div>
+            <select value={form.category} onChange={e => set('category', e.target.value)} style={selectStyle}>
+              <option value="">—</option>
+              {categories.map((c, i) => <option key={i} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={labelStyle}>{t('taskType')}</div>
+            <select value={form.taskType} onChange={e => set('taskType', e.target.value)} style={selectStyle}>
+              <option value="">—</option>
+              {taskTypes.map((c, i) => <option key={i} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* External link */}
+        <div>
+          <div style={labelStyle}>{t('externalLink')}</div>
+          <input value={form.externalLink} onChange={e => set('externalLink', e.target.value)}
+            placeholder="https://..." style={inputStyle} />
+        </div>
+
+        {/* Stage status collapsible */}
+        <div style={{ border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden' }}>
+          <button
+            onClick={() => setStageOpen(v => !v)}
+            style={{ width: '100%', padding: '10px 14px', background: Z.bg, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: Z.text, fontSize: 12, fontWeight: 600 }}
+          >
+            <span>{t('stageStatus')}</span>
+            <span style={{ color: Z.muted }}>{stageOpen ? '▴' : '▾'}</span>
+          </button>
+          {stageOpen && (
+            <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {STAGE_KEYS.map(sk => (
+                <div key={sk} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 1fr', gap: 8, alignItems: 'center' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: Z.muted }}>{stageLabel(sk)}</div>
+                  <input
+                    placeholder="status"
+                    value={form.stageStatuses[sk].status}
+                    onChange={e => setStageStatus(sk, 'status', e.target.value)}
+                    style={{ ...inputStyle, padding: '4px 6px', fontSize: 11 }} />
+                  <input type="date"
+                    value={form.stageStatuses[sk].startDate}
+                    onChange={e => setStageStatus(sk, 'startDate', e.target.value)}
+                    style={{ ...inputStyle, padding: '4px 6px', fontSize: 11, colorScheme: 'auto' }} />
+                  <input type="date"
+                    value={form.stageStatuses[sk].dueDate}
+                    onChange={e => setStageStatus(sk, 'dueDate', e.target.value)}
+                    style={{ ...inputStyle, padding: '4px 6px', fontSize: 11, colorScheme: 'auto' }} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Subtasks collapsible */}
+        <div style={{ border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: Z.bg }}>
+            <button
+              onClick={() => setSubtaskOpen(v => !v)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.text, fontSize: 12, fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              {t('subtasks')} ({form.subtasks.length}) <span style={{ color: Z.muted }}>{subtaskOpen ? '▴' : '▾'}</span>
+            </button>
+            <button
+              onClick={() => { setSubtaskOpen(true); setTimeout(() => document.getElementById('new-subtask-input')?.focus(), 50) }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.indigo, fontSize: 12, fontWeight: 600, padding: 0 }}
+            >+ {t('addSubtask')}</button>
+          </div>
+          {subtaskOpen && (
+            <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {form.subtasks.map((st, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '5px 8px' }}>
+                  <span style={{ flex: 1, fontSize: 12 }}>{st.title}</span>
+                  <button onClick={() => removeSubtask(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: Z.muted, fontSize: 11, padding: '1px 3px' }}>✕</button>
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  id="new-subtask-input"
+                  value={newSubtask}
+                  onChange={e => setNewSubtask(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addSubtask()}
+                  placeholder={t('addSubtask')}
+                  style={{ ...inputStyle, flex: 1 }} />
+                <Btn variant="default" small onClick={addSubtask} disabled={!newSubtask.trim()}>+</Btn>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+      <div style={{ padding: '14px 20px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <Btn variant="ghost" onClick={onClose}>{t('cancel')}</Btn>
-        <Btn variant="primary" onClick={save} disabled={!form.title.trim()}>{t('saveTask')}</Btn>
+        <Btn variant="emerald" onClick={save} disabled={!form.title.trim()}>저장</Btn>
       </div>
     </ModalShell>
   )
@@ -1068,8 +1281,16 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, 
             </div>
             <div>
               <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldAssignee').toUpperCase()}</div>
-              <input value={form.assignee} onChange={e => set('assignee', e.target.value)}
-                style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box' }} />
+              {projectMembers && projectMembers.length > 0 ? (
+                <select value={form.assignee} onChange={e => set('assignee', e.target.value)}
+                  style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}>
+                  <option value="">{t('unassigned')}</option>
+                  {projectMembers.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                </select>
+              ) : (
+                <input value={form.assignee} onChange={e => set('assignee', e.target.value)}
+                  style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 12, padding: '5px 8px', outline: 'none', boxSizing: 'border-box' }} />
+              )}
             </div>
             <div>
               <div style={{ fontSize: 10, color: Z.muted, marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>{t('fieldDueDate').toUpperCase()}</div>
@@ -2071,7 +2292,7 @@ function ExcelImportModal({ onClose, onImport, currentProjectId }) {
 }
 
 // ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
-function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels, onExportExcel, onImportExcel }) {
+function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels, onExportExcel, onImportExcel, members }) {
   const { t } = useLang()
   const Z = useTheme()
   const [viewMode, setViewMode] = useState('kanban') // 'kanban' | 'gantt'
@@ -2122,7 +2343,7 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
         <div style={{ fontWeight: 700, fontSize: 16 }}>{t('emptyStateTitle')}</div>
         <div style={{ fontSize: 13, color: Z.muted }}>{t('emptyStateDesc')}</div>
         <Btn variant="primary" onClick={() => setAddingStage('planning')}>{t('emptyStateAdd')}</Btn>
-        <AddTaskModal open={!!addingStage} onClose={() => setAddingStage(null)} onAdd={task => { onAdd(task); setAddingStage(null) }} defaultStage={addingStage} stageLabel={stageLabel} />
+        <AddTaskModal open={!!addingStage} onClose={() => setAddingStage(null)} onAdd={task => { onAdd(task); setAddingStage(null) }} defaultStage={addingStage} stageLabel={stageLabel} members={members} />
       </div>
     )
   }
@@ -2236,7 +2457,7 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
           </div>
           <AddTaskModal open={!!addingStage} onClose={() => setAddingStage(null)}
             onAdd={task => { onAdd(task); setAddingStage(null) }}
-            defaultStage={addingStage} stageLabel={stageLabel} />
+            defaultStage={addingStage} stageLabel={stageLabel} members={members} />
         </>
       )}
     </div>
@@ -2267,7 +2488,7 @@ function InlineInput({ value, onChange, type = 'text' }) {
 }
 
 // ─── SPREADSHEET VIEW ────────────────────────────────────────────────────────
-function SpreadsheetView({ tasks, onUpdateTask, onDeleteTask, onAddTask, addLog, stageLabel }) {
+function SpreadsheetView({ tasks, onUpdateTask, onDeleteTask, onAddTask, addLog, stageLabel, members }) {
   const { t } = useLang()
   const Z = useTheme()
   const stageOptions    = STAGE_KEYS.map(k => ({ value: k, label: stageLabel(k) }))
@@ -2329,7 +2550,7 @@ function SpreadsheetView({ tasks, onUpdateTask, onDeleteTask, onAddTask, addLog,
       </button>
       <AddTaskModal open={addModal} onClose={() => setAddModal(false)}
         onAdd={task => { onAddTask(task); setAddModal(false) }}
-        defaultStage="planning" stageLabel={stageLabel} />
+        defaultStage="planning" stageLabel={stageLabel} members={members} />
     </div>
   )
 }
@@ -2593,6 +2814,7 @@ function WorkTeamTab({ projects, allMembers, onAddMember, onUpdateMember, onDele
   const [addingOpen, setAddingOpen] = useState(false)
   const [addError, setAddError] = useState('')
   const [profileMember, setProfileMember] = useState(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
 
   // Keep selectedProjId in sync if projects list changes
   useEffect(() => {
@@ -2668,9 +2890,21 @@ function WorkTeamTab({ projects, allMembers, onAddMember, onUpdateMember, onDele
               placeholder="email@example.com"
               style={{ flex: 1, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '7px 10px', outline: 'none' }} />
             <Btn variant="primary" small onClick={handleAddMember} disabled={!addingEmail.trim()}>{t('searchMember')}</Btn>
+            <Btn
+              variant={inviteCopied ? 'emerald' : 'default'}
+              small
+              onClick={() => {
+                if (!selectedProjId) return
+                const link = `${window.location.origin}?invite=${btoa(selectedProjId)}`
+                navigator.clipboard?.writeText(link).catch(() => {})
+                setInviteCopied(true)
+                setTimeout(() => setInviteCopied(false), 2000)
+              }}
+            >{inviteCopied ? t('inviteCopied') : t('inviteLink')}</Btn>
             <Btn variant="ghost" small onClick={() => { setAddingOpen(false); setAddError(''); setAddingEmail('') }}>✕</Btn>
           </div>
           {addError && <div style={{ fontSize: 12, color: Z.red }}>{addError}</div>}
+          <div style={{ fontSize: 11, color: Z.muted }}>{t('inviteNote')}</div>
         </div>
       )}
       {/* Member list */}
@@ -3269,6 +3503,26 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
     }
   }, [allMembers, spreadsheetId, membersSheetId, addLog])
 
+  // ── Handle pending invite (set by ?invite= param before OAuth) ───────────
+  useEffect(() => {
+    if (!user || user.sandbox) return
+    const pending = sessionStorage.getItem('tf_pending_invite')
+    if (!pending) return
+    sessionStorage.removeItem('tf_pending_invite')
+    const alreadyMember = allMembers.some(m => m.projectId === pending && m.email?.toLowerCase() === user.email?.toLowerCase())
+    if (alreadyMember) return
+    const newMember = {
+      id: `mem_${++nextMemberId}`,
+      projectId: pending,
+      email: user.email || '',
+      name: user.name || '',
+      role: 'member',
+      jobTitle: '', responsibilities: '', workStyle: '',
+      avatarUrl: user.picture || '',
+    }
+    onAddMember(newMember)
+  }, [user, onAddMember]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const onAIConfirm = useCallback(async (newTasks) => {
     setTasks(prev => [...prev, ...newTasks])
     if (spreadsheetId) {
@@ -3476,12 +3730,14 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
             allSubTasks={allSubTasks}
             allMembers={allMembers}
             onExportExcel={() => exportTasksToExcel(filteredByProject, allSubTasks, allMembers, labels)}
-            onImportExcel={() => setImportOpen(true)} />
+            onImportExcel={() => setImportOpen(true)}
+            members={selectedProjectId ? allMembers.filter(m => m.projectId === selectedProjectId) : allMembers} />
         )}
         {activeTab === 'sheet' && (
           <SpreadsheetView tasks={filteredByProject} onUpdateTask={onUpdateTask}
             onDeleteTask={onDeleteTask} onAddTask={onAddTask}
-            addLog={addLog} stageLabel={stageLabel} />
+            addLog={addLog} stageLabel={stageLabel}
+            members={selectedProjectId ? allMembers.filter(m => m.projectId === selectedProjectId) : allMembers} />
         )}
         {activeTab === 'mytasks' && (
           <MyTasksView tasks={tasks} projects={projects} user={user} onDetail={openDetailWithSubTasks} />
@@ -3805,6 +4061,21 @@ export default function App() {
     if (!result) return
     if (result.error) { console.error('Auth error:', result.error); return }
     if (result.user) enter(result.user)
+  }, []) // mount-only intentional
+
+  // Handle ?invite= param: store projectId before OAuth, handle after
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const inviteB64 = params.get('invite')
+    if (inviteB64) {
+      try {
+        const projectId = atob(inviteB64)
+        sessionStorage.setItem('tf_pending_invite', projectId)
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname)
+      } catch (e) { void e }
+    }
   }, []) // mount-only intentional
 
   return (
