@@ -1696,11 +1696,181 @@ function ProjectModal({ open, onClose, onSave, initial }) {
 }
 
 // ─── PROJECTS VIEW ────────────────────────────────────────────────────────────
+// ─── PROJECT GANTT VIEW ──────────────────────────────────────────────────────
+function ProjectGanttView({ projects, tasks, onSelectProject }) {
+  const { t } = useLang()
+  const Z = useTheme()
+  const [zoom, setZoom] = useState('month') // 'month' | 'quarter'
+
+  const DAY_W = zoom === 'month' ? 20 : 10
+  const LEFT_COL = 180
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const allDates = []
+  projects.forEach(p => {
+    if (p.startDate) allDates.push(new Date(p.startDate))
+    if (p.dueDate)   allDates.push(new Date(p.dueDate))
+    if (!p.startDate && !p.dueDate && p.createdAt) {
+      const c = new Date(p.createdAt)
+      allDates.push(c)
+      const e = new Date(c); e.setDate(e.getDate() + 30)
+      allDates.push(e)
+    }
+  })
+  allDates.push(today)
+
+  const rangeStart = new Date(allDates.length > 1 ? Math.min(...allDates.map(d => d.getTime())) : today.getTime())
+  rangeStart.setDate(rangeStart.getDate() - 3)
+  rangeStart.setHours(0, 0, 0, 0)
+
+  const totalDays = zoom === 'month' ? 90 : 180
+  const timelineWidth = totalDays * DAY_W
+
+  const dateToX = (dateStr) => {
+    const d = new Date(dateStr); d.setHours(0, 0, 0, 0)
+    return ((d.getTime() - rangeStart.getTime()) / 86400000) * DAY_W
+  }
+  const todayX = ((today.getTime() - rangeStart.getTime()) / 86400000) * DAY_W
+
+  const headerDays = []
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(rangeStart); d.setDate(rangeStart.getDate() + i)
+    headerDays.push(d)
+  }
+  const monthGroups = []
+  let curMon = null, curMonStart = 0
+  headerDays.forEach((d, i) => {
+    const key = `${d.getFullYear()}-${d.getMonth()}`
+    if (key !== curMon) {
+      if (curMon !== null) monthGroups.push({ label: curMon, start: curMonStart, end: i })
+      curMon = key; curMonStart = i
+    }
+  })
+  if (curMon !== null) monthGroups.push({ label: curMon, start: curMonStart, end: headerDays.length })
+
+  const ROW_H = 40
+
+  if (projects.length === 0) {
+    return <div style={{ textAlign: 'center', padding: 60, color: Z.muted, fontSize: 13 }}>{t('newProject')}</div>
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center' }}>
+        {[{ id: 'month', label: t('zoomMonth') }, { id: 'quarter', label: t('zoomQuarter') }].map(o => (
+          <button key={o.id} onClick={() => setZoom(o.id)} style={{
+            padding: '4px 12px', borderRadius: 6, border: `1px solid ${zoom === o.id ? Z.indigo : Z.border}`,
+            background: zoom === o.id ? Z.indigo + '22' : 'transparent',
+            color: zoom === o.id ? Z.indigo : Z.muted, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>{o.label}</button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ width: LEFT_COL, flexShrink: 0, borderRight: `1px solid ${Z.border}`, background: Z.surface }}>
+          <div style={{ height: 44, borderBottom: `1px solid ${Z.border}`, background: Z.bg }} />
+          {projects.map(project => {
+            const count = tasks.filter(tk => tk.projectId === project.id).length
+            return (
+              <div key={project.id} style={{ height: ROW_H, display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px', borderBottom: `1px solid ${Z.border}`, background: Z.surface, cursor: 'pointer' }}
+                onClick={() => onSelectProject(project.id)}
+                onMouseEnter={e => e.currentTarget.style.background = Z.bg}
+                onMouseLeave={e => e.currentTarget.style.background = Z.surface}
+              >
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: project.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: Z.text }}>{project.name}</span>
+                <span style={{ fontSize: 10, color: Z.muted, flexShrink: 0 }}>{count}</span>
+              </div>
+            )
+          })}
+        </div>
+
+        <div style={{ flex: 1, overflowX: 'auto' }}>
+          <div style={{ display: 'flex', height: 22, borderBottom: `1px solid ${Z.border}`, background: Z.bg, minWidth: timelineWidth }}>
+            {monthGroups.map((mg, mi) => {
+              const [yr, mon] = mg.label.split('-')
+              const d = new Date(Number(yr), Number(mon), 1)
+              const label = d.toLocaleString('en-US', { month: 'short', year: '2-digit' })
+              return (
+                <div key={mi} style={{ width: (mg.end - mg.start) * DAY_W, flexShrink: 0, fontSize: 10, fontWeight: 700, color: Z.muted, padding: '3px 6px', borderRight: `1px solid ${Z.border}`, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  {label}
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', height: 22, borderBottom: `1px solid ${Z.border}`, background: Z.bg, minWidth: timelineWidth }}>
+            {headerDays.map((d, i) => (
+              <div key={i} style={{ width: DAY_W, flexShrink: 0, fontSize: 9, color: Z.muted, textAlign: 'center', lineHeight: '22px', borderRight: `1px solid ${Z.border}22` }}>
+                {zoom === 'month' && d.getDate() % 5 === 1 ? d.getDate() : zoom === 'quarter' && d.getDate() % 10 === 1 ? d.getDate() : ''}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ minWidth: timelineWidth, position: 'relative' }}>
+            {todayX >= 0 && todayX <= timelineWidth && (
+              <div style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, borderLeft: `1.5px dashed ${Z.red}`, zIndex: 3, pointerEvents: 'none' }} />
+            )}
+            {projects.map(project => {
+              const count = tasks.filter(tk => tk.projectId === project.id).length
+              let startX, endX
+              if (project.startDate && project.dueDate) {
+                startX = dateToX(project.startDate)
+                endX = dateToX(project.dueDate) + DAY_W
+              } else if (project.dueDate) {
+                endX = dateToX(project.dueDate) + DAY_W
+                startX = endX - 30 * DAY_W
+              } else if (project.startDate) {
+                startX = dateToX(project.startDate)
+                endX = startX + 30 * DAY_W
+              } else {
+                const base = project.createdAt ? dateToX(project.createdAt) : 0
+                startX = base
+                endX = base + 30 * DAY_W
+              }
+              const barLeft = Math.max(0, startX)
+              const barWidth = Math.max(endX - barLeft, 20)
+
+              return (
+                <div key={project.id} style={{ height: ROW_H, borderBottom: `1px solid ${Z.border}`, position: 'relative', background: Z.surface }}>
+                  {barLeft < timelineWidth && (
+                    <div
+                      onClick={() => onSelectProject(project.id)}
+                      style={{
+                        position: 'absolute', top: 8, height: ROW_H - 16,
+                        left: barLeft, width: barWidth,
+                        background: project.color + 'bb', border: `1px solid ${project.color}`,
+                        borderRadius: 4, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 4, paddingLeft: 6,
+                        overflow: 'hidden', zIndex: 2,
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+                      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    >
+                      <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {project.name} · {count}
+                      </span>
+                      {project.isOngoing && <span style={{ fontSize: 12, color: '#fff', flexShrink: 0, paddingRight: 4 }}>→</span>}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── PROJECTS VIEW ────────────────────────────────────────────────────────────
 function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDeleteProject, onSelectProject }) {
   const { t } = useLang()
   const Z = useTheme()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState(null)
+  const [viewMode, setViewMode] = useState('card') // 'card' | 'gantt'
 
   const handleEdit = (e, project) => {
     e.stopPropagation()
@@ -1720,42 +1890,62 @@ function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDelet
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ fontSize: 16, fontWeight: 700 }}>{t('projectsTitle')}</div>
-        <Btn variant="primary" onClick={() => { setEditingProject(null); setModalOpen(true) }}>{t('newProject')}</Btn>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 6, overflow: 'hidden' }}>
+            {[{ id: 'card', label: t('viewCard') }, { id: 'gantt', label: t('viewGantt') }].map(m => (
+              <button key={m.id} onClick={() => setViewMode(m.id)} style={{
+                padding: '4px 12px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                background: viewMode === m.id ? Z.border : 'transparent',
+                color: viewMode === m.id ? Z.text : Z.muted,
+                transition: 'background .15s, color .15s',
+              }}>{m.label}</button>
+            ))}
+          </div>
+          <Btn variant="primary" onClick={() => { setEditingProject(null); setModalOpen(true) }}>{t('newProject')}</Btn>
+        </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
-        {projects.map(project => {
-          const count = tasks.filter(tk => tk.projectId === project.id).length
-          return (
-            <div key={project.id} onClick={() => onSelectProject(project.id)}
-              style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', transition: 'border-color .15s' }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = project.color}
-              onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
-            >
-              <div style={{ display: 'flex' }}>
-                <div style={{ width: 5, background: project.color, flexShrink: 0 }} />
-                <div style={{ padding: '14px 16px', flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.name}</div>
-                  {project.description && <div style={{ fontSize: 12, color: Z.muted, marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.description}</div>}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 11, color: Z.muted }}>{t('projectTasks')(count)}</span>
-                    <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
-                      <Btn variant="ghost" small onClick={e => handleEdit(e, project)}>{t('editProject')}</Btn>
-                      <Btn variant="danger" small onClick={e => handleDelete(e, project)}>{t('deleteProject')}</Btn>
+
+      {viewMode === 'gantt' && (
+        <ProjectGanttView projects={projects} tasks={tasks} onSelectProject={onSelectProject} />
+      )}
+
+      {viewMode === 'card' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+          {projects.map(project => {
+            const count = tasks.filter(tk => tk.projectId === project.id).length
+            return (
+              <div key={project.id} onClick={() => onSelectProject(project.id)}
+                style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', transition: 'border-color .15s' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = project.color}
+                onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
+              >
+                <div style={{ display: 'flex' }}>
+                  <div style={{ width: 5, background: project.color, flexShrink: 0 }} />
+                  <div style={{ padding: '14px 16px', flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.name}</div>
+                    {project.description && <div style={{ fontSize: 12, color: Z.muted, marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{project.description}</div>}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 11, color: Z.muted }}>{t('projectTasks')(count)}</span>
+                      <div style={{ display: 'flex', gap: 4 }} onClick={e => e.stopPropagation()}>
+                        <Btn variant="ghost" small onClick={e => handleEdit(e, project)}>{t('editProject')}</Btn>
+                        <Btn variant="danger" small onClick={e => handleDelete(e, project)}>{t('deleteProject')}</Btn>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
+            )
+          })}
+          {projects.length === 0 && (
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 60, color: Z.muted, fontSize: 13 }}>
+              {t('newProject')}
             </div>
-          )
-        })}
-        {projects.length === 0 && (
-          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 60, color: Z.muted, fontSize: 13 }}>
-            {t('newProject')}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
+
       <ProjectModal open={modalOpen} onClose={handleClose} onSave={handleSave} initial={editingProject} />
     </div>
   )
@@ -2291,8 +2481,194 @@ function ExcelImportModal({ onClose, onImport, currentProjectId }) {
   )
 }
 
+// ─── TABLE VIEW ──────────────────────────────────────────────────────────────
+const ALL_TABLE_COLS = [
+  { id: 'title',    label: '제목',        alwaysOn: true },
+  { id: 'stage',    label: '단계',        alwaysOn: false },
+  { id: 'priority', label: '중요도',      alwaysOn: false },
+  { id: 'assignee', label: '담당자',      alwaysOn: false },
+  { id: 'startDate',label: '시작일',      alwaysOn: false },
+  { id: 'dueDate',  label: '마감일',      alwaysOn: false },
+  { id: 'isKeyTask',label: '핵심태스크',  alwaysOn: false },
+  { id: 'labelIds', label: '라벨',        alwaysOn: false },
+  { id: 'requester',label: '요청자',      alwaysOn: false },
+  { id: 'category', label: '구분',        alwaysOn: false },
+  { id: 'taskType', label: '업무종류',    alwaysOn: false },
+  { id: 'desc',     label: '설명',        alwaysOn: false },
+  { id: 'subtaskPct', label: '서브태스크 완료율', alwaysOn: false },
+]
+const DEFAULT_TABLE_COLS = ['title', 'stage', 'priority', 'assignee', 'dueDate', 'isKeyTask']
+
+function loadTableCols() {
+  try {
+    const raw = localStorage.getItem('tf_table_cols')
+    if (raw) return JSON.parse(raw)
+  } catch (e) { void e }
+  return DEFAULT_TABLE_COLS
+}
+function saveTableCols(cols) {
+  try { localStorage.setItem('tf_table_cols', JSON.stringify(cols)) } catch (e) { void e }
+}
+
+function TableView({ tasks, onDetail, onUpdateTask, stageLabel, subTasks, labels }) {
+  const { t } = useLang()
+  const Z = useTheme()
+  const [visibleCols, setVisibleCols] = useState(() => loadTableCols())
+  const [colPanelOpen, setColPanelOpen] = useState(false)
+  const [sortCol, setSortCol] = useState('title')
+  const [sortAsc, setSortAsc] = useState(true)
+  const stageOptions = STAGE_KEYS.map(k => ({ value: k, label: stageLabel(k) }))
+  const priorityOptions = PRIORITY_KEYS.map(k => ({ value: k, label: t(`priority.${k}`) }))
+
+  const toggleCol = (id) => {
+    const col = ALL_TABLE_COLS.find(c => c.id === id)
+    if (col && col.alwaysOn) return
+    const next = visibleCols.includes(id) ? visibleCols.filter(c => c !== id) : [...visibleCols, id]
+    setVisibleCols(next)
+    saveTableCols(next)
+  }
+  const resetCols = () => { setVisibleCols(DEFAULT_TABLE_COLS); saveTableCols(DEFAULT_TABLE_COLS) }
+
+  const handleSort = (colId) => {
+    if (sortCol === colId) setSortAsc(a => !a)
+    else { setSortCol(colId); setSortAsc(true) }
+  }
+
+  const getSubtaskPct = (taskId) => {
+    const subs = (subTasks || []).filter(s => String(s.taskId) === String(taskId))
+    if (!subs.length) return null
+    const done = subs.filter(s => s.done).length
+    return Math.round((done / subs.length) * 100)
+  }
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    let av = a[sortCol] ?? '', bv = b[sortCol] ?? ''
+    if (sortCol === 'priority') {
+      const ord = { high: 0, medium: 1, low: 2 }
+      av = ord[av] ?? 99; bv = ord[bv] ?? 99
+    }
+    if (av < bv) return sortAsc ? -1 : 1
+    if (av > bv) return sortAsc ? 1 : -1
+    return 0
+  })
+
+  const shownCols = ALL_TABLE_COLS.filter(c => visibleCols.includes(c.id))
+
+  const cellStyle = { padding: '6px 10px', borderBottom: `1px solid ${Z.border}`, fontSize: 12, whiteSpace: 'nowrap', verticalAlign: 'middle' }
+  const thStyle = { padding: '8px 10px', textAlign: 'left', color: Z.muted, fontWeight: 700, fontSize: 11, whiteSpace: 'nowrap', borderBottom: `1px solid ${Z.border}`, cursor: 'pointer', userSelect: 'none', position: 'sticky', top: 0, background: Z.bg, zIndex: 2 }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <span style={{ fontSize: 12, color: Z.muted }}>{tasks.length}개 업무</span>
+        <div style={{ position: 'relative' }}>
+          <Btn variant="default" small onClick={() => setColPanelOpen(o => !o)}>⚙ {t('colSettings')}</Btn>
+          {colPanelOpen && (
+            <>
+              <div onClick={() => setColPanelOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10 }} />
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: 14, zIndex: 20, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 6, boxShadow: '0 4px 20px rgba(0,0,0,.3)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: Z.muted }}>{t('colSettings').toUpperCase()}</span>
+                  <button onClick={resetCols} style={{ background: 'none', border: 'none', color: Z.indigo, fontSize: 11, cursor: 'pointer', padding: 0 }}>{t('resetCols')}</button>
+                </div>
+                {ALL_TABLE_COLS.map(col => (
+                  <label key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: col.alwaysOn ? 'default' : 'pointer', fontSize: 12 }}>
+                    <input type="checkbox" checked={visibleCols.includes(col.id)} onChange={() => toggleCol(col.id)} disabled={col.alwaysOn} style={{ accentColor: Z.indigo }} />
+                    <span style={{ color: col.alwaysOn ? Z.muted : Z.text }}>{col.label}</span>
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div style={{ overflowX: 'auto', border: `1px solid ${Z.border}`, borderRadius: 8 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr>
+              {shownCols.map((col, ci) => (
+                <th key={col.id} style={thStyle} onClick={() => handleSort(col.id)}>
+                  {col.label} {sortCol === col.id ? (sortAsc ? '↑' : '↓') : ''}
+                  {ci < shownCols.length - 1 && <span style={{ marginLeft: 2, color: Z.border }}>|</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedTasks.map((task, rowIdx) => (
+              <tr key={task.id}
+                style={{ background: rowIdx % 2 === 0 ? 'transparent' : Z.surface + '88', transition: 'background .1s', cursor: 'pointer' }}
+                onClick={() => onDetail(task)}
+                onMouseEnter={e => e.currentTarget.style.background = Z.indigo + '15'}
+                onMouseLeave={e => e.currentTarget.style.background = rowIdx % 2 === 0 ? 'transparent' : Z.surface + '88'}
+              >
+                {shownCols.map(col => (
+                  <td key={col.id} style={cellStyle} onClick={e => e.stopPropagation()}>
+                    {col.id === 'title' && (
+                      <span style={{ fontWeight: 600, color: Z.text, cursor: 'pointer' }} onClick={() => onDetail(task)}>{task.title}</span>
+                    )}
+                    {col.id === 'stage' && (
+                      <select value={task.stage} onChange={e => onUpdateTask(task.id, 'stage', e.target.value)}
+                        style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 4, color: Z.text, fontSize: 11, padding: '2px 4px', cursor: 'pointer' }}>
+                        {stageOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    )}
+                    {col.id === 'priority' && (
+                      <select value={task.priority} onChange={e => onUpdateTask(task.id, 'priority', e.target.value)}
+                        style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 4, color: Z.text, fontSize: 11, padding: '2px 4px', cursor: 'pointer' }}>
+                        {priorityOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    )}
+                    {col.id === 'assignee' && (
+                      <input value={task.assignee || ''} onChange={e => onUpdateTask(task.id, 'assignee', e.target.value)}
+                        style={{ background: 'transparent', border: 'none', color: Z.text, fontSize: 12, width: 90, outline: 'none' }} />
+                    )}
+                    {col.id === 'startDate' && <span style={{ color: Z.muted }}>{task.startDate || '—'}</span>}
+                    {col.id === 'dueDate' && <span style={{ color: Z.muted }}>{task.dueDate || '—'}</span>}
+                    {col.id === 'isKeyTask' && (
+                      <span style={{ color: task.isKeyTask ? Z.amber : Z.border }}>⭐</span>
+                    )}
+                    {col.id === 'labelIds' && (
+                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                        {(task.labelIds || []).map(lid => {
+                          const l = (labels || []).find(x => x.id === lid)
+                          return l ? <span key={lid} style={{ padding: '1px 5px', borderRadius: 3, fontSize: 10, background: l.color + '28', color: l.color }}>{l.name}</span> : null
+                        })}
+                      </div>
+                    )}
+                    {col.id === 'requester' && <span style={{ color: Z.muted }}>{task.requester || '—'}</span>}
+                    {col.id === 'category' && <span style={{ color: Z.muted }}>{task.category || '—'}</span>}
+                    {col.id === 'taskType' && <span style={{ color: Z.muted }}>{task.taskType || '—'}</span>}
+                    {col.id === 'desc' && (
+                      <span style={{ color: Z.muted, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{task.desc || '—'}</span>
+                    )}
+                    {col.id === 'subtaskPct' && (() => {
+                      const pct = getSubtaskPct(task.id)
+                      if (pct === null) return <span style={{ color: Z.muted }}>—</span>
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ width: 50, height: 5, background: Z.border, borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: Z.emerald, borderRadius: 3 }} />
+                          </div>
+                          <span style={{ color: Z.muted, fontSize: 10 }}>{pct}%</span>
+                        </div>
+                      )
+                    })()}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 // ─── KANBAN VIEW ─────────────────────────────────────────────────────────────
-function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels, onExportExcel, onImportExcel, members }) {
+function KanbanView({ tasks, isMobile, onStageChange, onUpdateTask, onPublish, onDelete, onDetail, onAdd, onToggleKeyTask, addLog, stageLabel, totalTaskCount, labels, onExportExcel, onImportExcel, members, subTasks }) {
   const { t } = useLang()
   const Z = useTheme()
   const [viewMode, setViewMode] = useState('kanban') // 'kanban' | 'gantt'
@@ -2354,7 +2730,7 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
         {/* View mode toggle */}
         <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 6, overflow: 'hidden' }}>
-          {[{ id: 'kanban', label: '⬡ ' + t('tabKanban') }, { id: 'gantt', label: '▬ ' + t('gantt') }].map(m => (
+          {[{ id: 'kanban', label: '⬡ ' + t('tabKanban') }, { id: 'gantt', label: '▬ ' + t('viewGantt') }, { id: 'table', label: '⊞ ' + t('viewTable') }].map(m => (
             <button key={m.id} onClick={() => setViewMode(m.id)} style={{
               padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
               background: viewMode === m.id ? Z.border : 'transparent',
@@ -2372,6 +2748,11 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
       {/* Gantt view */}
       {viewMode === 'gantt' && (
         <GanttView tasks={filteredTasks} onOpenTask={onDetail} stageLabel={stageLabel} />
+      )}
+
+      {/* Table view */}
+      {viewMode === 'table' && (
+        <TableView tasks={filteredTasks} onDetail={onDetail} onUpdateTask={onUpdateTask} stageLabel={stageLabel} subTasks={subTasks} labels={labels} />
       )}
 
       {/* Kanban board */}
@@ -3721,12 +4102,13 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
         )}
         {activeTab === 'kanban' && (
           <KanbanView tasks={filteredByProject} isMobile={isMobile}
-            onStageChange={onStageChange} onPublish={onPublish}
+            onStageChange={onStageChange} onUpdateTask={onUpdateTask} onPublish={onPublish}
             onDelete={onDeleteTask} onDetail={openDetailWithSubTasks}
             onAdd={onAddTask} addLog={addLog}
             onToggleKeyTask={onToggleKeyTask}
             stageLabel={stageLabel} totalTaskCount={filteredByProject.length}
             labels={labels}
+            subTasks={allSubTasks}
             allSubTasks={allSubTasks}
             allMembers={allMembers}
             onExportExcel={() => exportTasksToExcel(filteredByProject, allSubTasks, allMembers, labels)}
