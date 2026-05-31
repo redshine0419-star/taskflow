@@ -113,6 +113,10 @@ const TR = {
     projectDesc:      'Description',
     projectColor:     'Color',
     saveProject:      'Save',
+    projectOngoing:   'Ongoing',
+    projectOngoingNote: 'no end date',
+    startDate:        'Start Date',
+    dueDate:          'Due Date',
     allProjects:      'All Projects',
     confirmDeleteProject: 'Delete this project? Tasks will remain.',
     // my tasks view
@@ -397,6 +401,10 @@ Attendees: Alex, Jordan, Sam
     projectDesc:      '설명',
     projectColor:     '색상',
     saveProject:      '저장',
+    projectOngoing:   '상시 운영',
+    projectOngoingNote: '기간 없음',
+    startDate:        '시작일',
+    dueDate:          '목표일',
     allProjects:      '전체 프로젝트',
     confirmDeleteProject: '이 프로젝트를 삭제할까요? 태스크는 유지됩니다.',
     myTasksTitle: '내 태스크',
@@ -1654,9 +1662,11 @@ function TaskCard({ task, isMobile, onStageChange, onPublish, onDelete, onDetail
 function ProjectModal({ open, onClose, onSave, initial }) {
   const { t } = useLang()
   const Z = useTheme()
-  const [form, setForm] = useState({ name: '', description: '', color: PROJECT_COLORS[0] })
+  const [form, setForm] = useState({ name: '', description: '', color: PROJECT_COLORS[0], startDate: '', dueDate: '', isOngoing: false })
   useEffect(() => {
-    if (open) setForm(initial ? { name: initial.name, description: initial.description || '', color: initial.color || PROJECT_COLORS[0] } : { name: '', description: '', color: PROJECT_COLORS[0] })
+    if (open) setForm(initial
+      ? { name: initial.name, description: initial.description || '', color: initial.color || PROJECT_COLORS[0], startDate: initial.startDate || '', dueDate: initial.dueDate || '', isOngoing: !!initial.isOngoing }
+      : { name: '', description: '', color: PROJECT_COLORS[0], startDate: '', dueDate: '', isOngoing: false })
   }, [open, initial])
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const save = () => { if (!form.name.trim()) return; onSave(form); onClose() }
@@ -1686,6 +1696,24 @@ function ProjectModal({ open, onClose, onSave, initial }) {
             ))}
           </div>
         </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+          <input type="checkbox" checked={form.isOngoing} onChange={e => set('isOngoing', e.target.checked)} />
+          <span>{t('projectOngoing')} <span style={{ fontSize: 11, color: Z.muted }}>({t('projectOngoingNote')})</span></span>
+        </label>
+        {!form.isOngoing && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('startDate')}</div>
+              <input type="date" value={form.startDate} onChange={e => set('startDate', e.target.value)}
+                style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '7px 10px', outline: 'none', boxSizing: 'border-box', colorScheme: 'auto' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: Z.muted, marginBottom: 5, fontWeight: 600 }}>{t('dueDate')}</div>
+              <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)}
+                style={{ width: '100%', background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, color: Z.text, fontSize: 13, padding: '7px 10px', outline: 'none', boxSizing: 'border-box', colorScheme: 'auto' }} />
+            </div>
+          </div>
+        )}
       </div>
       <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <Btn variant="ghost" onClick={onClose}>{t('cancel')}</Btn>
@@ -2742,6 +2770,7 @@ function KanbanView({ tasks, isMobile, onStageChange, onUpdateTask, onPublish, o
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <Btn variant="default" small onClick={onImportExcel}>📂 {t('importExcel')}</Btn>
           <Btn variant="default" small onClick={onExportExcel}>📥 {t('exportExcel')}</Btn>
+          <Btn variant="emerald" small onClick={() => setAddingStage(STAGE_KEYS[0] || '기획')}>+ {t('addTask')}</Btn>
         </div>
       </div>
 
@@ -2869,6 +2898,7 @@ function InlineInput({ value, onChange, type = 'text' }) {
 }
 
 // ─── SPREADSHEET VIEW ────────────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
 function SpreadsheetView({ tasks, onUpdateTask, onDeleteTask, onAddTask, addLog, stageLabel, members }) {
   const { t } = useLang()
   const Z = useTheme()
@@ -4006,7 +4036,6 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
   const tabs = [
     { id: 'projects', label: t('tabProjects'), icon: '◈' },
     { id: 'kanban',   label: t('tabKanban'),   icon: '⬡' },
-    { id: 'sheet',    label: t('tabSheet'),    icon: '⊞' },
     { id: 'mytasks',  label: t('tabMyTasks'),  icon: '✓' },
     { id: 'team',     label: t('tabTeam'),     icon: '👥' },
     { id: 'aipm',     label: t('tabAiPm'),     icon: '✨' },
@@ -4046,7 +4075,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
       {/* Header */}
       <header style={{ borderBottom: `1px solid ${Z.border}`, padding: isMobile ? '10px 16px' : '10px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 20, background: Z.bg }}>
         <div onClick={onGoHome} style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, cursor: 'pointer' }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
-        {(activeTab === 'kanban' || activeTab === 'sheet') && (
+        {activeTab === 'kanban' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
             <span style={{ color: Z.muted }}>›</span>
             {selectedProject && <div style={{ width: 8, height: 8, borderRadius: '50%', background: selectedProject.color }} />}
@@ -4113,12 +4142,6 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
             allMembers={allMembers}
             onExportExcel={() => exportTasksToExcel(filteredByProject, allSubTasks, allMembers, labels)}
             onImportExcel={() => setImportOpen(true)}
-            members={selectedProjectId ? allMembers.filter(m => m.projectId === selectedProjectId) : allMembers} />
-        )}
-        {activeTab === 'sheet' && (
-          <SpreadsheetView tasks={filteredByProject} onUpdateTask={onUpdateTask}
-            onDeleteTask={onDeleteTask} onAddTask={onAddTask}
-            addLog={addLog} stageLabel={stageLabel}
             members={selectedProjectId ? allMembers.filter(m => m.projectId === selectedProjectId) : allMembers} />
         )}
         {activeTab === 'mytasks' && (
