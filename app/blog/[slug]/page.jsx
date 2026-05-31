@@ -1,39 +1,58 @@
 import Link from 'next/link'
 import { BLOG_POSTS } from '../../../lib/blog-posts'
 
+export const revalidate = 3600
+
+async function getAllPosts() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/api/blog-list`, { next: { revalidate: 3600 } })
+    if (!res.ok) throw new Error('blog-list fetch failed')
+    const posts = await res.json()
+    if (posts && posts.length > 0) return posts
+  } catch (e) {
+    // fall through to static
+  }
+  return BLOG_POSTS
+}
+
 export async function generateStaticParams() {
   return BLOG_POSTS.map(p => ({ slug: p.slug }))
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
-  const post = BLOG_POSTS.find(p => p.slug === slug)
+  const allPosts = await getAllPosts()
+  const post = allPosts.find(p => p.slug === slug)
   if (!post) {
     return {
       title: '포스트를 찾을 수 없습니다 | TaskFlow 블로그',
     }
   }
+  const description = post.desc || post.excerpt || ''
+  const keywords = post.keywords || post.tags || []
   return {
     title: `${post.title} | TaskFlow 블로그`,
-    description: post.excerpt,
-    keywords: post.tags,
+    description,
+    keywords,
     alternates: { canonical: `https://taskflow.vercel.app/blog/${slug}` },
     robots: { index: true, follow: true },
     openGraph: {
       title: post.title,
-      description: post.excerpt,
+      description,
       type: 'article',
       url: `https://taskflow.vercel.app/blog/${slug}`,
       locale: 'ko_KR',
-      publishedTime: post.publishedAt,
-      tags: post.tags,
+      publishedTime: post.date || post.publishedAt,
+      tags: Array.isArray(keywords) ? keywords : [],
     },
   }
 }
 
 export default async function BlogPost({ params }) {
   const { slug } = await params
-  const post = BLOG_POSTS.find(p => p.slug === slug)
+  const allPosts = await getAllPosts()
+  const post = allPosts.find(p => p.slug === slug)
 
   if (!post) {
     return (
@@ -49,14 +68,17 @@ export default async function BlogPost({ params }) {
     )
   }
 
-  const related = BLOG_POSTS.filter(p => p.slug !== slug && p.category === post.category).slice(0, 3)
+  const related = allPosts.filter(p => p.slug !== slug && p.category === post.category).slice(0, 3)
 
+  const postDesc = post.desc || post.excerpt || ''
+  const postDate = post.date || post.publishedAt || ''
+  const postTags = Array.isArray(post.keywords) ? post.keywords : (Array.isArray(post.tags) ? post.tags : [])
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: post.title,
-    description: post.excerpt,
-    datePublished: post.publishedAt,
+    description: postDesc,
+    datePublished: postDate,
     author: { '@type': 'Organization', name: 'TaskFlow' },
     publisher: {
       '@type': 'Organization',
@@ -64,7 +86,7 @@ export default async function BlogPost({ params }) {
       url: 'https://taskflow.vercel.app',
     },
     url: `https://taskflow.vercel.app/blog/${slug}`,
-    keywords: post.tags.join(', '),
+    keywords: postTags.join(', '),
   }
 
   return (
@@ -120,8 +142,8 @@ export default async function BlogPost({ params }) {
           }}>
             {post.category}
           </span>
-          <span style={{ fontSize: 12, color: '#52525b' }}>{post.publishedAt}</span>
-          <span style={{ fontSize: 12, color: '#52525b' }}>읽기 {post.readTime}분</span>
+          <span style={{ fontSize: 12, color: '#52525b' }}>{postDate}</span>
+          {post.readTime && <span style={{ fontSize: 12, color: '#52525b' }}>읽기 {post.readTime}분</span>}
         </div>
 
         {/* Title */}
@@ -144,30 +166,32 @@ export default async function BlogPost({ params }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#34d399', letterSpacing: 0.5 }}>
             무료 다운로드
           </div>
-          <div style={{ fontSize: 15, color: '#f4f4f5', fontWeight: 600 }}>{post.downloadLabel}</div>
+          <div style={{ fontSize: 15, color: '#f4f4f5', fontWeight: 600 }}>{post.downloadLabel || post.title}</div>
           <Link href="/" style={{
             display: 'inline-block', width: 'fit-content',
             background: '#10b981', color: '#fff',
             fontWeight: 700, fontSize: 14, textDecoration: 'none',
             padding: '11px 24px', borderRadius: 8,
           }}>
-            {post.downloadLabel} →
+            {post.downloadLabel || post.title} →
           </Link>
-          <div style={{ fontSize: 12, color: '#71717a' }}>{post.downloadNote}</div>
+          {post.downloadNote && <div style={{ fontSize: 12, color: '#71717a' }}>{post.downloadNote}</div>}
         </div>
 
         {/* Tags */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 32 }}>
-          {post.tags.map(tag => (
-            <span key={tag} style={{
-              fontSize: 11, color: '#71717a',
-              background: '#18181b', border: '1px solid #27272a',
-              padding: '3px 10px', borderRadius: 20,
-            }}>
-              #{tag}
-            </span>
-          ))}
-        </div>
+        {postTags.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 32 }}>
+            {postTags.map(tag => (
+              <span key={tag} style={{
+                fontSize: 11, color: '#71717a',
+                background: '#18181b', border: '1px solid #27272a',
+                padding: '3px 10px', borderRadius: 20,
+              }}>
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Content */}
         <div
@@ -212,7 +236,7 @@ export default async function BlogPost({ params }) {
                   }}
                 >
                   <div style={{ fontWeight: 600, fontSize: 14, color: '#f4f4f5', marginBottom: 4 }}>{rp.title}</div>
-                  <div style={{ fontSize: 12, color: '#71717a' }}>{rp.excerpt.slice(0, 80)}...</div>
+                  <div style={{ fontSize: 12, color: '#71717a' }}>{(rp.desc || rp.excerpt || '').slice(0, 80)}...</div>
                 </Link>
               ))}
             </div>
