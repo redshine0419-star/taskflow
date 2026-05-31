@@ -2971,7 +2971,7 @@ function TutorialModal({ open, onClose }) {
   )
 }
 
-function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode }) {
+function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark, darkMode }) {
   const { t } = useLang()
   const Z = useTheme()
   const [tasks, setTasks]                   = useState(user?.sandbox ? INITIAL_TASKS : [])
@@ -3390,7 +3390,7 @@ function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode
 
       {/* Header */}
       <header style={{ borderBottom: `1px solid ${Z.border}`, padding: isMobile ? '10px 16px' : '10px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 20, background: Z.bg }}>
-        <div onClick={onSignOut} style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, cursor: 'pointer' }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
+        <div onClick={onGoHome} style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, cursor: 'pointer' }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
         {(activeTab === 'kanban' || activeTab === 'sheet') && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
             <span style={{ color: Z.muted }}>›</span>
@@ -3792,7 +3792,7 @@ export default function App() {
       <LangContext.Provider value={{ lang, setLang, t }}>
         <div style={{ fontFamily: "'Inter',system-ui,-apple-system,sans-serif", background: Z.bg, color: Z.text, minHeight: '100vh', fontSize: 14, lineHeight: 1.5, opacity: transitioning ? 0 : 1, transition: 'opacity .3s' }}>
           {scene === 'landing'    && <Landing onSandbox={handleSandbox} onResume={user ? () => setScene('workspace') : null} onToggleDark={toggleDark} darkMode={darkMode} />}
-          {scene === 'workspace'  && <Workspace user={user} onSignOut={handleSignOut} onSignIn={() => enter({ name: t('demoUserName'), email: t('demoUserEmail') })} isMobile={isMobile} onToggleDark={toggleDark} darkMode={darkMode} />}
+          {scene === 'workspace'  && <Workspace user={user} onSignOut={handleSignOut} onGoHome={() => setScene('landing')} onSignIn={() => enter({ name: t('demoUserName'), email: t('demoUserEmail') })} isMobile={isMobile} onToggleDark={toggleDark} darkMode={darkMode} />}
         </div>
       </LangContext.Provider>
     </ThemeCtx.Provider>
