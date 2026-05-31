@@ -3778,10 +3778,13 @@ export default function App() {
 
   // Handle OAuth redirect callback
   useEffect(() => {
-    const result = parseAuthFromURL()
-    if (!result) return
-    if (result.error) { console.error('Auth error:', result.error); return }
-    if (result.user) enter(result.user)
+    const resultOrPromise = parseAuthFromURL()
+    if (!resultOrPromise) return
+    Promise.resolve(resultOrPromise).then(result => {
+      if (!result) return
+      if (result.error) { console.error('Auth error:', result.error); return }
+      if (result.user) enter(result.user)
+    })
   }, []) // mount-only intentional
 
   return (
