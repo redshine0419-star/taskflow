@@ -3044,13 +3044,32 @@ function BlogAdminView() {
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState(null)
   const [error, setError] = useState(null)
+  const [publishing, setPublishing] = useState(false)
+  const [publishSuccess, setPublishSuccess] = useState(false)
+  const [publishError, setPublishError] = useState(null)
+  const [githubToken, setGithubToken] = useState(() => {
+    try { return localStorage.getItem('tf_github_token') || '' } catch { return '' }
+  })
   const [saved, setSaved] = useState(() => {
     try { return JSON.parse(localStorage.getItem('tf_blog_posts') || '[]') } catch { return [] }
   })
 
+  // Import BLOG_KEYWORDS lazily for the upcoming keywords list
+  const [allKeywords, setAllKeywords] = useState([])
+  const [usedSlugs, setUsedSlugs] = useState([])
+  useEffect(() => {
+    import('../lib/blog-keywords.js').then(m => {
+      setAllKeywords(m.BLOG_KEYWORDS || [])
+      setUsedSlugs(m.USED_SLUGS || [])
+    }).catch(() => { /* keywords not available */ })
+  }, [])
+
+  const upcomingKeywords = allKeywords.filter(k => !usedSlugs.includes(k.slug)).slice(0, 10)
+
   const generate = async () => {
     if (!keyword.trim()) return
     setLoading(true); setError(null); setPreview(null)
+    setPublishSuccess(false); setPublishError(null)
     try {
       const res = await fetch('/api/blog-generate', {
         method: 'POST',
@@ -3059,7 +3078,7 @@ function BlogAdminView() {
       })
       const data = await res.json()
       if (data.error) { setError(data.error); return }
-      setPreview(data.post)
+      setPreview({ ...data.post, category })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -3076,6 +3095,29 @@ function BlogAdminView() {
     setKeyword('')
   }
 
+  const publishToGitHub = async () => {
+    if (!preview || !githubToken.trim()) return
+    setPublishing(true); setPublishError(null); setPublishSuccess(false)
+    try {
+      const res = await fetch('/api/blog-publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ post: { ...preview, category }, githubToken }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setPublishError(data.error || 'GitHub 발행 실패')
+        return
+      }
+      setPublishSuccess(true)
+      savePost()
+    } catch (e) {
+      setPublishError(e.message)
+    } finally {
+      setPublishing(false)
+    }
+  }
+
   const deletePost = (idx) => {
     const updated = saved.filter((_, i) => i !== idx)
     localStorage.setItem('tf_blog_posts', JSON.stringify(updated))
@@ -3084,9 +3126,21 @@ function BlogAdminView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Notice */}
-      <div style={{ background: '#1c1917', border: '1px solid #78350f', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
-        ⚠️ AI가 생성한 포스트는 localStorage에 저장됩니다. 공개 블로그에 반영하려면 개발팀에 전달해 빌드·배포가 필요합니다.
+      {/* GitHub Token input */}
+      <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1 }}>GITHUB TOKEN</div>
+        <input
+          type="password"
+          value={githubToken}
+          onChange={e => { setGithubToken(e.target.value); try { localStorage.setItem('tf_github_token', e.target.value) } catch (err) { void err } }}
+          placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+          style={{
+            background: Z.bg, border: `1px solid ${Z.border}`,
+            borderRadius: 7, padding: '8px 12px', fontSize: 13, color: Z.text,
+            outline: 'none', width: '100%', boxSizing: 'border-box',
+          }}
+        />
+        <div style={{ fontSize: 11, color: Z.muted }}>GitHub Personal Access Token (repo 권한 필요). localStorage에 저장됩니다.</div>
       </div>
 
       {/* Generator form */}
@@ -3140,22 +3194,74 @@ function BlogAdminView() {
           <div style={{ fontSize: 12, color: Z.muted, marginBottom: 10 }}>/{preview.slug} · 태그: {(preview.tags || []).join(', ')}</div>
           <div style={{ fontSize: 13, color: Z.muted, marginBottom: 14, lineHeight: 1.6 }}>{preview.excerpt}</div>
           <div style={{ fontSize: 12, color: Z.muted, borderTop: `1px solid ${Z.border}`, paddingTop: 10, maxHeight: 200, overflowY: 'auto', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: preview.content }} />
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          {publishSuccess && (
+            <div style={{ marginTop: 12, fontSize: 13, color: Z.emerald, fontWeight: 600 }}>
+              ✓ 발행 완료! Vercel이 재빌드를 시작합니다 (~2분 후 공개)
+            </div>
+          )}
+          {publishError && (
+            <div style={{ marginTop: 12, fontSize: 12, color: '#f87171' }}>발행 오류: {publishError}</div>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            <button
+              onClick={publishToGitHub}
+              disabled={publishing || !githubToken.trim() || publishSuccess}
+              style={{
+                background: publishing || publishSuccess ? Z.border : '#7c3aed', color: '#fff',
+                border: 'none', borderRadius: 7, padding: '8px 18px',
+                fontSize: 13, fontWeight: 700, cursor: publishing || !githubToken.trim() || publishSuccess ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {publishing ? '발행 중…' : '🚀 GitHub에 발행'}
+            </button>
             <button
               onClick={savePost}
               style={{ background: Z.emerald, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
             >
-              저장
+              로컬 저장
             </button>
             <button
-              onClick={() => setPreview(null)}
+              onClick={() => { setPreview(null); setPublishSuccess(false); setPublishError(null) }}
               style={{ background: Z.border, color: Z.text, border: 'none', borderRadius: 7, padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}
             >
               취소
             </button>
           </div>
+          {!githubToken.trim() && (
+            <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 8 }}>⚠ GitHub에 발행하려면 위에서 GitHub Token을 입력하세요.</div>
+          )}
         </div>
       )}
+
+      {/* Auto-publish settings section */}
+      <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1 }}>⚙ 자동 발행 설정</div>
+        <div style={{ fontSize: 13, color: Z.text, lineHeight: 1.7 }}>
+          GitHub Secret에 <code style={{ background: Z.bg, padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>GEMINI_API_KEY</code>를 추가하면 매일 오전 9시(KST)에 자동으로 포스트가 발행됩니다.
+        </div>
+        <a
+          href="https://github.com/redshine0419-star/taskflow/settings/secrets/actions"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontSize: 12, color: Z.emerald, textDecoration: 'none' }}
+        >
+          → GitHub Actions Secret 설정하기 ↗
+        </a>
+        {upcomingKeywords.length > 0 && (
+          <div>
+            <div style={{ fontSize: 11, color: Z.muted, marginBottom: 8 }}>예정된 키워드 (미발행 {allKeywords.filter(k => !usedSlugs.includes(k.slug)).length}개 중 상위 10개)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {upcomingKeywords.map((kw, i) => (
+                <div key={kw.slug} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: Z.text }}>
+                  <span style={{ color: Z.muted, minWidth: 16 }}>{i + 1}.</span>
+                  <span style={{ flex: 1 }}>{kw.keyword}</span>
+                  <span style={{ fontSize: 10, color: Z.muted, background: Z.bg, padding: '2px 6px', borderRadius: 4 }}>{kw.category}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Saved posts */}
       {saved.length > 0 && (

@@ -1,0 +1,40 @@
+name: Daily Blog Auto-Post
+
+on:
+  schedule:
+    # Run at 9:00 AM KST (00:00 UTC) every day
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      keyword_override:
+        description: 'Override keyword (optional)'
+        required: false
+
+jobs:
+  generate-post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate and publish blog post
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/generate-post.js
+
+      - name: Commit and push
+        run: |
+          git config --global user.email "blog-bot@taskflow.app"
+          git config --global user.name "TaskFlow Blog Bot"
+          git add lib/blog-posts.js lib/blog-keywords.js
+          git diff --staged --quiet || git commit -m "blog: daily auto-post [skip ci]"
+          git push
