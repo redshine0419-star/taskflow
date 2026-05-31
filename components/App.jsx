@@ -4314,9 +4314,63 @@ function AIDemo() {
   )
 }
 
+// ─── HERO KANBAN MOCKUP ──────────────────────────────────────────────────────
+function HeroKanbanMockup() {
+  const Z = useTheme()
+  const cols = [
+    {
+      label: 'Planning',
+      color: Z.indigo,
+      cards: [
+        { title: 'Homepage Renewal', priority: 'High', avatar: 'AJ', priorityColor: '#ef4444' },
+        { title: 'User Research', priority: 'Med', avatar: 'SK', priorityColor: '#f59e0b' },
+      ],
+    },
+    {
+      label: 'Design',
+      color: Z.emerald,
+      cards: [
+        { title: 'Login UI Wireframe', priority: 'Med', avatar: 'JL', priorityColor: '#f59e0b' },
+        { title: 'Design System v2', priority: 'High', avatar: 'AJ', priorityColor: '#ef4444' },
+      ],
+    },
+    {
+      label: 'Dev',
+      color: '#a855f7',
+      cards: [
+        { title: 'Auth Module API', priority: 'High', avatar: 'CM', priorityColor: '#ef4444' },
+        { title: 'Search Feature', priority: 'Low', avatar: 'SK', priorityColor: '#71717a' },
+      ],
+    },
+  ]
+  return (
+    <div style={{ display: 'flex', gap: 10, padding: '20px 16px', background: Z.surface, borderRadius: 12, border: `1px solid ${Z.border}`, overflowX: 'auto', flexShrink: 0 }}>
+      {cols.map(col => (
+        <div key={col.label} style={{ minWidth: 150, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: col.color, flexShrink: 0 }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: Z.muted, letterSpacing: 0.5 }}>{col.label.toUpperCase()}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {col.cards.map(card => (
+              <div key={card.title} style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 7, padding: '9px 10px' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 7, lineHeight: 1.3, color: Z.text }}>{card.title}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: card.priorityColor + '22', color: card.priorityColor, border: `1px solid ${card.priorityColor}44` }}>{card.priority}</span>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: col.color + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: col.color }}>{card.avatar}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── LANDING ─────────────────────────────────────────────────────────────────
 function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const Z = useTheme()
   const [redirecting, setRedirecting] = useState(false)
   const [authError, setAuthError] = useState(() => {
@@ -4326,6 +4380,7 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
     if (err) window.history.replaceState({}, '', window.location.pathname)
     return err ? decodeURIComponent(err) : null
   })
+  const [hoveredFeature, setHoveredFeature] = useState(null)
 
   const handleSignIn = () => {
     try {
@@ -4336,64 +4391,264 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
       setAuthError(e.message || 'Sign-in failed')
     }
   }
-  const features = [
-    { icon: '⬡', title: t('feat1Title'), desc: t('feat1Desc') },
-    { icon: '◆', title: t('feat2Title'), desc: t('feat2Desc') },
-    { icon: '↑', title: t('feat3Title'), desc: t('feat3Desc') },
-    { icon: '🔒', title: t('feat4Title'), desc: t('feat4Desc') },
+
+  const allFeatures = [
+    { icon: '⬡', title: 'Kanban + Gantt + Table', desc: 'Three views, one workspace — switch instantly' },
+    { icon: '◆', title: 'AI Meeting Parser', desc: 'Paste notes, extract tasks with Gemini 2.5 Flash' },
+    { icon: '🔒', title: 'Full Privacy', desc: 'drive.file scope only — we never see your data' },
+    { icon: '✨', title: 'AI PM Reports', desc: 'Weekly team analysis with Slack delivery' },
+    { icon: '📊', title: 'Excel Import/Export', desc: 'AI maps any format to your workflow' },
+    { icon: '👥', title: 'Team Members', desc: 'Invite, assign, and track by member' },
   ]
+
+  const steps = [
+    { num: '1', title: lang === 'ko' ? 'Google로 로그인' : 'Sign in with Google', desc: lang === 'ko' ? '한 번 클릭으로 시작 — 비밀번호를 저장하지 않습니다' : 'Click once — we never store your password' },
+    { num: '2', title: lang === 'ko' ? '스프레드시트 자동 생성' : 'Your spreadsheet is created', desc: lang === 'ko' ? 'TaskFlow_Database가 내 드라이브에 생성됩니다' : 'TaskFlow_Database lives in your own Drive' },
+    { num: '3', title: lang === 'ko' ? '태스크 관리 시작' : 'Start managing tasks', desc: lang === 'ko' ? '칸반, 간트, 테이블 뷰 — 팀원을 초대하세요' : 'Kanban, Gantt, Table views — invite your team' },
+  ]
+
+  const blogPosts = [
+    { badge: '무료서식', title: '연말정산 시뮬레이터 엑셀 2026 무료 다운로드', href: '/blog' },
+    { badge: '무료서식', title: '지출결의서 양식 무료 다운로드 (엑셀/PDF)', href: '/blog' },
+    { badge: '템플릿', title: '노션 프로젝트 관리 템플릿 무료 복사', href: '/blog' },
+  ]
+
+  const stats = [
+    { value: '100% Free', label: lang === 'ko' ? '영원히, 카드 불필요' : 'forever, no credit card' },
+    { value: '0 Servers', label: lang === 'ko' ? '데이터는 Google을 떠나지 않음' : 'your data never leaves Google' },
+    { value: '5 min', label: lang === 'ko' ? '첫 프로젝트 설정 완료' : 'to set up your first project' },
+  ]
+
+  const navLinks = [
+    { label: lang === 'ko' ? '기능' : 'Features', href: '#features' },
+    { label: lang === 'ko' ? '템플릿' : 'Templates', href: '#blog' },
+    { label: 'Blog', href: '#blog' },
+  ]
+
+  const sectionTitle = (text) => (
+    <div style={{ textAlign: 'center', marginBottom: 48 }}>
+      <h2 style={{ fontSize: 'clamp(22px,3.5vw,32px)', fontWeight: 800, letterSpacing: -0.8, margin: 0 }}>{text}</h2>
+    </div>
+  )
+
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 16px 80px' }}>
-      {/* Nav */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 0', borderBottom: `1px solid ${Z.border}`, marginBottom: 64, gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: -0.5 }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button onClick={onToggleDark} title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 14, color: Z.muted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {darkMode ? '☀️' : '🌙'}
-          </button>
+    <div style={{ background: Z.bg, color: Z.text, minHeight: '100vh' }}>
+      {/* ── NAV ── */}
+      <nav style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 clamp(16px,5vw,60px)', height: 60,
+        borderBottom: `1px solid ${Z.border}55`,
+        background: Z.bg + 'cc',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        gap: 12,
+      }}>
+        {/* Logo */}
+        <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.5, flexShrink: 0 }}>
+          Task<span style={{ color: Z.emerald }}>Flow</span>
+        </div>
+        {/* Center links */}
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          {navLinks.map(link => (
+            <a key={link.label} href={link.href} style={{ padding: '5px 12px', fontSize: 13, fontWeight: 500, color: Z.muted, textDecoration: 'none', borderRadius: 6, transition: 'color .15s, background .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.color = Z.text; e.currentTarget.style.background = Z.surface }}
+              onMouseLeave={e => { e.currentTarget.style.color = Z.muted; e.currentTarget.style.background = 'transparent' }}
+            >{link.label}</a>
+          ))}
+        </div>
+        {/* Right actions */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+          <button onClick={onToggleDark} title={darkMode ? 'Light mode' : 'Dark mode'}
+            style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 13, color: Z.muted, lineHeight: 1, transition: 'border-color .15s' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = Z.emerald}
+            onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
+          >{darkMode ? '☀️' : '🌙'}</button>
           <LangToggle />
-          {!onResume && <Btn variant="ghost" onClick={onSandbox}>{t('tryGuest')}</Btn>}
+          {!onResume && (
+            <button onClick={handleSignIn} disabled={redirecting}
+              style={{ background: 'transparent', border: `1px solid ${Z.border}`, borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, color: Z.muted, cursor: redirecting ? 'not-allowed' : 'pointer', transition: 'border-color .15s, color .15s', opacity: redirecting ? 0.6 : 1 }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = Z.emerald; e.currentTarget.style.color = Z.text }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.color = Z.muted }}
+            >{redirecting ? t('signingIn') : lang === 'ko' ? '로그인' : 'Sign in'}</button>
+          )}
           {onResume
-            ? <Btn variant="emerald" onClick={onResume}>{t('ctaStart')}</Btn>
-            : <Btn variant="emerald" onClick={handleSignIn} disabled={redirecting}>{redirecting ? t('signingIn') : t('signInGoogle')}</Btn>
+            ? <button onClick={onResume} style={{ background: Z.emerald, border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 12, fontWeight: 700, color: '#052e16', cursor: 'pointer', transition: 'opacity .15s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.85'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{t('ctaStart')}</button>
+            : <button onClick={handleSignIn} disabled={redirecting} style={{ background: Z.emerald, border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 12, fontWeight: 700, color: '#052e16', cursor: redirecting ? 'not-allowed' : 'pointer', transition: 'opacity .15s', opacity: redirecting ? 0.6 : 1 }} onMouseEnter={e => e.currentTarget.style.opacity = '0.85'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{redirecting ? t('signingIn') : t('ctaStart')}</button>
           }
         </div>
       </nav>
-      {/* Hero */}
-      <div style={{ textAlign: 'center', marginBottom: 72 }}>
-        <div style={{ display: 'inline-block', background: `${Z.indigo}22`, border: `1px solid ${Z.indigo}44`, borderRadius: 20, padding: '4px 14px', fontSize: 11, color: Z.indigo, fontWeight: 700, marginBottom: 20, letterSpacing: 1 }}>
-          {t('heroPill')}
+
+      {/* ── HERO ── */}
+      <section style={{ padding: 'clamp(72px,10vw,120px) clamp(16px,5vw,60px) 80px', maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        {/* Badge pill */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: `${Z.emerald}18`, border: `1px solid ${Z.emerald}44`, borderRadius: 100, padding: '5px 14px', fontSize: 12, fontWeight: 700, color: Z.emerald, marginBottom: 28, letterSpacing: 0.3 }}>
+          🚀 100% Free · Google Drive Native
         </div>
-        <h1 style={{ fontSize: 'clamp(28px,5vw,52px)', fontWeight: 900, letterSpacing: -1.5, lineHeight: 1.1, margin: '0 0 20px' }}>
-          {t('heroTitle1')}<br />
-          <span style={{ color: Z.emerald }}>{t('heroTitle2')}</span>
+        {/* Headline */}
+        <h1 style={{ fontSize: 'clamp(36px,6vw,60px)', fontWeight: 900, letterSpacing: -2, lineHeight: 1.08, margin: '0 0 8px', maxWidth: 780 }}>
+          {t('heroTitle1')}
         </h1>
-        <p style={{ fontSize: 15, color: Z.muted, maxWidth: 520, margin: '0 auto 32px' }}>{t('heroBody')}</p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-          <Btn variant="emerald" onClick={onResume ?? handleSignIn} disabled={redirecting} style={{ fontSize: 14, padding: '10px 24px' }}>
-            {onResume ? t('ctaStart') : redirecting ? t('signingIn') : t('ctaStart')}
-          </Btn>
-          {/* P0: sandbox CTA in hero too — hidden when logged in */}
-          {!onResume && <Btn variant="ghost" onClick={onSandbox} style={{ fontSize: 14 }}>{t('tryGuest')}</Btn>}
+        <h1 style={{ fontSize: 'clamp(36px,6vw,60px)', fontWeight: 900, letterSpacing: -2, lineHeight: 1.08, margin: '0 0 28px', maxWidth: 780, background: `linear-gradient(135deg, ${Z.emerald}, #34d399)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          {t('heroTitle2')}
+        </h1>
+        {/* Subheadline */}
+        <p style={{ fontSize: 'clamp(14px,1.8vw,17px)', color: Z.muted, maxWidth: 520, margin: '0 0 36px', lineHeight: 1.65 }}>
+          {t('heroBody')}
+        </p>
+        {/* CTAs */}
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 16 }}>
+          <button onClick={onResume ?? handleSignIn} disabled={redirecting}
+            style={{ background: Z.emerald, border: 'none', borderRadius: 9, padding: '13px 28px', fontSize: 15, fontWeight: 700, color: '#052e16', cursor: redirecting ? 'not-allowed' : 'pointer', transition: 'opacity .15s, transform .15s', opacity: redirecting ? 0.6 : 1 }}
+            onMouseEnter={e => { e.currentTarget.style.opacity = '0.88'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)' }}
+          >{onResume ? t('ctaStart') : redirecting ? t('signingIn') : t('ctaStart')}</button>
+          {!onResume && (
+            <button onClick={onSandbox}
+              style={{ background: 'transparent', border: `1px solid ${Z.border}`, borderRadius: 9, padding: '13px 28px', fontSize: 15, fontWeight: 600, color: Z.muted, cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = Z.emerald; e.currentTarget.style.color = Z.text }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.color = Z.muted }}
+            >{t('tryGuest')}</button>
+          )}
         </div>
-        <div style={{ fontSize: 11, color: Z.muted }}>{t('scopeNote')}</div>
-        {authError && <div style={{ fontSize: 12, color: Z.red, marginTop: 8 }}>⚠ {authError}</div>}
-      </div>
-      {/* Widgets */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16, marginBottom: 60 }}>
-        <SyncShowcase />
-        <AIDemo />
-      </div>
-      {/* Feature pills */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
-        {features.map(f => (
-          <div key={f.title} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '18px 20px' }}>
-            <div style={{ fontSize: 20, marginBottom: 8 }}>{f.icon}</div>
-            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{f.title}</div>
-            <div style={{ fontSize: 12, color: Z.muted }}>{f.desc}</div>
+        {/* Trust line */}
+        <div style={{ fontSize: 12, color: Z.muted, marginBottom: 8 }}>{t('scopeNote')}</div>
+        {authError && <div style={{ fontSize: 12, color: Z.red, marginTop: 4 }}>⚠ {authError}</div>}
+
+        {/* Hero kanban mockup */}
+        <div style={{ marginTop: 64, width: '100%', maxWidth: 680 }}>
+          <HeroKanbanMockup />
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section style={{ padding: '80px clamp(16px,5vw,60px)', maxWidth: 1100, margin: '0 auto' }}>
+        {sectionTitle(lang === 'ko' ? '60초면 시작됩니다' : 'Up and running in 60 seconds')}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 16 }}>
+          {steps.map((step, i) => (
+            <div key={i} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 12, padding: '28px 24px', transition: 'border-color .2s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = Z.emerald + '88'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${Z.emerald}22`, border: `1px solid ${Z.emerald}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: Z.emerald, marginBottom: 16 }}>{step.num}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>{step.title}</div>
+              <div style={{ fontSize: 13, color: Z.muted, lineHeight: 1.6 }}>{step.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FEATURES ── */}
+      <section id="features" style={{ padding: '80px clamp(16px,5vw,60px)', maxWidth: 1100, margin: '0 auto' }}>
+        {sectionTitle(lang === 'ko' ? '팀에 필요한 모든 것' : 'Everything your team needs')}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
+          {allFeatures.map((f, i) => (
+            <div key={i}
+              style={{ background: Z.surface, border: `1px solid ${hoveredFeature === i ? Z.emerald + '99' : Z.border}`, borderRadius: 12, padding: '24px 22px', transition: 'border-color .2s, transform .2s', transform: hoveredFeature === i ? 'translateY(-2px)' : 'translateY(0)', cursor: 'default' }}
+              onMouseEnter={() => setHoveredFeature(i)}
+              onMouseLeave={() => setHoveredFeature(null)}
+            >
+              <div style={{ fontSize: 24, marginBottom: 12 }}>{f.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{f.title}</div>
+              <div style={{ fontSize: 12, color: Z.muted, lineHeight: 1.6 }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── LIVE DEMO ── */}
+      <section style={{ padding: '80px clamp(16px,5vw,60px)', maxWidth: 1100, margin: '0 auto' }}>
+        {sectionTitle(lang === 'ko' ? '직접 체험해보세요' : 'See it live')}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
+          <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${Z.border}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1 }}>{t('syncTitle').toUpperCase()}</div>
+            </div>
+            <div style={{ padding: 20 }}><SyncShowcase /></div>
           </div>
-        ))}
-      </div>
+          <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${Z.border}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1 }}>{t('aiDemoTitle').toUpperCase()}</div>
+            </div>
+            <div style={{ padding: 20 }}><AIDemo /></div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── STATS ── */}
+      <section style={{ padding: '60px clamp(16px,5vw,60px)', borderTop: `1px solid ${Z.border}`, borderBottom: `1px solid ${Z.border}` }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 24, textAlign: 'center' }}>
+          {stats.map((s, i) => (
+            <div key={i} style={{ padding: '16px 8px' }}>
+              <div style={{ fontSize: 'clamp(28px,4vw,40px)', fontWeight: 900, letterSpacing: -1.5, color: Z.emerald, marginBottom: 6 }}>{s.value}</div>
+              <div style={{ fontSize: 13, color: Z.muted }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── BLOG PREVIEW ── */}
+      <section id="blog" style={{ padding: '80px clamp(16px,5vw,60px)', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <h2 style={{ fontSize: 'clamp(20px,3.5vw,30px)', fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px' }}>직장인 실무 템플릿 · 서식 무료 다운로드</h2>
+          <p style={{ fontSize: 13, color: Z.muted, margin: 0 }}>구글 검색 상위노출 최적화 콘텐츠 · 매주 업데이트</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
+          {blogPosts.map((post, i) => (
+            <a key={i} href={post.href}
+              style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 12, padding: '22px 20px', display: 'block', textDecoration: 'none', color: 'inherit', transition: 'border-color .2s, transform .2s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = Z.emerald + '88'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.transform = 'translateY(0)' }}
+            >
+              <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: `${Z.emerald}22`, color: Z.emerald, border: `1px solid ${Z.emerald}44`, marginBottom: 12 }}>{post.badge}</span>
+              <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.5, marginBottom: 14, color: Z.text }}>{post.title}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: Z.emerald }}>다운로드 →</div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CTA BOTTOM ── */}
+      <section style={{ padding: '80px clamp(16px,5vw,60px)', background: `linear-gradient(135deg, ${Z.emerald}0f, ${Z.emerald}06, transparent)`, borderTop: `1px solid ${Z.emerald}22` }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(24px,4vw,38px)', fontWeight: 900, letterSpacing: -1, marginBottom: 16 }}>
+            {lang === 'ko' ? '지금 바로 스마트하게 관리하세요' : 'Start managing smarter today'}
+          </h2>
+          <p style={{ color: Z.muted, fontSize: 14, marginBottom: 32 }}>
+            {lang === 'ko' ? '구독료 없이. 서버 없이. 무료로 시작하세요.' : 'No subscription. No servers. Start for free.'}
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={onResume ?? handleSignIn} disabled={redirecting}
+              style={{ background: Z.emerald, border: 'none', borderRadius: 9, padding: '13px 28px', fontSize: 15, fontWeight: 700, color: '#052e16', cursor: redirecting ? 'not-allowed' : 'pointer', transition: 'opacity .15s', opacity: redirecting ? 0.6 : 1 }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >{onResume ? t('ctaStart') : redirecting ? t('signingIn') : t('ctaStart')}</button>
+            {!onResume && (
+              <button onClick={onSandbox}
+                style={{ background: 'transparent', border: `1px solid ${Z.border}`, borderRadius: 9, padding: '13px 28px', fontSize: 15, fontWeight: 600, color: Z.muted, cursor: 'pointer', transition: 'border-color .15s, color .15s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = Z.emerald; e.currentTarget.style.color = Z.text }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.color = Z.muted }}
+              >{t('tryGuest')}</button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer style={{ padding: '32px clamp(16px,5vw,60px)', borderTop: `1px solid ${Z.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, marginBottom: 4 }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
+          <div style={{ fontSize: 11, color: Z.muted }}>© 2026 TaskFlow. Built with ♥ on Google Drive</div>
+        </div>
+        <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+          {[['Features', '#features'], ['Blog', '#blog'], ['Privacy', '#']].map(([label, href]) => (
+            <a key={label} href={href} style={{ fontSize: 12, color: Z.muted, textDecoration: 'none', transition: 'color .15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = Z.text}
+              onMouseLeave={e => e.currentTarget.style.color = Z.muted}
+            >{label}</a>
+          ))}
+        </div>
+      </footer>
     </div>
   )
 }
