@@ -35,20 +35,14 @@ export async function GET(request) {
     }
     const profile = await profileRes.json()
 
-    // Store token + profile in a short-lived HttpOnly session cookie
-    const payload = JSON.stringify({
+    const payload = encodeURIComponent(JSON.stringify({
       token: tokenData.access_token,
       name: profile.name,
       email: profile.email,
       picture: profile.picture,
-    })
+    }))
 
-    const redirectResponse = Response.redirect(`${baseUrl}/?auth_pending=1`)
-    redirectResponse.headers.set(
-      'Set-Cookie',
-      `tf_auth=${encodeURIComponent(payload)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=300`
-    )
-    return redirectResponse
+    return Response.redirect(`${baseUrl}/?auth=${payload}`)
   } catch (e) {
     return Response.redirect(`${baseUrl}/?auth_error=${encodeURIComponent(e.message)}`)
   }

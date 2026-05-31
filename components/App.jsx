@@ -3670,8 +3670,11 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
             {darkMode ? '☀️' : '🌙'}
           </button>
           <LangToggle />
-          <Btn variant="ghost" onClick={onSandbox}>{t('tryGuest')}</Btn>
-          <Btn variant="emerald" onClick={handleSignIn} disabled={redirecting}>{redirecting ? t('signingIn') : t('signInGoogle')}</Btn>
+          {!onResume && <Btn variant="ghost" onClick={onSandbox}>{t('tryGuest')}</Btn>}
+          {onResume
+            ? <Btn variant="emerald" onClick={onResume}>{t('ctaStart')}</Btn>
+            : <Btn variant="emerald" onClick={handleSignIn} disabled={redirecting}>{redirecting ? t('signingIn') : t('signInGoogle')}</Btn>
+          }
         </div>
       </nav>
       {/* Hero */}
@@ -3688,8 +3691,8 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
           <Btn variant="emerald" onClick={onResume ?? handleSignIn} disabled={redirecting} style={{ fontSize: 14, padding: '10px 24px' }}>
             {onResume ? t('ctaStart') : redirecting ? t('signingIn') : t('ctaStart')}
           </Btn>
-          {/* P0: sandbox CTA in hero too */}
-          <Btn variant="ghost" onClick={onSandbox} style={{ fontSize: 14 }}>{t('tryGuest')}</Btn>
+          {/* P0: sandbox CTA in hero too — hidden when logged in */}
+          {!onResume && <Btn variant="ghost" onClick={onSandbox} style={{ fontSize: 14 }}>{t('tryGuest')}</Btn>}
         </div>
         <div style={{ fontSize: 11, color: Z.muted }}>{t('scopeNote')}</div>
         {authError && <div style={{ fontSize: 12, color: Z.red, marginTop: 8 }}>⚠ {authError}</div>}
@@ -3778,13 +3781,10 @@ export default function App() {
 
   // Handle OAuth redirect callback
   useEffect(() => {
-    const resultOrPromise = parseAuthFromURL()
-    if (!resultOrPromise) return
-    Promise.resolve(resultOrPromise).then(result => {
-      if (!result) return
-      if (result.error) { console.error('Auth error:', result.error); return }
-      if (result.user) enter(result.user)
-    })
+    const result = parseAuthFromURL()
+    if (!result) return
+    if (result.error) { console.error('Auth error:', result.error); return }
+    if (result.user) enter(result.user)
   }, []) // mount-only intentional
 
   return (
