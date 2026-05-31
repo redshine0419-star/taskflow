@@ -312,6 +312,16 @@ Attendees: Alex, Jordan, Sam
     zoomMonth:      'Month',
     zoomQuarter:    'Quarter',
     noDateTasks:    'Tasks without dates are not shown',
+    assignee:       'Assignee',
+    requester:      'Requester',
+    category:       'Category',
+    taskType:       'Task type',
+    externalLink:   'External link',
+    stageStatus:    'Stage status',
+    inviteLink:     'Copy invite link',
+    inviteCopied:   '✓ Copied!',
+    inviteNote:     'Share this link — they will be added to the project after signing in',
+    unassigned:     'Unassigned',
   },
 
   ko: {
@@ -563,6 +573,16 @@ Attendees: Alex, Jordan, Sam
     zoomMonth:      '월',
     zoomQuarter:    '분기',
     noDateTasks:    '날짜 없는 태스크는 표시되지 않습니다',
+    assignee:       '담당자',
+    requester:      '요청자',
+    category:       '구분',
+    taskType:       '업무종류',
+    externalLink:   '외부 링크',
+    stageStatus:    '단계별 상태',
+    inviteLink:     '초대 링크 복사',
+    inviteCopied:   '✓ 복사됨',
+    inviteNote:     '초대 링크를 공유하면 상대방이 로그인 후 자동으로 프로젝트에 추가됩니다',
+    unassigned:     '배정 안 됨',
   },
 }
 
