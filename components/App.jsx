@@ -973,12 +973,12 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel, members 
         {/* Start date | Due date */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
-            <div style={labelStyle}>시작일</div>
+            <div style={labelStyle}>{t('startDate')}</div>
             <input type="date" value={form.startDate || ''} onChange={e => set('startDate', e.target.value)}
               style={{ ...inputStyle, colorScheme: 'auto' }} />
           </div>
           <div>
-            <div style={labelStyle}>{t('fieldDueDate')}</div>
+            <div style={labelStyle}>{t('dueDate')}</div>
             <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)}
               style={{ ...inputStyle, colorScheme: 'auto' }} />
           </div>
@@ -993,7 +993,8 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel, members 
                 {memberOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             ) : (
-              <input value={form.assignee} onChange={e => set('assignee', e.target.value)} style={inputStyle} />
+              <input value={form.assignee} onChange={e => set('assignee', e.target.value)}
+                placeholder={t('unassigned')} style={inputStyle} />
             )}
           </div>
           <div>
