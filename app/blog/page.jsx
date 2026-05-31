@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { BLOG_POSTS } from '../../lib/blog-posts'
 import BlogFilter from './BlogFilter'
 
+export const revalidate = 3600
+
 export const metadata = {
   title: '직장인 실무 서식·템플릿 무료 다운로드 | TaskFlow 블로그',
   description: '연말정산 시뮬레이터 엑셀, 지출결의서 양식, 업무일지, 회의록, 노션 템플릿을 무료로 다운로드하세요. 광고 없이 바로 다운로드.',
@@ -15,6 +17,18 @@ export const metadata = {
     url: 'https://taskflow.vercel.app/blog',
     locale: 'ko_KR',
   },
+}
+
+async function getPostsFromSheets() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/api/blog-list`, { next: { revalidate: 3600 } })
+    if (!res.ok) throw new Error('blog-list fetch failed')
+    return await res.json()
+  } catch (e) {
+    console.error('getPostsFromSheets failed:', e)
+    return null
+  }
 }
 
 const jsonLd = {
@@ -31,7 +45,10 @@ const jsonLd = {
   })),
 }
 
-export default function BlogIndex() {
+export default async function BlogIndex() {
+  const sheetsPosts = await getPostsFromSheets()
+  const posts = sheetsPosts && sheetsPosts.length > 0 ? sheetsPosts : BLOG_POSTS
+
   return (
     <main style={{
       fontFamily: "'Inter', system-ui, sans-serif",
@@ -88,7 +105,7 @@ export default function BlogIndex() {
       </div>
 
       {/* Client-side filter + grid */}
-      <BlogFilter posts={BLOG_POSTS} />
+      <BlogFilter posts={posts} />
 
       {/* Footer */}
       <footer style={{
