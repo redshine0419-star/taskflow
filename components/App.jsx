@@ -1530,7 +1530,11 @@ function MyTasksView({ tasks, projects, user, onDetail }) {
 
   const isDueSoon = (dueDate) => {
     if (!dueDate) return false
-    const diff = (new Date(dueDate) - new Date()) / (1000 * 60 * 60 * 24)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const due = new Date(dueDate)
+    due.setHours(0, 0, 0, 0)
+    const diff = (due - today) / (1000 * 60 * 60 * 24)
     return diff >= 0 && diff <= 3
   }
 
@@ -1787,7 +1791,8 @@ function GanttView({ tasks, onOpenTask, stageLabel }) {
                     const hasDue = !!tk.dueDate
                     const startX = hasStart ? dateToX(tk.startDate) : dateToX(tk.dueDate)
                     const endX = hasDue ? dateToX(tk.dueDate) + DAY_WIDTH : startX + DAY_WIDTH
-                    const barWidth = Math.max(endX - startX, DAY_WIDTH)
+                    const barLeft = Math.min(startX, endX)
+                    const barWidth = Math.max(Math.abs(endX - startX), 4)
                     const assigneeInitial = tk.assignee ? tk.assignee[0].toUpperCase() : ''
 
                     return (
@@ -1799,14 +1804,14 @@ function GanttView({ tasks, onOpenTask, stageLabel }) {
                           ) : null
                         ))}
                         {/* Bar */}
-                        {startX < timelineWidth && (
+                        {barLeft < timelineWidth && (
                           <div
                             onClick={() => onOpenTask(tk)}
                             title={tk.title}
                             style={{
                               position: 'absolute',
                               top: 6, height: ROW_H - 12,
-                              left: Math.max(0, startX),
+                              left: Math.max(0, barLeft),
                               width: barWidth,
                               background: stageColor + 'aa',
                               border: `1px solid ${stageColor}`,
@@ -2079,7 +2084,7 @@ function KanbanView({ tasks, isMobile, onStageChange, onPublish, onDelete, onDet
   if (filterPriority !== 'all') filteredTasks = filteredTasks.filter(tk => tk.priority === filterPriority)
   if (keyTasksOnly) filteredTasks = filteredTasks.filter(tk => tk.isKeyTask)
   if (sortBy === 'dueDate') filteredTasks = [...filteredTasks].sort((a, b) => (a.dueDate || '9999') < (b.dueDate || '9999') ? -1 : 1)
-  else if (sortBy === 'priority') filteredTasks = [...filteredTasks].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 1) - (PRIORITY_ORDER[b.priority] ?? 1))
+  else if (sortBy === 'priority') filteredTasks = [...filteredTasks].sort((a, b) => (PRIORITY_ORDER[b.priority] ?? 0) - (PRIORITY_ORDER[a.priority] ?? 0))
 
   const handleDrop = (e, targetStage) => {
     e.preventDefault()
@@ -2530,7 +2535,8 @@ function MemberProfileModal({ open, onClose, member, onSave, canEdit }) {
         {/* Avatar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
           <div style={{ width: 44, height: 44, borderRadius: '50%', background: Z.indigo + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: Z.indigo, flexShrink: 0 }}>
-            {member.avatarUrl ? <img src={member.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: '50%' }} /> : (member.name?.[0] ?? '?')}
+            {member.avatarUrl ? <img src={member.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: '50%' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} /> : null}
+            <span style={{ display: member.avatarUrl ? 'none' : 'flex' }}>{member.name?.[0] ?? '?'}</span>
           </div>
           <div>
             <div style={{ fontWeight: 700 }}>{member.name}</div>
@@ -2660,7 +2666,8 @@ function WorkTeamTab({ projects, allMembers, onAddMember, onUpdateMember, onDele
             >
               {/* Avatar */}
               <div style={{ width: 38, height: 38, borderRadius: '50%', background: Z.indigo + '44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: Z.indigo, flexShrink: 0 }}>
-                {member.avatarUrl ? <img src={member.avatarUrl} alt="" style={{ width: 38, height: 38, borderRadius: '50%' }} /> : (member.name?.[0] ?? '?')}
+                {member.avatarUrl ? <img src={member.avatarUrl} alt="" style={{ width: 38, height: 38, borderRadius: '50%' }} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }} /> : null}
+                <span style={{ display: member.avatarUrl ? 'none' : 'flex' }}>{member.name?.[0] ?? '?'}</span>
               </div>
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -2741,10 +2748,14 @@ function AiPmView({ members, tasks, subTasks }) {
     setLoading(false)
   }
 
-  const copy = () => {
-    navigator.clipboard?.writeText(report).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(report)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setError('⚠ 클립보드 복사 실패. 텍스트를 직접 선택하세요.')
+    }
   }
 
   const sendSlack = async () => {
@@ -3241,13 +3252,21 @@ function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode
   const onAIConfirm = useCallback(async (newTasks) => {
     setTasks(prev => [...prev, ...newTasks])
     if (spreadsheetId) {
+      let successCount = 0
+      let errorCount = 0
       for (const task of newTasks) {
         try {
           const rowNum = await appendTask(spreadsheetId, task)
           setTasks(prev => prev.map(tk => tk.id === task.id ? { ...tk, rowNum } : tk))
-        } catch (e) {
-          addLog(`Sheet append failed: ${e.message}`, 'error')
+          successCount++
+        } catch {
+          errorCount++
         }
+      }
+      if (errorCount > 0) {
+        addLog(`⚠ ${successCount}개 성공, ${errorCount}개 실패`)
+      } else {
+        addLog(`✓ ${successCount}개 가져오기 완료`)
       }
     }
   }, [spreadsheetId, addLog])
@@ -3255,15 +3274,22 @@ function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode
   const onImportTasks = useCallback(async (newTasks) => {
     const tasksWithProject = newTasks.map(tk => ({ ...tk, projectId: selectedProjectId || tk.projectId || '' }))
     setTasks(prev => [...prev, ...tasksWithProject])
-    addLog(`Imported ${tasksWithProject.length} tasks from Excel`, 'success')
     if (spreadsheetId) {
+      let successCount = 0
+      let errorCount = 0
       for (const task of tasksWithProject) {
         try {
           const rowNum = await appendTask(spreadsheetId, task)
           setTasks(prev => prev.map(tk => tk.id === task.id ? { ...tk, rowNum } : tk))
-        } catch (e) {
-          addLog(`Sheet append failed: ${e.message}`, 'error')
+          successCount++
+        } catch {
+          errorCount++
         }
+      }
+      if (errorCount > 0) {
+        addLog(`⚠ ${successCount}개 성공, ${errorCount}개 실패`)
+      } else {
+        addLog(`✓ ${successCount}개 가져오기 완료`)
       }
     }
     setToast(t('importSuccess'))
@@ -3310,12 +3336,15 @@ function Workspace({ user, onSignOut, onSignIn, isMobile, onToggleDark, darkMode
 
   const onDeleteProject = useCallback(async (projectId) => {
     const project = projects.find(p => p.id === projectId)
-    setProjects(prev => prev.filter(p => p.id !== projectId))
     if (spreadsheetId && project?.rowNum && projectsSheetId != null) {
       try {
         await deleteProject(spreadsheetId, projectsSheetId, project.rowNum)
-        setProjects(prev => prev.map(p => ({ ...p, rowNum: p.rowNum > project.rowNum ? p.rowNum - 1 : p.rowNum })))
-      } catch (e) { addLog(`Project delete failed: ${e.message}`, 'error') }
+        setProjects(prev => prev.filter(p => p.id !== projectId).map(p => ({ ...p, rowNum: p.rowNum > project.rowNum ? p.rowNum - 1 : p.rowNum })))
+      } catch {
+        addLog('⚠ 프로젝트 삭제 실패')
+      }
+    } else {
+      setProjects(prev => prev.filter(p => p.id !== projectId))
     }
   }, [projects, spreadsheetId, projectsSheetId, addLog])
 

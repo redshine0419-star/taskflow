@@ -30,17 +30,25 @@ export async function GET(request) {
     const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     })
+    if (!profileRes.ok) {
+      return Response.redirect(`${baseUrl}/?auth_error=profile_fetch_failed`)
+    }
     const profile = await profileRes.json()
 
-    // Pass token + profile via URL hash (client-side only, not sent to servers)
-    const payload = encodeURIComponent(JSON.stringify({
+    // Store token + profile in a short-lived HttpOnly session cookie
+    const payload = JSON.stringify({
       token: tokenData.access_token,
       name: profile.name,
       email: profile.email,
       picture: profile.picture,
-    }))
+    })
 
-    return Response.redirect(`${baseUrl}/?auth=${payload}`)
+    const redirectResponse = Response.redirect(`${baseUrl}/?auth_pending=1`)
+    redirectResponse.headers.set(
+      'Set-Cookie',
+      `tf_auth=${encodeURIComponent(payload)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=300`
+    )
+    return redirectResponse
   } catch (e) {
     return Response.redirect(`${baseUrl}/?auth_error=${encodeURIComponent(e.message)}`)
   }
