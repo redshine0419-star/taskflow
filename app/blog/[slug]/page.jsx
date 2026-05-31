@@ -1,53 +1,70 @@
-// Static blog pages for Autopress SEO engine.
-// In production, generateStaticParams fetches published tasks from
-// the user's Google Sheets via service account. Here we use demo data
-// so the build succeeds and Googlebot can crawl real structure.
-
-const DEMO_POSTS = [
-  {
-    slug: 'search-feature-implementation',
-    title: 'Search Feature Implementation — Dev Retrospective',
-    assignee: 'Alex',
-    completed: '2026-07-10',
-    priority: 'Medium',
-    summary: 'End-to-end implementation of the full-text search module in the TaskFlow workspace.',
-    keywords: 'asana alternative jira alternative free kanban board google drive project management',
-  },
-]
+import Link from 'next/link'
+import { BLOG_POSTS } from '../../../lib/blog-posts'
 
 export async function generateStaticParams() {
-  return DEMO_POSTS.map(p => ({ slug: p.slug }))
+  return BLOG_POSTS.map(p => ({ slug: p.slug }))
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
-  const post = DEMO_POSTS.find(p => p.slug === slug) ?? {
-    title: slug.replace(/-/g, ' '),
-    summary: 'TaskFlow dev retrospective.',
+  const post = BLOG_POSTS.find(p => p.slug === slug)
+  if (!post) {
+    return {
+      title: '포스트를 찾을 수 없습니다 | TaskFlow 블로그',
+    }
   }
   return {
-    title: `${post.title} | TaskFlow Blog`,
-    description: post.summary,
-    keywords: post.keywords,
+    title: `${post.title} | TaskFlow 블로그`,
+    description: post.excerpt,
+    keywords: post.tags,
+    alternates: { canonical: `https://taskflow.vercel.app/blog/${slug}` },
+    robots: { index: true, follow: true },
     openGraph: {
       title: post.title,
-      description: post.summary,
+      description: post.excerpt,
       type: 'article',
       url: `https://taskflow.vercel.app/blog/${slug}`,
+      locale: 'ko_KR',
+      publishedTime: post.publishedAt,
+      tags: post.tags,
     },
   }
 }
 
 export default async function BlogPost({ params }) {
   const { slug } = await params
-  const post = DEMO_POSTS.find(p => p.slug === slug) ?? {
-    slug,
-    title: slug.replace(/-/g, ' '),
-    assignee: '—',
-    completed: '—',
-    priority: '—',
-    summary: 'TaskFlow dev retrospective.',
-    keywords: '',
+  const post = BLOG_POSTS.find(p => p.slug === slug)
+
+  if (!post) {
+    return (
+      <main style={{
+        fontFamily: "'Inter', system-ui, sans-serif",
+        background: '#09090b', color: '#f4f4f5',
+        minHeight: '100vh', padding: '80px 16px',
+        textAlign: 'center',
+      }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700 }}>포스트를 찾을 수 없습니다</h1>
+        <Link href="/blog" style={{ color: '#34d399', textDecoration: 'none', marginTop: 16, display: 'inline-block' }}>← 블로그로 돌아가기</Link>
+      </main>
+    )
+  }
+
+  const related = BLOG_POSTS.filter(p => p.slug !== slug && p.category === post.category).slice(0, 3)
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    datePublished: post.publishedAt,
+    author: { '@type': 'Organization', name: 'TaskFlow' },
+    publisher: {
+      '@type': 'Organization',
+      name: 'TaskFlow',
+      url: 'https://taskflow.vercel.app',
+    },
+    url: `https://taskflow.vercel.app/blog/${slug}`,
+    keywords: post.tags.join(', '),
   }
 
   return (
@@ -56,83 +73,151 @@ export default async function BlogPost({ params }) {
       background: '#09090b', color: '#f4f4f5',
       minHeight: '100vh', padding: '0 16px 80px',
     }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Nav */}
       <nav style={{
-        maxWidth: 720, margin: '0 auto',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '20px 0', borderBottom: '1px solid #27272a', marginBottom: 48,
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(9,9,11,0.95)', backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid #27272a',
       }}>
-        <a href="/" style={{
-          fontWeight: 800, fontSize: 17, textDecoration: 'none',
-          color: '#f4f4f5', letterSpacing: -0.5,
+        <div style={{
+          maxWidth: 760, margin: '0 auto',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 0',
         }}>
-          Task<span style={{ color: '#34d399' }}>Flow</span>
-        </a>
-        <a href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none' }}>
-          ← Blog
-        </a>
+          <Link href="/" style={{
+            fontWeight: 800, fontSize: 17, textDecoration: 'none',
+            color: '#f4f4f5', letterSpacing: -0.5,
+          }}>
+            Task<span style={{ color: '#34d399' }}>Flow</span>
+          </Link>
+          <Link href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none' }}>← 블로그</Link>
+        </div>
       </nav>
 
-      <article style={{ maxWidth: 720, margin: '0 auto' }}>
-        {/* Meta badge */}
-        <div style={{
-          display: 'inline-block',
-          background: '#34d39922', border: '1px solid #34d39944',
-          borderRadius: 20, padding: '3px 12px',
-          fontSize: 11, color: '#34d399', fontWeight: 700,
-          marginBottom: 20, letterSpacing: 1,
-        }}>
-          DEV RETROSPECTIVE · taskflow.io/blog
+      <article style={{ maxWidth: 760, margin: '0 auto', paddingTop: 40 }}>
+        {/* Breadcrumb */}
+        <nav aria-label="breadcrumb" style={{ fontSize: 12, color: '#52525b', marginBottom: 24, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <Link href="/" style={{ color: '#52525b', textDecoration: 'none' }}>홈</Link>
+          <span>›</span>
+          <Link href="/blog" style={{ color: '#52525b', textDecoration: 'none' }}>블로그</Link>
+          <span>›</span>
+          <span style={{ color: '#a1a1aa' }}>{post.title}</span>
+        </nav>
+
+        {/* Meta bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+            background: post.category === '툴소개' ? '#6366f122' : '#10b98122',
+            color: post.category === '툴소개' ? '#818cf8' : '#34d399',
+            border: `1px solid ${post.category === '툴소개' ? '#6366f144' : '#34d39944'}`,
+            padding: '2px 10px', borderRadius: 20,
+          }}>
+            {post.category}
+          </span>
+          <span style={{ fontSize: 12, color: '#52525b' }}>{post.publishedAt}</span>
+          <span style={{ fontSize: 12, color: '#52525b' }}>읽기 {post.readTime}분</span>
         </div>
 
+        {/* Title */}
         <h1 style={{
-          fontSize: 'clamp(24px, 4vw, 40px)',
-          fontWeight: 900, letterSpacing: -1, lineHeight: 1.2,
-          margin: '0 0 24px',
+          fontSize: 'clamp(22px, 4vw, 36px)',
+          fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.25,
+          margin: '0 0 32px',
         }}>
           {post.title}
         </h1>
 
-        {/* Meta row */}
+        {/* Download CTA box */}
         <div style={{
-          display: 'flex', gap: 20, flexWrap: 'wrap',
-          fontSize: 13, color: '#a1a1aa',
-          padding: '16px 0', borderTop: '1px solid #27272a', borderBottom: '1px solid #27272a',
+          border: '2px solid #10b981',
+          borderRadius: 12, padding: '20px 24px',
+          background: 'rgba(16,185,129,0.06)',
           marginBottom: 40,
+          display: 'flex', flexDirection: 'column', gap: 12,
         }}>
-          <span>👤 <strong style={{ color: '#f4f4f5' }}>{post.assignee}</strong></span>
-          <span>📅 <strong style={{ color: '#f4f4f5' }}>{post.completed}</strong></span>
-          <span>⚡ <strong style={{ color: '#f4f4f5' }}>{post.priority}</strong></span>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#34d399', letterSpacing: 0.5 }}>
+            무료 다운로드
+          </div>
+          <div style={{ fontSize: 15, color: '#f4f4f5', fontWeight: 600 }}>{post.downloadLabel}</div>
+          <Link href="/" style={{
+            display: 'inline-block', width: 'fit-content',
+            background: '#10b981', color: '#fff',
+            fontWeight: 700, fontSize: 14, textDecoration: 'none',
+            padding: '11px 24px', borderRadius: 8,
+          }}>
+            {post.downloadLabel} →
+          </Link>
+          <div style={{ fontSize: 12, color: '#71717a' }}>{post.downloadNote}</div>
         </div>
 
-        {/* Body */}
-        <div style={{ fontSize: 15, lineHeight: 1.8, color: '#d4d4d8' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f4f4f5', margin: '0 0 12px' }}>Summary</h2>
-          <p style={{ margin: '0 0 32px' }}>{post.summary}</p>
-
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f4f4f5', margin: '0 0 12px' }}>Key Deliverables</h2>
-          <ul style={{ paddingLeft: 20, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <li>Requirements analysis & technical spec</li>
-            <li>UI/UX design & publishing complete</li>
-            <li>Code review & QA passed</li>
-            <li>Production deployment done</li>
-          </ul>
-
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#f4f4f5', margin: '0 0 12px' }}>Outcomes & Insights</h2>
-          <p style={{ margin: '0 0 32px' }}>
-            Led by <strong style={{ color: '#f4f4f5' }}>{post.assignee}</strong>, delivered on schedule by{' '}
-            <strong style={{ color: '#f4f4f5' }}>{post.completed}</strong>.
-            Managed end-to-end in TaskFlow — the serverless Asana &amp; Jira alternative that stores
-            all data in your own Google Drive.
-          </p>
-
-          {/* SEO keyword paragraph — crawlable, contextually relevant */}
-          <p style={{ fontSize: 13, color: '#71717a', borderTop: '1px solid #27272a', paddingTop: 24, marginTop: 8 }}>
-            TaskFlow is a free kanban board and project management tool that works entirely within
-            Google Drive — a modern alternative to Asana, Jira, Trello, and Notion for teams who
-            want full data ownership with zero monthly SaaS fees.
-          </p>
+        {/* Tags */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 32 }}>
+          {post.tags.map(tag => (
+            <span key={tag} style={{
+              fontSize: 11, color: '#71717a',
+              background: '#18181b', border: '1px solid #27272a',
+              padding: '3px 10px', borderRadius: 20,
+            }}>
+              #{tag}
+            </span>
+          ))}
         </div>
+
+        {/* Content */}
+        <div
+          className="blog-content"
+          style={{ fontSize: 15, lineHeight: 1.8, color: '#d4d4d8' }}
+          dangerouslySetInnerHTML={{ __html: post.content }}
+        />
+
+        {/* Bottom CTA */}
+        <div style={{
+          marginTop: 48, padding: '24px',
+          background: '#18181b', border: '1px solid #27272a',
+          borderRadius: 12, textAlign: 'center',
+        }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>팀 프로젝트를 더 체계적으로 관리하세요</div>
+          <div style={{ fontSize: 13, color: '#a1a1aa', marginBottom: 16 }}>구글 드라이브 기반 100% 무료 프로젝트 관리 툴</div>
+          <Link href="/" style={{
+            display: 'inline-block',
+            background: '#10b981', color: '#fff',
+            fontWeight: 700, fontSize: 14, textDecoration: 'none',
+            padding: '11px 28px', borderRadius: 8,
+          }}>
+            TaskFlow로 팀 프로젝트 관리하기 →
+          </Link>
+        </div>
+
+        {/* Related posts */}
+        {related.length > 0 && (
+          <div style={{ marginTop: 48 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#52525b', letterSpacing: 1, marginBottom: 16 }}>
+              관련 게시글
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {related.map(rp => (
+                <Link
+                  key={rp.slug}
+                  href={`/blog/${rp.slug}`}
+                  style={{
+                    display: 'block', textDecoration: 'none',
+                    background: '#18181b', border: '1px solid #27272a',
+                    borderRadius: 10, padding: '14px 18px',
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#f4f4f5', marginBottom: 4 }}>{rp.title}</div>
+                  <div style={{ fontSize: 12, color: '#71717a' }}>{rp.excerpt.slice(0, 80)}...</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </article>
     </main>
   )

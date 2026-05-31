@@ -1,20 +1,35 @@
 import Link from 'next/link'
+import { BLOG_POSTS } from '../../lib/blog-posts'
+import BlogFilter from './BlogFilter'
 
 export const metadata = {
-  title: 'TaskFlow Blog — Dev Retrospectives & Team Updates',
-  description:
-    'Auto-generated dev retrospectives from TaskFlow — the free serverless kanban board powered by Google Drive.',
+  title: '직장인 실무 서식·템플릿 무료 다운로드 | TaskFlow 블로그',
+  description: '연말정산 시뮬레이터 엑셀, 지출결의서 양식, 업무일지, 회의록, 노션 템플릿을 무료로 다운로드하세요. 광고 없이 바로 다운로드.',
+  keywords: ['연말정산 시뮬레이터 엑셀', '지출결의서 양식', '업무일지 양식', '회의록 양식', '노션 프로젝트 관리 템플릿', '근태관리 엑셀', '프로젝트 관리 무료 툴', '무료 서식 다운로드'],
+  alternates: { canonical: 'https://taskflow.vercel.app/blog' },
+  robots: { index: true, follow: true },
+  openGraph: {
+    title: '직장인 실무 서식·템플릿 무료 다운로드 | TaskFlow 블로그',
+    description: '연말정산 시뮬레이터 엑셀, 지출결의서 양식, 업무일지, 회의록, 노션 템플릿을 광고 없이 무료 다운로드.',
+    type: 'website',
+    url: 'https://taskflow.vercel.app/blog',
+    locale: 'ko_KR',
+  },
 }
 
-const DEMO_POSTS = [
-  {
-    slug: 'search-feature-implementation',
-    title: 'Search Feature Implementation — Dev Retrospective',
-    assignee: 'Alex',
-    completed: '2026-07-10',
-    excerpt: 'End-to-end implementation of the full-text search module.',
-  },
-]
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: '직장인 실무 서식·템플릿 무료 다운로드',
+  url: 'https://taskflow.vercel.app/blog',
+  itemListElement: BLOG_POSTS.map((post, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: post.title,
+    url: `https://taskflow.vercel.app/blog/${post.slug}`,
+    description: post.excerpt,
+  })),
+}
 
 export default function BlogIndex() {
   return (
@@ -23,59 +38,74 @@ export default function BlogIndex() {
       background: '#09090b', color: '#f4f4f5',
       minHeight: '100vh', padding: '0 16px 80px',
     }}>
-      <style>{`
-        .post-card { transition: border-color .15s; }
-        .post-card:hover { border-color: #34d399 !important; }
-      `}</style>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
+      {/* Sticky Nav */}
       <nav style={{
-        maxWidth: 720, margin: '0 auto',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '20px 0', borderBottom: '1px solid #27272a', marginBottom: 48,
+        position: 'sticky', top: 0, zIndex: 50,
+        background: 'rgba(9,9,11,0.95)', backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid #27272a',
       }}>
-        <Link href="/" style={{
-          fontWeight: 800, fontSize: 17, textDecoration: 'none',
-          color: '#f4f4f5', letterSpacing: -0.5,
+        <div style={{
+          maxWidth: 860, margin: '0 auto',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 0',
         }}>
-          Task<span style={{ color: '#34d399' }}>Flow</span>
-        </Link>
-        <span style={{ fontSize: 12, color: '#a1a1aa', fontWeight: 700, letterSpacing: 1 }}>BLOG</span>
+          <Link href="/" style={{
+            fontWeight: 800, fontSize: 17, textDecoration: 'none',
+            color: '#f4f4f5', letterSpacing: -0.5,
+          }}>
+            Task<span style={{ color: '#34d399' }}>Flow</span>
+          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <Link href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none', fontWeight: 600 }}>블로그</Link>
+            <Link href="/" style={{
+              fontSize: 13, fontWeight: 700, textDecoration: 'none',
+              background: '#10b981', color: '#fff',
+              padding: '7px 16px', borderRadius: 8,
+            }}>무료 시작하기</Link>
+          </div>
+        </div>
       </nav>
 
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      {/* Hero */}
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '60px 0 40px' }}>
         <h1 style={{
-          fontSize: 'clamp(24px, 4vw, 36px)',
-          fontWeight: 900, letterSpacing: -1, margin: '0 0 8px',
+          fontSize: 'clamp(26px, 4vw, 42px)',
+          fontWeight: 900, letterSpacing: -1, lineHeight: 1.2,
+          margin: '0 0 16px',
         }}>
-          Dev Retrospectives
+          직장인 실무 서식 · 템플릿<br />
+          <span style={{ color: '#34d399' }}>무료 다운로드</span>
         </h1>
-        <p style={{ fontSize: 14, color: '#a1a1aa', margin: '0 0 40px' }}>
-          Auto-published by the Autopress SEO engine · powered by TaskFlow
+        <p style={{ fontSize: 15, color: '#a1a1aa', margin: '0 0 8px', lineHeight: 1.7, maxWidth: 520 }}>
+          연말정산 시뮬레이터, 지출결의서, 업무일지, 회의록, 노션 템플릿을 광고 없이 바로 다운로드하세요.
+          실무에서 바로 쓸 수 있는 기업 표준 서식을 무료로 제공합니다.
         </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {DEMO_POSTS.map(post => (
-            <Link
-              key={post.slug}
-              href={`/blog/${post.slug}`}
-              className="post-card"
-              style={{
-                display: 'block', textDecoration: 'none',
-                background: '#18181b', border: '1px solid #27272a',
-                borderRadius: 10, padding: '18px 20px',
-              }}
-            >
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#f4f4f5', marginBottom: 6 }}>
-                {post.title}
-              </div>
-              <div style={{ fontSize: 12, color: '#a1a1aa' }}>
-                {post.assignee} · {post.completed}
-              </div>
-              <div style={{ fontSize: 13, color: '#71717a', marginTop: 8 }}>{post.excerpt}</div>
-            </Link>
-          ))}
-        </div>
       </div>
+
+      {/* Client-side filter + grid */}
+      <BlogFilter posts={BLOG_POSTS} />
+
+      {/* Footer */}
+      <footer style={{
+        maxWidth: 860, margin: '60px auto 0',
+        borderTop: '1px solid #27272a', paddingTop: 32,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: 12,
+      }}>
+        <Link href="/" style={{ fontWeight: 800, fontSize: 15, textDecoration: 'none', color: '#f4f4f5' }}>
+          Task<span style={{ color: '#34d399' }}>Flow</span>
+        </Link>
+        <div style={{ display: 'flex', gap: 20 }}>
+          <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>홈</Link>
+          <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>무료 가입</Link>
+          <Link href="/blog" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>블로그</Link>
+        </div>
+      </footer>
     </main>
   )
 }

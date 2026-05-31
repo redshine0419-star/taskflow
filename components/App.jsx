@@ -3036,6 +3036,156 @@ ${t('articleInsightsBody')(task.assignee, task.dueDate)}
   )
 }
 
+// ─── BLOG ADMIN VIEW ─────────────────────────────────────────────────────────
+function BlogAdminView() {
+  const Z = useTheme()
+  const [keyword, setKeyword] = useState('')
+  const [category, setCategory] = useState('무료서식')
+  const [loading, setLoading] = useState(false)
+  const [preview, setPreview] = useState(null)
+  const [error, setError] = useState(null)
+  const [saved, setSaved] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tf_blog_posts') || '[]') } catch { return [] }
+  })
+
+  const generate = async () => {
+    if (!keyword.trim()) return
+    setLoading(true); setError(null); setPreview(null)
+    try {
+      const res = await fetch('/api/blog-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword, category }),
+      })
+      const data = await res.json()
+      if (data.error) { setError(data.error); return }
+      setPreview(data.post)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const savePost = () => {
+    if (!preview) return
+    const updated = [...saved, { ...preview, category, publishedAt: new Date().toISOString().split('T')[0], savedAt: Date.now() }]
+    localStorage.setItem('tf_blog_posts', JSON.stringify(updated))
+    setSaved(updated)
+    setPreview(null)
+    setKeyword('')
+  }
+
+  const deletePost = (idx) => {
+    const updated = saved.filter((_, i) => i !== idx)
+    localStorage.setItem('tf_blog_posts', JSON.stringify(updated))
+    setSaved(updated)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Notice */}
+      <div style={{ background: '#1c1917', border: '1px solid #78350f', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
+        ⚠️ AI가 생성한 포스트는 localStorage에 저장됩니다. 공개 블로그에 반영하려면 개발팀에 전달해 빌드·배포가 필요합니다.
+      </div>
+
+      {/* Generator form */}
+      <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1 }}>AI 포스트 생성</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input
+            value={keyword}
+            onChange={e => setKeyword(e.target.value)}
+            placeholder="키워드 입력 (예: 근태관리 엑셀 무료)"
+            style={{
+              flex: 1, minWidth: 200, background: Z.bg, border: `1px solid ${Z.border}`,
+              borderRadius: 7, padding: '8px 12px', fontSize: 13, color: Z.text,
+              outline: 'none',
+            }}
+            onKeyDown={e => e.key === 'Enter' && generate()}
+          />
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            style={{
+              background: Z.bg, border: `1px solid ${Z.border}`,
+              borderRadius: 7, padding: '8px 10px', fontSize: 13, color: Z.text,
+              outline: 'none',
+            }}
+          >
+            <option>무료서식</option>
+            <option>무료템플릿</option>
+            <option>툴소개</option>
+          </select>
+          <button
+            onClick={generate}
+            disabled={loading || !keyword.trim()}
+            style={{
+              background: loading ? Z.border : Z.emerald, color: '#fff',
+              border: 'none', borderRadius: 7, padding: '8px 16px',
+              fontSize: 13, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {loading ? '생성 중…' : 'AI 포스트 생성'}
+          </button>
+        </div>
+        {error && <div style={{ fontSize: 12, color: '#f87171' }}>오류: {error}</div>}
+      </div>
+
+      {/* Preview */}
+      {preview && (
+        <div style={{ background: Z.surface, border: `1px solid ${Z.emerald}44`, borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: Z.emerald, marginBottom: 10, letterSpacing: 1 }}>생성된 포스트 미리보기</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{preview.title}</div>
+          <div style={{ fontSize: 12, color: Z.muted, marginBottom: 10 }}>/{preview.slug} · 태그: {(preview.tags || []).join(', ')}</div>
+          <div style={{ fontSize: 13, color: Z.muted, marginBottom: 14, lineHeight: 1.6 }}>{preview.excerpt}</div>
+          <div style={{ fontSize: 12, color: Z.muted, borderTop: `1px solid ${Z.border}`, paddingTop: 10, maxHeight: 200, overflowY: 'auto', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: preview.content }} />
+          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <button
+              onClick={savePost}
+              style={{ background: Z.emerald, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              저장
+            </button>
+            <button
+              onClick={() => setPreview(null)}
+              style={{ background: Z.border, color: Z.text, border: 'none', borderRadius: 7, padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Saved posts */}
+      {saved.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1, marginBottom: 10 }}>저장된 포스트 ({saved.length}개)</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {saved.map((p, i) => (
+              <div key={i} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{p.title}</div>
+                  <div style={{ fontSize: 11, color: Z.muted }}>{p.category} · {p.publishedAt}</div>
+                </div>
+                <button
+                  onClick={() => deletePost(i)}
+                  style={{ background: 'transparent', border: `1px solid #f8717155`, color: '#f87171', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}
+                >
+                  삭제
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {saved.length === 0 && !preview && (
+        <div style={{ textAlign: 'center', color: Z.muted, fontSize: 12, padding: '20px 0' }}>저장된 포스트가 없습니다. 키워드를 입력해 AI 포스트를 생성해보세요.</div>
+      )}
+    </div>
+  )
+}
+
 // ─── SETTINGS VIEW ───────────────────────────────────────────────────────────
 function SettingsView({ user, stageLabels, setStageLabels, spreadsheetId, syncing }) {
   const { t } = useLang()
@@ -4165,7 +4315,14 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
             subTasks={allSubTasks}
           />
         )}
-        {activeTab === 'blog'     && <AutopressView tasks={tasks} addLog={addLog} />}
+        {activeTab === 'blog'     && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <AutopressView tasks={tasks} addLog={addLog} />
+            <div style={{ borderTop: '1px solid #27272a', paddingTop: 24 }}>
+              <BlogAdminView />
+            </div>
+          </div>
+        )}
         {activeTab === 'settings' && <SettingsView user={user} stageLabels={stageLabels} setStageLabels={setStageLabels} spreadsheetId={spreadsheetId} syncing={syncing} />}
       </main>
 
