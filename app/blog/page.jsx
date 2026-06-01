@@ -5,17 +5,17 @@ import BlogFilter from './BlogFilter'
 export const revalidate = 3600
 
 export const metadata = {
-  title: '직장인 실무 서식·템플릿 무료 다운로드 | TaskFlow 블로그',
-  description: '연말정산 시뮬레이터 엑셀, 지출결의서 양식, 업무일지, 회의록, 노션 템플릿을 무료로 다운로드하세요. 광고 없이 바로 다운로드.',
-  keywords: ['연말정산 시뮬레이터 엑셀', '지출결의서 양식', '업무일지 양식', '회의록 양식', '노션 프로젝트 관리 템플릿', '근태관리 엑셀', '프로젝트 관리 무료 툴', '무료 서식 다운로드'],
+  title: 'Free Templates & Productivity Tools | TaskFlow Blog',
+  description: 'Free project management templates, kanban boards, task planners, and Korean office forms. Download instantly, no signup required.',
+  keywords: ['free project management template', 'kanban board free', 'task planner template', '무료서식', '업무일지 양식', '회의록 양식', '프로젝트 관리 무료 툴'],
   alternates: { canonical: 'https://taskflow.vercel.app/blog' },
   robots: { index: true, follow: true },
   openGraph: {
-    title: '직장인 실무 서식·템플릿 무료 다운로드 | TaskFlow 블로그',
-    description: '연말정산 시뮬레이터 엑셀, 지출결의서 양식, 업무일지, 회의록, 노션 템플릿을 광고 없이 무료 다운로드.',
+    title: 'Free Templates & Productivity Tools | TaskFlow Blog',
+    description: 'Free project management templates, kanban boards, task planners, and Korean office forms.',
     type: 'website',
     url: 'https://taskflow.vercel.app/blog',
-    locale: 'ko_KR',
+    locale: 'en_US',
   },
 }
 
@@ -30,6 +30,8 @@ async function getPostsFromSheets() {
     return null
   }
 }
+
+
 
 const jsonLd = {
   '@context': 'https://schema.org',

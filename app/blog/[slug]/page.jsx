@@ -152,10 +152,19 @@ export default async function BlogPost({ params }) {
         <h1 style={{
           fontSize: 'clamp(22px, 4vw, 36px)',
           fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.25,
-          margin: '0 0 32px',
+          margin: '0 0 24px',
         }}>
           {post.title}
         </h1>
+
+        {/* Hero Image */}
+        {post.imageUrl && (
+          <img
+            src={post.imageUrl}
+            alt={post.title}
+            style={{ width: '100%', borderRadius: 12, marginBottom: 32, objectFit: 'cover', maxHeight: 360, display: 'block' }}
+          />
+        )}
 
         {/* Download CTA box */}
         <div style={{

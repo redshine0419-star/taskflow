@@ -3037,10 +3037,70 @@ ${t('articleInsightsBody')(task.assignee, task.dueDate)}
 }
 
 // ─── BLOG ADMIN VIEW ─────────────────────────────────────────────────────────
-function BlogAdminView() {
+const ADMIN_EMAIL = 'redshine0419@gmail.com'
+
+function getAdminAuth() {
+  try {
+    const session = JSON.parse(sessionStorage.getItem('tf_session') || '{}')
+    const token = session.token || null
+    const spreadsheetId = sessionStorage.getItem('tf_spreadsheet_id') || null
+    return { token, spreadsheetId }
+  } catch { return { token: null, spreadsheetId: null } }
+}
+
+function BlogAdminView({ user }) {
   const Z = useTheme()
+
+  // Guard: only admin
+  if (!user || user.email !== ADMIN_EMAIL) {
+    return (
+      <div style={{ textAlign: 'center', padding: '40px 0', color: Z.muted, fontSize: 14 }}>
+        관리자 전용 기능입니다.
+      </div>
+    )
+  }
+
+  return <BlogAdminInner Z={Z} />
+}
+
+function BlogAdminInner({ Z }) {
+  const [activeTab, setActiveTab] = useState('generate')
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {[
+          { id: 'generate', label: '포스트 생성' },
+          { id: 'keywords', label: '키워드 관리' },
+          { id: 'posts', label: '포스트 관리' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: '7px 14px', borderRadius: 8, border: 'none',
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              background: activeTab === tab.id ? Z.emerald : Z.surface,
+              color: activeTab === tab.id ? '#fff' : Z.muted,
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'generate' && <BlogGenerateTab Z={Z} />}
+      {activeTab === 'keywords' && <BlogKeywordsTab Z={Z} />}
+      {activeTab === 'posts' && <BlogPostsTab Z={Z} />}
+    </div>
+  )
+}
+
+function BlogGenerateTab({ Z }) {
   const [keyword, setKeyword] = useState('')
   const [category, setCategory] = useState('무료서식')
+  const [lang, setLang] = useState('ko')
   const [loading, setLoading] = useState(false)
   const [preview, setPreview] = useState(null)
   const [error, setError] = useState(null)
@@ -3051,18 +3111,6 @@ function BlogAdminView() {
     try { return JSON.parse(localStorage.getItem('tf_blog_posts') || '[]') } catch { return [] }
   })
 
-  // Import BLOG_KEYWORDS lazily for the upcoming keywords list
-  const [allKeywords, setAllKeywords] = useState([])
-  const [usedSlugs, setUsedSlugs] = useState([])
-  useEffect(() => {
-    import('../lib/blog-keywords.js').then(m => {
-      setAllKeywords(m.BLOG_KEYWORDS || [])
-      setUsedSlugs(m.USED_SLUGS || [])
-    }).catch(() => { /* keywords not available */ })
-  }, [])
-
-  const upcomingKeywords = allKeywords.filter(k => !usedSlugs.includes(k.slug)).slice(0, 10)
-
   const generate = async () => {
     if (!keyword.trim()) return
     setLoading(true); setError(null); setPreview(null)
@@ -3071,11 +3119,11 @@ function BlogAdminView() {
       const res = await fetch('/api/blog-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, category }),
+        body: JSON.stringify({ keyword, category, lang }),
       })
       const data = await res.json()
       if (data.error) { setError(data.error); return }
-      setPreview({ ...data.post, category })
+      setPreview({ ...data.post, category, lang })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -3085,7 +3133,7 @@ function BlogAdminView() {
 
   const savePost = () => {
     if (!preview) return
-    const updated = [...saved, { ...preview, category, publishedAt: new Date().toISOString().split('T')[0], savedAt: Date.now() }]
+    const updated = [...saved, { ...preview, category, lang, publishedAt: new Date().toISOString().split('T')[0], savedAt: Date.now() }]
     localStorage.setItem('tf_blog_posts', JSON.stringify(updated))
     setSaved(updated)
     setPreview(null)
@@ -3096,13 +3144,7 @@ function BlogAdminView() {
     if (!preview) return
     setPublishing(true); setPublishError(null); setPublishSuccess(false)
     try {
-      let token = null
-      let spreadsheetId = null
-      try {
-        const session = JSON.parse(sessionStorage.getItem('tf_session') || '{}')
-        token = session.token || null
-        spreadsheetId = sessionStorage.getItem('tf_spreadsheet_id') || null
-      } catch { /* ignore */ }
+      const { token, spreadsheetId } = getAdminAuth()
       if (!token || !spreadsheetId) {
         setPublishError('Google 계정으로 로그인 후 사용하세요.')
         return
@@ -3123,6 +3165,7 @@ function BlogAdminView() {
             keywords: (preview.tags || preview.keywords || []).join(', '),
             content: preview.content || '',
             usedKeyword: preview.keyword || keyword,
+            lang,
           },
         }),
       })
@@ -3148,7 +3191,6 @@ function BlogAdminView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Generator form */}
       <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1 }}>AI 포스트 생성</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -3164,17 +3206,34 @@ function BlogAdminView() {
             onKeyDown={e => e.key === 'Enter' && generate()}
           />
           <select
+            value={lang}
+            onChange={e => {
+              setLang(e.target.value)
+              setCategory(e.target.value === 'en' ? 'tools' : '무료서식')
+            }}
+            style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 7, padding: '8px 10px', fontSize: 13, color: Z.text, outline: 'none' }}
+          >
+            <option value="ko">KO</option>
+            <option value="en">EN</option>
+          </select>
+          <select
             value={category}
             onChange={e => setCategory(e.target.value)}
-            style={{
-              background: Z.bg, border: `1px solid ${Z.border}`,
-              borderRadius: 7, padding: '8px 10px', fontSize: 13, color: Z.text,
-              outline: 'none',
-            }}
+            style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 7, padding: '8px 10px', fontSize: 13, color: Z.text, outline: 'none' }}
           >
-            <option>무료서식</option>
-            <option>무료템플릿</option>
-            <option>툴소개</option>
+            {lang === 'ko' ? (
+              <>
+                <option>무료서식</option>
+                <option>무료템플릿</option>
+                <option>툴소개</option>
+              </>
+            ) : (
+              <>
+                <option>tools</option>
+                <option>templates</option>
+                <option>productivity</option>
+              </>
+            )}
           </select>
           <button
             onClick={generate}
@@ -3191,73 +3250,27 @@ function BlogAdminView() {
         {error && <div style={{ fontSize: 12, color: '#f87171' }}>오류: {error}</div>}
       </div>
 
-      {/* Preview */}
       {preview && (
         <div style={{ background: Z.surface, border: `1px solid ${Z.emerald}44`, borderRadius: 10, padding: '16px 18px' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: Z.emerald, marginBottom: 10, letterSpacing: 1 }}>생성된 포스트 미리보기</div>
           <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{preview.title}</div>
           <div style={{ fontSize: 12, color: Z.muted, marginBottom: 10 }}>/{preview.slug} · 태그: {(preview.tags || []).join(', ')}</div>
-          <div style={{ fontSize: 13, color: Z.muted, marginBottom: 14, lineHeight: 1.6 }}>{preview.excerpt}</div>
+          <div style={{ fontSize: 13, color: Z.muted, marginBottom: 14, lineHeight: 1.6 }}>{preview.excerpt || preview.desc}</div>
           <div style={{ fontSize: 12, color: Z.muted, borderTop: `1px solid ${Z.border}`, paddingTop: 10, maxHeight: 200, overflowY: 'auto', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: preview.content }} />
-          {publishSuccess && (
-            <div style={{ marginTop: 12, fontSize: 13, color: Z.emerald, fontWeight: 600 }}>
-              ✓ Google Sheets에 저장 완료! 블로그 목록에 반영됩니다.
-            </div>
-          )}
-          {publishError && (
-            <div style={{ marginTop: 12, fontSize: 12, color: '#f87171' }}>발행 오류: {publishError}</div>
-          )}
+          {publishSuccess && <div style={{ marginTop: 12, fontSize: 13, color: Z.emerald, fontWeight: 600 }}>✓ Google Sheets에 저장 완료!</div>}
+          {publishError && <div style={{ marginTop: 12, fontSize: 12, color: '#f87171' }}>발행 오류: {publishError}</div>}
           <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-            <button
-              onClick={publishToSheets}
-              disabled={publishing || publishSuccess}
-              style={{
-                background: publishing || publishSuccess ? Z.border : '#7c3aed', color: '#fff',
-                border: 'none', borderRadius: 7, padding: '8px 18px',
-                fontSize: 13, fontWeight: 700, cursor: publishing || publishSuccess ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {publishing ? '저장 중…' : '📋 Google Sheets에 저장'}
+            <button onClick={publishToSheets} disabled={publishing || publishSuccess}
+              style={{ background: publishing || publishSuccess ? Z.border : '#7c3aed', color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: publishing || publishSuccess ? 'not-allowed' : 'pointer' }}>
+              {publishing ? '저장 중…' : 'Google Sheets에 저장'}
             </button>
-            <button
-              onClick={savePost}
-              style={{ background: Z.emerald, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-            >
-              로컬 저장
-            </button>
-            <button
-              onClick={() => { setPreview(null); setPublishSuccess(false); setPublishError(null) }}
-              style={{ background: Z.border, color: Z.text, border: 'none', borderRadius: 7, padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}
-            >
-              취소
-            </button>
+            <button onClick={savePost} style={{ background: Z.emerald, color: '#fff', border: 'none', borderRadius: 7, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>로컬 저장</button>
+            <button onClick={() => { setPreview(null); setPublishSuccess(false); setPublishError(null) }}
+              style={{ background: Z.border, color: Z.text, border: 'none', borderRadius: 7, padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}>취소</button>
           </div>
         </div>
       )}
 
-      {/* Auto-publish settings section */}
-      <div style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1 }}>⚙ 자동 발행 설정</div>
-        <div style={{ fontSize: 13, color: Z.text, lineHeight: 1.7 }}>
-          Vercel 환경변수에 <code style={{ background: Z.bg, padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>NEXT_PUBLIC_GEMINI_API_KEY</code>, <code style={{ background: Z.bg, padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>GOOGLE_SHEETS_SERVICE_TOKEN</code>, <code style={{ background: Z.bg, padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>GOOGLE_SPREADSHEET_ID</code>를 설정하면 매일 자정(UTC)에 자동으로 포스트가 Google Sheets에 저장됩니다.
-        </div>
-        {upcomingKeywords.length > 0 && (
-          <div>
-            <div style={{ fontSize: 11, color: Z.muted, marginBottom: 8 }}>예정된 키워드 (미발행 {allKeywords.filter(k => !usedSlugs.includes(k.slug)).length}개 중 상위 10개)</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {upcomingKeywords.map((kw, i) => (
-                <div key={kw.slug} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: Z.text }}>
-                  <span style={{ color: Z.muted, minWidth: 16 }}>{i + 1}.</span>
-                  <span style={{ flex: 1 }}>{kw.keyword}</span>
-                  <span style={{ fontSize: 10, color: Z.muted, background: Z.bg, padding: '2px 6px', borderRadius: 4 }}>{kw.category}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Saved posts */}
       {saved.length > 0 && (
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: Z.muted, letterSpacing: 1, marginBottom: 10 }}>저장된 포스트 ({saved.length}개)</div>
@@ -3266,22 +3279,280 @@ function BlogAdminView() {
               <div key={i} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{p.title}</div>
-                  <div style={{ fontSize: 11, color: Z.muted }}>{p.category} · {p.publishedAt}</div>
+                  <div style={{ fontSize: 11, color: Z.muted }}>{p.category} · {p.lang || 'ko'} · {p.publishedAt}</div>
                 </div>
-                <button
-                  onClick={() => deletePost(i)}
-                  style={{ background: 'transparent', border: `1px solid #f8717155`, color: '#f87171', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}
-                >
-                  삭제
-                </button>
+                <button onClick={() => deletePost(i)} style={{ background: 'transparent', border: `1px solid #f8717155`, color: '#f87171', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>삭제</button>
               </div>
             ))}
           </div>
         </div>
       )}
       {saved.length === 0 && !preview && (
-        <div style={{ textAlign: 'center', color: Z.muted, fontSize: 12, padding: '20px 0' }}>저장된 포스트가 없습니다. 키워드를 입력해 AI 포스트를 생성해보세요.</div>
+        <div style={{ textAlign: 'center', color: Z.muted, fontSize: 12, padding: '20px 0' }}>저장된 포스트가 없습니다.</div>
       )}
+    </div>
+  )
+}
+
+function BlogKeywordsTab({ Z }) {
+  const [activeLang, setActiveLang] = useState('en')
+  const [keywords, setKeywords] = useState([])
+  const [loadingKw, setLoadingKw] = useState(false)
+  const [kwError, setKwError] = useState(null)
+  const [newKeyword, setNewKeyword] = useState('')
+  const [newCategory, setNewCategory] = useState('tools')
+  const [adding, setAdding] = useState(false)
+
+  const loadKeywords = async () => {
+    setLoadingKw(true); setKwError(null)
+    try {
+      const { token, spreadsheetId } = getAdminAuth()
+      if (!token || !spreadsheetId) { setKwError('로그인 필요'); return }
+      const res = await fetch(`/api/blog-keywords?spreadsheetId=${spreadsheetId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (!res.ok) { setKwError(data.error || 'Failed'); return }
+      setKeywords(data)
+    } catch (e) {
+      setKwError(e.message)
+    } finally {
+      setLoadingKw(false)
+    }
+  }
+
+  useEffect(() => { loadKeywords() }, [])
+
+  const addKeyword = async () => {
+    if (!newKeyword.trim()) return
+    setAdding(true)
+    try {
+      const { token, spreadsheetId } = getAdminAuth()
+      await fetch('/api/blog-keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ spreadsheetId, keyword: newKeyword.trim(), category: newCategory, lang: activeLang }),
+      })
+      setNewKeyword('')
+      await loadKeywords()
+    } catch (e) {
+      setKwError(e.message)
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  const deleteKeyword = async (kw) => {
+    try {
+      const { token, spreadsheetId } = getAdminAuth()
+      await fetch('/api/blog-keywords', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ spreadsheetId, sheetId: 0, rowIndex: kw.rowIndex }),
+      })
+      await loadKeywords()
+    } catch (e) {
+      setKwError(e.message)
+    }
+  }
+
+  const filtered = keywords.filter(k => k.lang === activeLang)
+  const enCats = ['tools', 'templates', 'productivity']
+  const koCats = ['무료서식', '무료템플릿', '툴소개']
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Lang tabs */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {['en', 'ko'].map(l => (
+          <button key={l} onClick={() => { setActiveLang(l); setNewCategory(l === 'en' ? 'tools' : '무료서식') }}
+            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: activeLang === l ? '#3b82f6' : Z.surface, color: activeLang === l ? '#fff' : Z.muted }}>
+            {l === 'en' ? 'EN' : '한국어'}
+          </button>
+        ))}
+        <button onClick={loadKeywords} disabled={loadingKw}
+          style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, cursor: 'pointer', background: Z.surface, color: Z.muted }}>
+          {loadingKw ? '로딩...' : '새로고침'}
+        </button>
+      </div>
+
+      {/* Add form */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input value={newKeyword} onChange={e => setNewKeyword(e.target.value)}
+          placeholder={activeLang === 'en' ? 'New keyword...' : '새 키워드...'}
+          style={{ flex: 1, minWidth: 180, background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 7, padding: '7px 11px', fontSize: 13, color: Z.text, outline: 'none' }}
+          onKeyDown={e => e.key === 'Enter' && addKeyword()}
+        />
+        <select value={newCategory} onChange={e => setNewCategory(e.target.value)}
+          style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 7, padding: '7px 10px', fontSize: 13, color: Z.text, outline: 'none' }}>
+          {(activeLang === 'en' ? enCats : koCats).map(c => <option key={c}>{c}</option>)}
+        </select>
+        <button onClick={addKeyword} disabled={adding || !newKeyword.trim()}
+          style={{ background: Z.emerald, color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: adding ? 'not-allowed' : 'pointer' }}>
+          {adding ? '...' : '추가'}
+        </button>
+      </div>
+
+      {kwError && <div style={{ fontSize: 12, color: '#f87171' }}>{kwError}</div>}
+
+      {/* Keywords list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {filtered.length === 0 && !loadingKw && <div style={{ fontSize: 12, color: Z.muted }}>키워드 없음</div>}
+        {filtered.map(kw => (
+          <div key={kw.rowIndex} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ flex: 1, fontSize: 13, color: Z.text }}>{kw.keyword}</span>
+            <span style={{ fontSize: 10, color: Z.muted, background: Z.bg, padding: '2px 6px', borderRadius: 4 }}>{kw.category}</span>
+            {kw.used && <span style={{ fontSize: 10, color: Z.emerald, background: `${Z.emerald}22`, padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>used</span>}
+            <button onClick={() => deleteKeyword(kw)}
+              style={{ background: 'transparent', border: `1px solid #f8717144`, color: '#f87171', borderRadius: 5, padding: '3px 8px', fontSize: 11, cursor: 'pointer' }}>
+              삭제
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BlogPostsTab({ Z }) {
+  const [activeLang, setActiveLang] = useState('en')
+  const [posts, setPosts] = useState([])
+  const [loadingPosts, setLoadingPosts] = useState(false)
+  const [postsError, setPostsError] = useState(null)
+  const [editingSlug, setEditingSlug] = useState(null)
+  const [editFields, setEditFields] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(null)
+
+  const loadPosts = async () => {
+    setLoadingPosts(true); setPostsError(null)
+    try {
+      const res = await fetch('/api/blog-list')
+      const data = await res.json()
+      setPosts(Array.isArray(data) ? data : [])
+    } catch (e) {
+      setPostsError(e.message)
+    } finally {
+      setLoadingPosts(false)
+    }
+  }
+
+  useEffect(() => { loadPosts() }, [])
+
+  const startEdit = (post) => {
+    setEditingSlug(post.slug)
+    setEditFields({ title: post.title, desc: post.desc || '', content: post.content || '' })
+  }
+
+  const saveEdit = async (post) => {
+    setSaving(true)
+    try {
+      const { token, spreadsheetId } = getAdminAuth()
+      if (!token || !spreadsheetId) { setPostsError('로그인 필요'); return }
+      const res = await fetch('/api/blog-post', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ spreadsheetId, slug: post.slug, updates: editFields }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setPostsError(data.error || 'Failed'); return }
+      setEditingSlug(null)
+      await loadPosts()
+    } catch (e) {
+      setPostsError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deletePost = async (post) => {
+    if (!window.confirm(`"${post.title}" 을 삭제하시겠습니까?`)) return
+    setDeleting(post.slug)
+    try {
+      const { token, spreadsheetId } = getAdminAuth()
+      if (!token || !spreadsheetId) { setPostsError('로그인 필요'); return }
+      const res = await fetch('/api/blog-post', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ spreadsheetId, sheetId: 0, slug: post.slug }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setPostsError(data.error || 'Failed'); return }
+      await loadPosts()
+    } catch (e) {
+      setPostsError(e.message)
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  const filtered = posts.filter(p => (p.lang || 'ko') === activeLang)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {['en', 'ko'].map(l => (
+          <button key={l} onClick={() => setActiveLang(l)}
+            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', background: activeLang === l ? '#3b82f6' : Z.surface, color: activeLang === l ? '#fff' : Z.muted }}>
+            {l === 'en' ? 'EN' : '한국어'}
+          </button>
+        ))}
+        <button onClick={loadPosts} disabled={loadingPosts}
+          style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 8, border: 'none', fontSize: 12, cursor: 'pointer', background: Z.surface, color: Z.muted }}>
+          {loadingPosts ? '로딩...' : '새로고침'}
+        </button>
+      </div>
+
+      {postsError && <div style={{ fontSize: 12, color: '#f87171' }}>{postsError}</div>}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {filtered.length === 0 && !loadingPosts && <div style={{ fontSize: 12, color: Z.muted }}>포스트 없음</div>}
+        {filtered.map(post => (
+          <div key={post.slug} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 10, padding: '12px 14px' }}>
+            {editingSlug === post.slug ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <input value={editFields.title} onChange={e => setEditFields(f => ({ ...f, title: e.target.value }))}
+                  style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '7px 10px', fontSize: 13, color: Z.text, outline: 'none' }}
+                  placeholder="제목" />
+                <input value={editFields.desc} onChange={e => setEditFields(f => ({ ...f, desc: e.target.value }))}
+                  style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '7px 10px', fontSize: 13, color: Z.text, outline: 'none' }}
+                  placeholder="설명" />
+                <textarea value={editFields.content} onChange={e => setEditFields(f => ({ ...f, content: e.target.value }))}
+                  rows={6} style={{ background: Z.bg, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '7px 10px', fontSize: 12, color: Z.text, outline: 'none', resize: 'vertical', fontFamily: 'monospace' }}
+                  placeholder="HTML 콘텐츠" />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => saveEdit(post)} disabled={saving}
+                    style={{ background: Z.emerald, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
+                    {saving ? '저장 중...' : '저장'}
+                  </button>
+                  <button onClick={() => setEditingSlug(null)}
+                    style={{ background: Z.border, color: Z.text, border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>
+                    취소
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: Z.text }}>{post.title}</div>
+                  <div style={{ fontSize: 11, color: Z.muted }}>
+                    {post.date} · {post.category} ·{' '}
+                    <span style={{ color: '#3b82f6', fontWeight: 700 }}>{post.lang || 'ko'}</span>
+                  </div>
+                </div>
+                <button onClick={() => startEdit(post)}
+                  style={{ background: Z.surface, border: `1px solid ${Z.border}`, color: Z.text, borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
+                  편집
+                </button>
+                <button onClick={() => deletePost(post)} disabled={deleting === post.slug}
+                  style={{ background: 'transparent', border: `1px solid #f8717144`, color: '#f87171', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
+                  {deleting === post.slug ? '...' : '삭제'}
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -4419,7 +4690,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <AutopressView tasks={tasks} addLog={addLog} />
             <div style={{ borderTop: '1px solid #27272a', paddingTop: 24 }}>
-              <BlogAdminView />
+              <BlogAdminView user={user} />
             </div>
           </div>
         )}
