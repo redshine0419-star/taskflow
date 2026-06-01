@@ -4901,6 +4901,7 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
   const { t, lang } = useLang()
   const Z = useTheme()
   const [redirecting, setRedirecting] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [authError, setAuthError] = useState(() => {
     if (typeof window === 'undefined') return null
     const p = new URLSearchParams(window.location.search)
@@ -4936,9 +4937,9 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
   ]
 
   const blogPosts = [
-    { badge: '무료서식', title: '연말정산 시뮬레이터 엑셀 2026 무료 다운로드', href: '/blog' },
-    { badge: '무료서식', title: '지출결의서 양식 무료 다운로드 (엑셀/PDF)', href: '/blog' },
-    { badge: '템플릿', title: '노션 프로젝트 관리 템플릿 무료 복사', href: '/blog' },
+    { badge: 'tools', title: 'Best Free Kanban Board for Small Teams in 2026', href: '/blog/free-kanban-board-for-small-teams' },
+    { badge: 'templates', title: 'Free Project Management Excel Template — 2026 Edition', href: '/blog/project-management-excel-template-free' },
+    { badge: 'tools', title: '5 Free Asana Alternatives That Actually Work in 2026', href: '/blog/asana-alternative-free-2026' },
   ]
 
   const stats = [
@@ -4964,47 +4965,89 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
       {/* ── NAV ── */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 30,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 clamp(16px,5vw,60px)', height: 60,
         borderBottom: `1px solid ${Z.border}55`,
         background: Z.bg + 'cc',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        gap: 12,
       }}>
-        {/* Logo */}
-        <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.5, flexShrink: 0 }}>
-          Task<span style={{ color: Z.emerald }}>Flow</span>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 clamp(16px,5vw,60px)', height: 60, gap: 8,
+        }}>
+          {/* Logo */}
+          <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.5, flexShrink: 0 }}>
+            Task<span style={{ color: Z.emerald }}>Flow</span>
+          </div>
+          {/* Center links — hidden on mobile */}
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flex: 1, justifyContent: 'center' }}
+            className="nav-links-desktop">
+            {navLinks.map(link => (
+              <a key={link.label} href={link.href} style={{ padding: '5px 12px', fontSize: 13, fontWeight: 500, color: Z.muted, textDecoration: 'none', borderRadius: 6, transition: 'color .15s, background .15s', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => { e.currentTarget.style.color = Z.text; e.currentTarget.style.background = Z.surface }}
+                onMouseLeave={e => { e.currentTarget.style.color = Z.muted; e.currentTarget.style.background = 'transparent' }}
+              >{link.label}</a>
+            ))}
+          </div>
+          {/* Right actions */}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+            <button onClick={onToggleDark} title={darkMode ? 'Light mode' : 'Dark mode'}
+              style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 13, color: Z.muted, lineHeight: 1, transition: 'border-color .15s', flexShrink: 0 }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = Z.emerald}
+              onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
+            >{darkMode ? '☀️' : '🌙'}</button>
+            <div className="nav-lang-desktop"><LangToggle /></div>
+            {/* Desktop: Sign in + CTA */}
+            {!onResume && (
+              <button onClick={handleSignIn} disabled={redirecting}
+                className="nav-signin-desktop"
+                style={{ background: 'transparent', border: `1px solid ${Z.border}`, borderRadius: 7, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: Z.muted, cursor: redirecting ? 'not-allowed' : 'pointer', transition: 'border-color .15s, color .15s', opacity: redirecting ? 0.6 : 1, whiteSpace: 'nowrap' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = Z.emerald; e.currentTarget.style.color = Z.text }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.color = Z.muted }}
+              >{redirecting ? t('signingIn') : lang === 'ko' ? '로그인' : 'Sign in'}</button>
+            )}
+            {onResume
+              ? <button onClick={onResume} style={{ background: Z.emerald, border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 700, color: '#052e16', cursor: 'pointer', whiteSpace: 'nowrap' }}>{t('ctaStart')}</button>
+              : <button onClick={handleSignIn} disabled={redirecting} style={{ background: Z.emerald, border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 700, color: '#052e16', cursor: redirecting ? 'not-allowed' : 'pointer', opacity: redirecting ? 0.6 : 1, whiteSpace: 'nowrap' }}>{redirecting ? '...' : t('ctaStart')}</button>
+            }
+            {/* Hamburger — mobile only */}
+            <button onClick={() => setMenuOpen(o => !o)}
+              className="nav-hamburger"
+              aria-label="Menu"
+              style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: Z.text, fontSize: 16, lineHeight: 1, flexShrink: 0 }}
+            >{menuOpen ? '✕' : '☰'}</button>
+          </div>
         </div>
-        {/* Center links */}
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {navLinks.map(link => (
-            <a key={link.label} href={link.href} style={{ padding: '5px 12px', fontSize: 13, fontWeight: 500, color: Z.muted, textDecoration: 'none', borderRadius: 6, transition: 'color .15s, background .15s' }}
-              onMouseEnter={e => { e.currentTarget.style.color = Z.text; e.currentTarget.style.background = Z.surface }}
-              onMouseLeave={e => { e.currentTarget.style.color = Z.muted; e.currentTarget.style.background = 'transparent' }}
-            >{link.label}</a>
-          ))}
-        </div>
-        {/* Right actions */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-          <button onClick={onToggleDark} title={darkMode ? 'Light mode' : 'Dark mode'}
-            style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 13, color: Z.muted, lineHeight: 1, transition: 'border-color .15s' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = Z.emerald}
-            onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
-          >{darkMode ? '☀️' : '🌙'}</button>
-          <LangToggle />
-          {!onResume && (
-            <button onClick={handleSignIn} disabled={redirecting}
-              style={{ background: 'transparent', border: `1px solid ${Z.border}`, borderRadius: 7, padding: '6px 14px', fontSize: 12, fontWeight: 600, color: Z.muted, cursor: redirecting ? 'not-allowed' : 'pointer', transition: 'border-color .15s, color .15s', opacity: redirecting ? 0.6 : 1 }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = Z.emerald; e.currentTarget.style.color = Z.text }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.color = Z.muted }}
-            >{redirecting ? t('signingIn') : lang === 'ko' ? '로그인' : 'Sign in'}</button>
-          )}
-          {onResume
-            ? <button onClick={onResume} style={{ background: Z.emerald, border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 12, fontWeight: 700, color: '#052e16', cursor: 'pointer', transition: 'opacity .15s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.85'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{t('ctaStart')}</button>
-            : <button onClick={handleSignIn} disabled={redirecting} style={{ background: Z.emerald, border: 'none', borderRadius: 7, padding: '7px 16px', fontSize: 12, fontWeight: 700, color: '#052e16', cursor: redirecting ? 'not-allowed' : 'pointer', transition: 'opacity .15s', opacity: redirecting ? 0.6 : 1 }} onMouseEnter={e => e.currentTarget.style.opacity = '0.85'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{redirecting ? t('signingIn') : t('ctaStart')}</button>
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div style={{
+            borderTop: `1px solid ${Z.border}`,
+            background: Z.bg,
+            padding: '12px 16px 16px',
+            display: 'flex', flexDirection: 'column', gap: 4,
+          }}>
+            {navLinks.map(link => (
+              <a key={link.label} href={link.href} onClick={() => setMenuOpen(false)}
+                style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, color: Z.text, textDecoration: 'none', borderRadius: 8, background: Z.surface }}
+              >{link.label}</a>
+            ))}
+            <div style={{ height: 1, background: Z.border, margin: '8px 0' }} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <LangToggle />
+            </div>
+          </div>
+        )}
+        <style>{`
+          .nav-links-desktop { display: flex !important; }
+          .nav-lang-desktop { display: block !important; }
+          .nav-signin-desktop { display: block !important; }
+          .nav-hamburger { display: none !important; }
+          @media (max-width: 640px) {
+            .nav-links-desktop { display: none !important; }
+            .nav-lang-desktop { display: none !important; }
+            .nav-signin-desktop { display: none !important; }
+            .nav-hamburger { display: block !important; }
           }
-        </div>
+        `}</style>
       </nav>
 
       {/* ── HERO ── */}
@@ -5118,8 +5161,12 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
       {/* ── BLOG PREVIEW ── */}
       <section id="blog" style={{ padding: '80px clamp(16px,5vw,60px)', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{ fontSize: 'clamp(20px,3.5vw,30px)', fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px' }}>직장인 실무 템플릿 · 서식 무료 다운로드</h2>
-          <p style={{ fontSize: 13, color: Z.muted, margin: 0 }}>구글 검색 상위노출 최적화 콘텐츠 · 매주 업데이트</p>
+          <h2 style={{ fontSize: 'clamp(20px,3.5vw,30px)', fontWeight: 800, letterSpacing: -0.8, margin: '0 0 8px' }}>
+            {lang === 'ko' ? '무료 템플릿 · 리소스' : 'Free Templates & Resources'}
+          </h2>
+          <p style={{ fontSize: 13, color: Z.muted, margin: 0 }}>
+            {lang === 'ko' ? '매주 업데이트되는 무료 서식과 가이드' : 'Practical guides and free templates, updated weekly'}
+          </p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
           {blogPosts.map((post, i) => (
@@ -5128,9 +5175,9 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
               onMouseEnter={e => { e.currentTarget.style.borderColor = Z.emerald + '88'; e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = Z.border; e.currentTarget.style.transform = 'translateY(0)' }}
             >
-              <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: `${Z.emerald}22`, color: Z.emerald, border: `1px solid ${Z.emerald}44`, marginBottom: 12 }}>{post.badge}</span>
+              <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: `${Z.emerald}22`, color: Z.emerald, border: `1px solid ${Z.emerald}44`, marginBottom: 12, textTransform: 'uppercase' }}>{post.badge}</span>
               <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.5, marginBottom: 14, color: Z.text }}>{post.title}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: Z.emerald }}>다운로드 →</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: Z.emerald }}>Read more →</div>
             </a>
           ))}
         </div>
