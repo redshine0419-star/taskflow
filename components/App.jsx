@@ -759,18 +759,31 @@ function Overlay({ onClick }) {
 
 function ModalShell({ children, maxWidth = 560, onClose }) {
   const Z = useTheme()
+  const [isMobileModal, setIsMobileModal] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 640
+  )
+  useEffect(() => {
+    const handler = () => setIsMobileModal(window.innerWidth < 640)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
   return (
     <>
-      <Overlay onClick={onClose} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 59 }} />
       <div style={{
         position: 'fixed', inset: 0, zIndex: 60,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        display: 'flex',
+        alignItems: isMobileModal ? 'flex-end' : 'center',
+        justifyContent: 'center',
+        padding: isMobileModal ? 0 : 20,
         pointerEvents: 'none',
       }}>
         <div style={{
-          background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 12,
-          width: '100%', maxWidth, maxHeight: '90vh',
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          background: Z.surface, border: `1px solid ${Z.border}`,
+          borderRadius: isMobileModal ? '16px 16px 0 0' : 12,
+          width: '100%', maxWidth: isMobileModal ? '100%' : maxWidth,
+          maxHeight: isMobileModal ? '92vh' : '90vh',
+          display: 'flex', flexDirection: 'column', overflowY: 'auto',
           pointerEvents: 'auto',
         }}>
           {children}
@@ -955,7 +968,7 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel, members 
         </div>
 
         {/* Stage | Priority */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 10 }}>
           <div>
             <div style={labelStyle}>{t('fieldStage')}</div>
             <select value={form.stage} onChange={e => set('stage', e.target.value)} style={selectStyle}>
@@ -971,7 +984,7 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel, members 
         </div>
 
         {/* Start date | Due date */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 10 }}>
           <div>
             <div style={labelStyle}>{t('startDate')}</div>
             <input type="date" value={form.startDate || ''} onChange={e => set('startDate', e.target.value)}
@@ -985,7 +998,7 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel, members 
         </div>
 
         {/* Assignee | Requester */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 10 }}>
           <div>
             <div style={labelStyle}>{t('assignee')}</div>
             {memberOptions ? (
@@ -1004,7 +1017,7 @@ function AddTaskModal({ open, onClose, onAdd, defaultStage, stageLabel, members 
         </div>
 
         {/* Category | Task type */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 10 }}>
           <div>
             <div style={labelStyle}>{t('category')}</div>
             <select value={form.category} onChange={e => set('category', e.target.value)} style={selectStyle}>
@@ -1445,7 +1458,7 @@ function TaskDetailModal({ task, open, onClose, onUpdate, stageLabel, subTasks, 
             </div>
           </div>
         </div>
-        <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <div style={{ padding: '14px 24px', borderTop: `1px solid ${Z.border}`, display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Btn variant="ghost" onClick={onClose}>{t('closeDetail')}</Btn>
           <Btn variant="primary" onClick={save}>{t('saveDetail')}</Btn>
         </div>
@@ -1937,11 +1950,13 @@ function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDelet
       </div>
 
       {viewMode === 'gantt' && (
-        <ProjectGanttView projects={projects} tasks={tasks} onSelectProject={onSelectProject} />
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <ProjectGanttView projects={projects} tasks={tasks} onSelectProject={onSelectProject} />
+        </div>
       )}
 
       {viewMode === 'card' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
           {projects.map(project => {
             const count = tasks.filter(tk => tk.projectId === project.id).length
             return (
@@ -2180,6 +2195,7 @@ function GanttView({ tasks, onOpenTask, stageLabel }) {
       </div>
 
       {/* Gantt grid */}
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 8, overflow: 'hidden', fontFamily: 'inherit' }}>
         {/* Left fixed column */}
         <div style={{ width: LEFT_COL, flexShrink: 0, borderRight: `1px solid ${Z.border}`, background: Z.surface, zIndex: 5 }}>
@@ -2301,6 +2317,7 @@ function GanttView({ tasks, onOpenTask, stageLabel }) {
             })}
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
@@ -2759,18 +2776,18 @@ function KanbanView({ tasks, isMobile, onStageChange, onUpdateTask, onPublish, o
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
         {/* View mode toggle */}
         <div style={{ display: 'flex', border: `1px solid ${Z.border}`, borderRadius: 6, overflow: 'hidden' }}>
-          {[{ id: 'kanban', label: '⬡ ' + t('tabKanban') }, { id: 'gantt', label: '▬ ' + t('viewGantt') }, { id: 'table', label: '⊞ ' + t('viewTable') }].map(m => (
+          {[{ id: 'kanban', label: '⬡', fullLabel: '⬡ ' + t('tabKanban') }, { id: 'gantt', label: '▬', fullLabel: '▬ ' + t('viewGantt') }, { id: 'table', label: '⊞', fullLabel: '⊞ ' + t('viewTable') }].map(m => (
             <button key={m.id} onClick={() => setViewMode(m.id)} style={{
-              padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+              padding: isMobile ? '5px 10px' : '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
               background: viewMode === m.id ? Z.border : 'transparent',
               color: viewMode === m.id ? Z.text : Z.muted,
               transition: 'background .15s, color .15s',
-            }}>{m.label}</button>
+            }}>{isMobile ? m.label : m.fullLabel}</button>
           ))}
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <Btn variant="default" small onClick={onImportExcel}>📂 {t('importExcel')}</Btn>
-          <Btn variant="default" small onClick={onExportExcel}>📥 {t('exportExcel')}</Btn>
+          {!isMobile && <Btn variant="default" small onClick={onImportExcel}>📂 {t('importExcel')}</Btn>}
+          {!isMobile && <Btn variant="default" small onClick={onExportExcel}>📥 {t('exportExcel')}</Btn>}
           <Btn variant="emerald" small onClick={() => setAddingStage(STAGE_KEYS[0] || '기획')}>+ {t('addTask')}</Btn>
         </div>
       </div>
@@ -4624,12 +4641,12 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
           <button onClick={onToggleDark} title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 14, color: Z.muted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {darkMode ? '☀️' : '🌙'}
           </button>
-          <LangToggle />
           {!isMobile && <Btn variant="ghost" small onClick={() => setTutorialOpen(true)}>{t('tutorialBtn')}</Btn>}
           {!isMobile && <Btn variant="default" small onClick={() => setShareOpen(true)}>{t('shareBtn')}</Btn>}
-          <Btn variant="primary" small onClick={() => setAiOpen(true)}>{t('aiParserBtn')}</Btn>
+          <Btn variant="primary" small onClick={() => setAiOpen(true)}>{isMobile ? '✨' : t('aiParserBtn')}</Btn>
+          {!isMobile && <LangToggle />}
           <button onClick={openDrawer} style={{ position: 'relative', background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: Z.muted, fontSize: 11, fontWeight: 700 }}>
-            {t('syncLogBtn')}
+            {isMobile ? '📋' : t('syncLogBtn')}
             {newLogCount > 0 && (
               <span style={{ position: 'absolute', top: -4, right: -4, background: Z.emerald, color: '#052e16', borderRadius: 10, fontSize: 9, padding: '1px 5px', fontWeight: 800 }}>{newLogCount}</span>
             )}
