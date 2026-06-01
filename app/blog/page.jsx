@@ -20,11 +20,23 @@ export const metadata = {
 }
 
 async function getPostsFromSheets() {
+  const token = process.env.GOOGLE_SHEETS_SERVICE_TOKEN
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID
+  if (!token || !spreadsheetId) return null
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const res = await fetch(`${baseUrl}/api/blog-list`, { next: { revalidate: 3600 } })
-    if (!res.ok) throw new Error('blog-list fetch failed')
-    return await res.json()
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/BlogPosts!A2:J1000`,
+      { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 3600 } }
+    )
+    const data = await res.json()
+    const rows = data.values || []
+    return rows.map(r => ({
+      slug: r[0] || '', title: r[1] || '', date: r[2] || '',
+      category: r[3] || '', desc: r[4] || '',
+      keywords: r[5] ? r[5].split(', ') : [],
+      content: r[6] || '', usedKeyword: r[7] || '',
+      lang: r[8] || 'ko', imageUrl: r[9] || '',
+    })).filter(p => p.slug && p.title)
   } catch (e) {
     console.error('getPostsFromSheets failed:', e)
     return null

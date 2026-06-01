@@ -2,16 +2,31 @@ import Link from 'next/link'
 import { BLOG_POSTS } from '../../../lib/blog-posts'
 
 export const revalidate = 3600
+export const dynamicParams = true
 
 async function getAllPosts() {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const res = await fetch(`${baseUrl}/api/blog-list`, { next: { revalidate: 3600 } })
-    if (!res.ok) throw new Error('blog-list fetch failed')
-    const posts = await res.json()
-    if (posts && posts.length > 0) return posts
-  } catch {
-    // fall through to static
+  // Try Google Sheets first (for dynamically generated posts)
+  const token = process.env.GOOGLE_SHEETS_SERVICE_TOKEN
+  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID
+  if (token && spreadsheetId) {
+    try {
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/BlogPosts!A2:J1000`,
+        { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 3600 } }
+      )
+      const data = await res.json()
+      const rows = data.values || []
+      const sheetsPosts = rows.map(r => ({
+        slug: r[0] || '', title: r[1] || '', date: r[2] || '',
+        category: r[3] || '', desc: r[4] || '',
+        keywords: r[5] ? r[5].split(', ') : [],
+        content: r[6] || '', usedKeyword: r[7] || '',
+        lang: r[8] || 'ko', imageUrl: r[9] || '',
+      })).filter(p => p.slug && p.title)
+      if (sheetsPosts.length > 0) return [...BLOG_POSTS, ...sheetsPosts]
+    } catch {
+      // fall through to static only
+    }
   }
   return BLOG_POSTS
 }
