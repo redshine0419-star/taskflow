@@ -22,8 +22,9 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   const { slug } = await params
+  const decodedSlug = decodeURIComponent(slug)
   const allPosts = await getAllPosts()
-  const post = allPosts.find(p => p.slug === slug)
+  const post = allPosts.find(p => p.slug === decodedSlug)
   if (!post) {
     return {
       title: '포스트를 찾을 수 없습니다 | TaskFlow 블로그',
@@ -51,8 +52,9 @@ export async function generateMetadata({ params }) {
 
 export default async function BlogPost({ params }) {
   const { slug } = await params
+  const decodedSlug = decodeURIComponent(slug)
   const allPosts = await getAllPosts()
-  const post = allPosts.find(p => p.slug === slug)
+  const post = allPosts.find(p => p.slug === decodedSlug)
 
   if (!post) {
     return (
@@ -68,7 +70,7 @@ export default async function BlogPost({ params }) {
     )
   }
 
-  const related = allPosts.filter(p => p.slug !== slug && p.category === post.category).slice(0, 3)
+  const related = allPosts.filter(p => p.slug !== decodedSlug && p.category === post.category).slice(0, 3)
 
   const postDesc = post.desc || post.excerpt || ''
   const postDate = post.date || post.publishedAt || ''
