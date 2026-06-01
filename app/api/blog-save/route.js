@@ -4,7 +4,7 @@ export async function POST(request) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const { appendBlogPost, ensureBlogPostsSheet } = await import('@/lib/gapi')
+  const { appendBlogPost, ensureBlogPostsSheet } = await import('../../../lib/gapi.js')
 
   try {
     await ensureBlogPostsSheet(token, spreadsheetId)

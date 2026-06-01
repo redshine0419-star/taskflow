@@ -10,7 +10,7 @@ async function getAllPosts() {
     if (!res.ok) throw new Error('blog-list fetch failed')
     const posts = await res.json()
     if (posts && posts.length > 0) return posts
-  } catch (e) {
+  } catch {
     // fall through to static
   }
   return BLOG_POSTS

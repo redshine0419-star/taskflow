@@ -1,4 +1,4 @@
-import { BLOG_POSTS } from '@/lib/blog-posts'
+import { BLOG_POSTS } from '../../../lib/blog-posts'
 
 export const revalidate = 3600
 

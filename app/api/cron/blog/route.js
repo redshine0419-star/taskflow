@@ -1,4 +1,4 @@
-import { BLOG_KEYWORDS } from '@/lib/blog-keywords'
+import { BLOG_KEYWORDS } from '../../../../lib/blog-keywords'
 
 const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
@@ -21,7 +21,7 @@ export async function GET(request) {
   // Load already-used keywords
   let usedKeywords = []
   try {
-    const { loadUsedBlogKeywords } = await import('@/lib/gapi')
+    const { loadUsedBlogKeywords } = await import('../../../../lib/gapi.js')
     usedKeywords = await loadUsedBlogKeywords(sheetsToken, spreadsheetId)
   } catch (e) {
     console.error('Failed to load used keywords:', e)
@@ -67,7 +67,7 @@ export async function GET(request) {
 
   // Save to Google Sheets
   try {
-    const { appendBlogPost, ensureBlogPostsSheet } = await import('@/lib/gapi')
+    const { appendBlogPost, ensureBlogPostsSheet } = await import('../../../../lib/gapi.js')
     await ensureBlogPostsSheet(sheetsToken, spreadsheetId)
     const today = new Date().toISOString().split('T')[0]
     await appendBlogPost(sheetsToken, spreadsheetId, {
