@@ -70,7 +70,7 @@ export default function BlogFilter({ posts }) {
       {/* Post grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 360px), 1fr))',
         gap: 16,
       }}>
         {filtered.map(post => (
@@ -102,7 +102,7 @@ export default function BlogFilter({ posts }) {
                 }}>
                   {post.category}
                 </span>
-                {post.readTime && <span style={{ fontSize: 11, color: '#52525b' }}>{post.readTime}분 읽기</span>}
+                {post.readTime && <span style={{ fontSize: 11, color: '#52525b' }}>{activeLang === 'en' ? `${post.readTime} min` : `${post.readTime}분 읽기`}</span>}
               </div>
               <div style={{ fontWeight: 700, fontSize: 15, color: '#f4f4f5', marginBottom: 8, lineHeight: 1.4 }}>
                 {post.title}

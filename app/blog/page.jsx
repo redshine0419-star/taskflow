@@ -6,13 +6,13 @@ export const revalidate = 3600
 
 export const metadata = {
   title: 'Free Templates & Productivity Tools | TaskFlow Blog',
-  description: 'Free project management templates, kanban boards, task planners, and Korean office forms. Download instantly, no signup required.',
-  keywords: ['free project management template', 'kanban board free', 'task planner template', '무료서식', '업무일지 양식', '회의록 양식', '프로젝트 관리 무료 툴'],
+  description: 'Free project management templates, kanban boards, task planners, and productivity tools. Download instantly, no signup required.',
+  keywords: ['free project management template', 'kanban board free', 'task planner template', 'free productivity tools', 'team collaboration'],
   alternates: { canonical: 'https://taskflow.vercel.app/blog' },
   robots: { index: true, follow: true },
   openGraph: {
     title: 'Free Templates & Productivity Tools | TaskFlow Blog',
-    description: 'Free project management templates, kanban boards, task planners, and Korean office forms.',
+    description: 'Free project management templates, kanban boards, task planners, and productivity tools.',
     type: 'website',
     url: 'https://taskflow.vercel.app/blog',
     locale: 'en_US',
@@ -43,31 +43,32 @@ async function getPostsFromSheets() {
   }
 }
 
-
-
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ItemList',
-  name: '직장인 실무 서식·템플릿 무료 다운로드',
+  name: 'Free Templates & Productivity Tools — TaskFlow Blog',
   url: 'https://taskflow.vercel.app/blog',
   itemListElement: BLOG_POSTS.map((post, i) => ({
     '@type': 'ListItem',
     position: i + 1,
     name: post.title,
     url: `https://taskflow.vercel.app/blog/${post.slug}`,
-    description: post.excerpt,
+    description: post.desc || post.excerpt || '',
   })),
 }
 
 export default async function BlogIndex() {
   const sheetsPosts = await getPostsFromSheets()
-  const posts = sheetsPosts && sheetsPosts.length > 0 ? sheetsPosts : BLOG_POSTS
+  const posts = sheetsPosts && sheetsPosts.length > 0
+    ? [...BLOG_POSTS, ...sheetsPosts]
+    : BLOG_POSTS
 
   return (
     <main style={{
       fontFamily: "'Inter', system-ui, sans-serif",
       background: '#09090b', color: '#f4f4f5',
-      minHeight: '100vh', padding: '0 16px 80px',
+      minHeight: '100vh',
+      overflowX: 'hidden',
     }}>
       <script
         type="application/ld+json"
@@ -83,7 +84,7 @@ export default async function BlogIndex() {
         <div style={{
           maxWidth: 860, margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 0',
+          padding: '14px 16px',
         }}>
           <Link href="/" style={{
             fontWeight: 800, fontSize: 17, textDecoration: 'none',
@@ -91,40 +92,42 @@ export default async function BlogIndex() {
           }}>
             Task<span style={{ color: '#34d399' }}>Flow</span>
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            <Link href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none', fontWeight: 600 }}>블로그</Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <Link href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none', fontWeight: 600 }}>Blog</Link>
             <Link href="/" style={{
               fontSize: 13, fontWeight: 700, textDecoration: 'none',
               background: '#10b981', color: '#fff',
-              padding: '7px 16px', borderRadius: 8,
-            }}>무료 시작하기</Link>
+              padding: '7px 14px', borderRadius: 8, whiteSpace: 'nowrap',
+            }}>Get Started Free</Link>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '60px 0 40px' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 16px 32px' }}>
         <h1 style={{
-          fontSize: 'clamp(26px, 4vw, 42px)',
+          fontSize: 'clamp(24px, 5vw, 42px)',
           fontWeight: 900, letterSpacing: -1, lineHeight: 1.2,
           margin: '0 0 16px',
         }}>
-          직장인 실무 서식 · 템플릿<br />
-          <span style={{ color: '#34d399' }}>무료 다운로드</span>
+          Free Templates &amp; Tools<br />
+          <span style={{ color: '#34d399' }}>for Productive Teams</span>
         </h1>
-        <p style={{ fontSize: 15, color: '#a1a1aa', margin: '0 0 8px', lineHeight: 1.7, maxWidth: 520 }}>
-          연말정산 시뮬레이터, 지출결의서, 업무일지, 회의록, 노션 템플릿을 광고 없이 바로 다운로드하세요.
-          실무에서 바로 쓸 수 있는 기업 표준 서식을 무료로 제공합니다.
+        <p style={{ fontSize: 15, color: '#a1a1aa', margin: 0, lineHeight: 1.7, maxWidth: 520 }}>
+          Download free project management templates, kanban boards, and productivity tools.
+          No ads, no signup required — just practical resources for modern teams.
         </p>
       </div>
 
       {/* Client-side filter + grid */}
-      <BlogFilter posts={posts} />
+      <div style={{ padding: '0 16px 80px' }}>
+        <BlogFilter posts={posts} />
+      </div>
 
       {/* Footer */}
       <footer style={{
-        maxWidth: 860, margin: '60px auto 0',
-        borderTop: '1px solid #27272a', paddingTop: 32,
+        maxWidth: 860, margin: '0 auto',
+        borderTop: '1px solid #27272a', padding: '32px 16px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: 12,
       }}>
@@ -132,9 +135,9 @@ export default async function BlogIndex() {
           Task<span style={{ color: '#34d399' }}>Flow</span>
         </Link>
         <div style={{ display: 'flex', gap: 20 }}>
-          <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>홈</Link>
-          <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>무료 가입</Link>
-          <Link href="/blog" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>블로그</Link>
+          <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>Home</Link>
+          <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>Sign Up Free</Link>
+          <Link href="/blog" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>Blog</Link>
         </div>
       </footer>
     </main>
