@@ -11,22 +11,51 @@ export async function GET(request) {
   }
 
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
+  console.log('[cron/blog] GEMINI key present:', !!apiKey)
   if (!apiKey) return new Response('Missing GEMINI API key', { status: 500 })
 
   const sheetsToken = process.env.GOOGLE_SHEETS_SERVICE_TOKEN
   const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID
+  console.log('[cron/blog] sheetsToken present:', !!sheetsToken, '| spreadsheetId present:', !!spreadsheetId)
   if (!sheetsToken || !spreadsheetId) {
-    return new Response('Missing Google Sheets config', { status: 500 })
+    return new Response(
+      JSON.stringify({ error: 'Missing Google Sheets config', sheetsToken: !!sheetsToken, spreadsheetId: !!spreadsheetId }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
+  }
+
+  // Verify token works before doing anything else
+  try {
+    const testRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=spreadsheetId`,
+      { headers: { Authorization: `Bearer ${sheetsToken}` } }
+    )
+    const testData = await testRes.json()
+    console.log('[cron/blog] Sheets token test status:', testRes.status, JSON.stringify(testData).slice(0, 200))
+    if (!testRes.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Google Sheets token invalid or expired', detail: testData }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+  } catch (e) {
+    console.error('[cron/blog] Sheets token test failed:', e)
+    return new Response(JSON.stringify({ error: 'Sheets token test threw', detail: e.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' },
+    })
   }
 
   // Load already-used keywords
   let usedKeywords = []
   try {
     const { loadUsedBlogKeywords, ensureBlogPostsSheet } = await import('../../../../lib/gapi.js')
+    console.log('[cron/blog] ensureBlogPostsSheet start')
     await ensureBlogPostsSheet(sheetsToken, spreadsheetId)
+    console.log('[cron/blog] loadUsedBlogKeywords start')
     usedKeywords = await loadUsedBlogKeywords(sheetsToken, spreadsheetId)
+    console.log('[cron/blog] usedKeywords count:', usedKeywords.length)
   } catch (e) {
-    console.error('Failed to load used keywords:', e)
+    console.error('[cron/blog] Failed to load used keywords:', e)
   }
 
   // Pick one unused KO keyword and one unused EN keyword
@@ -38,11 +67,13 @@ export async function GET(request) {
 
   const pickedKo = poolKo[Math.floor(Math.random() * poolKo.length)]
   const pickedEn = poolEn[Math.floor(Math.random() * poolEn.length)]
+  console.log('[cron/blog] picked KO:', pickedKo?.keyword, '| EN:', pickedEn?.keyword)
 
   const results = []
 
   // Generate both posts in parallel
   const generatePost = async (picked) => {
+    console.log(`[cron/blog] generatePost start: "${picked.keyword}" (${picked.lang})`)
     const prompt = buildBlogPrompt(picked)
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 120000)
@@ -57,6 +88,7 @@ export async function GET(request) {
         signal: controller.signal,
       })
       clearTimeout(timer)
+      console.log(`[cron/blog] Gemini response status for "${picked.keyword}":`, res.status)
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error(`Gemini error: ${err.error?.message || res.status}`)
@@ -74,6 +106,7 @@ export async function GET(request) {
       const { appendBlogPost } = await import('../../../../lib/gapi.js')
       const today = new Date().toISOString().split('T')[0]
       const category = postData.category || picked.category
+      console.log(`[cron/blog] appendBlogPost start: "${postData.slug}"`)
       await appendBlogPost(sheetsToken, spreadsheetId, {
         slug: postData.slug || picked.keyword.replace(/\s+/g, '-'),
         title: postData.title || picked.keyword,
@@ -86,10 +119,11 @@ export async function GET(request) {
         lang: picked.lang || 'ko',
         imageUrl: getBlogImage(category),
       })
+      console.log(`[cron/blog] appendBlogPost done: "${postData.slug}"`)
       return { ok: true, keyword: picked.keyword, lang: picked.lang }
     } catch (e) {
       clearTimeout(timer)
-      console.error(`Failed to generate post for "${picked.keyword}":`, e)
+      console.error(`[cron/blog] Failed for "${picked.keyword}":`, e.message)
       return { ok: false, keyword: picked.keyword, lang: picked.lang, error: e.message }
     }
   }
