@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache'
 import { BLOG_KEYWORDS } from '../../../../lib/blog-keywords'
 import { getBlogImage } from '../../../../lib/blog-images'
 import { initBlogTable, insertBlogPost, getUsedKeywords } from '../../../../lib/db.js'
@@ -108,6 +109,9 @@ export async function GET(request) {
     generatePost(pickedKo),
     generatePost(pickedEn),
   ])
+
+  // Invalidate blog page cache so new posts appear immediately
+  revalidatePath('/blog')
 
   return new Response(JSON.stringify({ ok: true, results: [koResult, enResult] }), {
     headers: { 'Content-Type': 'application/json' },
