@@ -1,4 +1,4 @@
-import { initBlogTable } from '../../../lib/db.js'
+import { initBlogTable, initKeywordsTable } from '../../../lib/db.js'
 
 export async function GET(request) {
   const authHeader = request.headers.get('authorization')
@@ -7,7 +7,8 @@ export async function GET(request) {
   }
   try {
     await initBlogTable()
-    return new Response(JSON.stringify({ ok: true, message: 'blog_posts table ready' }), {
+    await initKeywordsTable()
+    return new Response(JSON.stringify({ ok: true, message: 'tables ready: blog_posts, blog_keywords' }), {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (e) {

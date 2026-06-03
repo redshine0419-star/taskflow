@@ -3323,9 +3323,9 @@ function BlogKeywordsTab({ Z }) {
   const loadKeywords = async () => {
     setLoadingKw(true); setKwError(null)
     try {
-      const { token, spreadsheetId } = getAdminAuth()
-      if (!token || !spreadsheetId) { setKwError('로그인 필요'); return }
-      const res = await fetch(`/api/blog-keywords?spreadsheetId=${spreadsheetId}`, {
+      const { token } = getAdminAuth()
+      if (!token) { setKwError('로그인 필요'); return }
+      const res = await fetch('/api/blog-keywords', {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -3344,11 +3344,11 @@ function BlogKeywordsTab({ Z }) {
     if (!newKeyword.trim()) return
     setAdding(true)
     try {
-      const { token, spreadsheetId } = getAdminAuth()
+      const { token } = getAdminAuth()
       await fetch('/api/blog-keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ spreadsheetId, keyword: newKeyword.trim(), category: newCategory, lang: activeLang }),
+        body: JSON.stringify({ keyword: newKeyword.trim(), category: newCategory, lang: activeLang }),
       })
       setNewKeyword('')
       await loadKeywords()
@@ -3361,11 +3361,11 @@ function BlogKeywordsTab({ Z }) {
 
   const deleteKeyword = async (kw) => {
     try {
-      const { token, spreadsheetId } = getAdminAuth()
+      const { token } = getAdminAuth()
       await fetch('/api/blog-keywords', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ spreadsheetId, sheetId: 0, rowIndex: kw.rowIndex }),
+        body: JSON.stringify({ id: kw.id }),
       })
       await loadKeywords()
     } catch (e) {
@@ -3416,7 +3416,7 @@ function BlogKeywordsTab({ Z }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {filtered.length === 0 && !loadingKw && <div style={{ fontSize: 12, color: Z.muted }}>키워드 없음</div>}
         {filtered.map(kw => (
-          <div key={kw.rowIndex} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div key={kw.id} style={{ background: Z.surface, border: `1px solid ${Z.border}`, borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ flex: 1, fontSize: 13, color: Z.text }}>{kw.keyword}</span>
             <span style={{ fontSize: 10, color: Z.muted, background: Z.bg, padding: '2px 6px', borderRadius: 4 }}>{kw.category}</span>
             {kw.used && <span style={{ fontSize: 10, color: Z.emerald, background: `${Z.emerald}22`, padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>used</span>}
@@ -3464,12 +3464,12 @@ function BlogPostsTab({ Z }) {
   const saveEdit = async (post) => {
     setSaving(true)
     try {
-      const { token, spreadsheetId } = getAdminAuth()
-      if (!token || !spreadsheetId) { setPostsError('로그인 필요'); return }
+      const { token } = getAdminAuth()
+      if (!token) { setPostsError('로그인 필요'); return }
       const res = await fetch('/api/blog-post', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ spreadsheetId, slug: post.slug, updates: editFields }),
+        body: JSON.stringify({ slug: post.slug, updates: { ...editFields, description: editFields.desc } }),
       })
       const data = await res.json()
       if (!res.ok) { setPostsError(data.error || 'Failed'); return }
@@ -3486,12 +3486,12 @@ function BlogPostsTab({ Z }) {
     if (!window.confirm(`"${post.title}" 을 삭제하시겠습니까?`)) return
     setDeleting(post.slug)
     try {
-      const { token, spreadsheetId } = getAdminAuth()
-      if (!token || !spreadsheetId) { setPostsError('로그인 필요'); return }
+      const { token } = getAdminAuth()
+      if (!token) { setPostsError('로그인 필요'); return }
       const res = await fetch('/api/blog-post', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ spreadsheetId, sheetId: 0, slug: post.slug }),
+        body: JSON.stringify({ slug: post.slug }),
       })
       const data = await res.json()
       if (!res.ok) { setPostsError(data.error || 'Failed'); return }
@@ -4572,13 +4572,14 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
     }
   }, [projects, spreadsheetId, projectsSheetId, addLog])
 
+  const isAdmin = user?.email === ADMIN_EMAIL
   const tabs = [
     { id: 'projects', label: t('tabProjects'), icon: '◈' },
     { id: 'kanban',   label: t('tabKanban'),   icon: '⬡' },
     { id: 'mytasks',  label: t('tabMyTasks'),  icon: '✓' },
     { id: 'team',     label: t('tabTeam'),     icon: '👥' },
     { id: 'aipm',     label: t('tabAiPm'),     icon: '✨' },
-    { id: 'blog',     label: t('tabPublish'),  icon: '↑' },
+    ...(isAdmin ? [{ id: 'blog', label: t('tabPublish'), icon: '↑' }] : []),
     { id: 'settings', label: t('tabSettings'), icon: '⚙' },
   ]
 
