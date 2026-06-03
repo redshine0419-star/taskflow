@@ -26,7 +26,7 @@ async function getPostsFromDb() {
     const rows = await getAllBlogPosts()
     return rows.map(r => ({
       slug: r.slug, title: r.title, date: r.date,
-      category: r.category, desc: r.desc,
+      category: r.category, desc: r.description,
       keywords: r.keywords ? r.keywords.split(', ') : [],
       content: r.content, lang: r.lang, imageUrl: r.image_url,
     })).filter(p => p.slug && p.title)
