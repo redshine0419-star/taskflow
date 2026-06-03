@@ -142,21 +142,20 @@ export async function GET() {
       SELECT 1 FROM blog_posts bp WHERE bp.used_keyword = bk.keyword
     )
     ORDER BY bk.id
-    LIMIT 5
+    LIMIT 2
   `
 
   if (keywords.length === 0) {
     return Response.json({ ok: true, message: 'No more keywords to process', total: alreadyGenerated })
   }
 
-  const results = []
-  for (let i = 0; i < keywords.length; i++) {
-    const kw = keywords[i]
-    const dateIndex = alreadyGenerated + i
-    const date = DATES[dateIndex] || DATES[DATES.length - 1]
-    const result = await generatePost(kw.keyword, kw.category, kw.lang, date)
-    results.push(result)
-  }
+  const results = await Promise.all(
+    keywords.map((kw, i) => {
+      const dateIndex = alreadyGenerated + i
+      const date = DATES[dateIndex] || DATES[DATES.length - 1]
+      return generatePost(kw.keyword, kw.category, kw.lang, date)
+    })
+  )
 
   const countAfter = await sql`SELECT COUNT(*) as cnt FROM blog_posts`
   const total = parseInt(countAfter[0].cnt, 10)
