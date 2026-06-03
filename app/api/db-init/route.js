@@ -1,6 +1,6 @@
 import { initBlogTable } from '../../../lib/db.js'
 
-export async function GET(request) {
+export async function GET() {
   try {
     await initBlogTable()
     return new Response(JSON.stringify({ ok: true, message: 'blog_posts table ready' }), {
