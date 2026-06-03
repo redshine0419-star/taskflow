@@ -160,7 +160,6 @@ export async function GET() {
 
   const countAfter = await sql`SELECT COUNT(*) as cnt FROM blog_posts`
   const total = parseInt(countAfter[0].cnt, 10)
-  const remaining = Math.max(0, keywords.length - total + alreadyGenerated)
 
   return Response.json({
     ok: true,
