@@ -1,10 +1,6 @@
 import { initBlogTable, initKeywordsTable } from '../../../lib/db.js'
 
-export async function GET(request) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET || 'init'}`) {
-    return new Response('Unauthorized', { status: 401 })
-  }
+export async function GET() {
   try {
     await initBlogTable()
     await initKeywordsTable()
