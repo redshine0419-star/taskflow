@@ -120,7 +120,7 @@ export async function GET(request) {
 
 function buildBlogPrompt(picked) {
   if (picked.lang === 'en') {
-    return `You are an SEO blog writer for productivity and office tools.
+    return `You are an SEO blog writer for productivity and project management tools.
 Write a blog post for the keyword: "${picked.keyword}"
 Category: ${picked.category}
 
@@ -136,7 +136,9 @@ Respond ONLY with the following JSON format (no markdown):
 
 Rules:
 - content must be complete HTML (use h2, p, ul, li, blockquote)
-- Include practical information about free tools, templates, and productivity tips
+- Write practical tips, comparisons, and how-to guides
+- Do NOT mention downloadable files, template downloads, or "download for free"
+- Do NOT include any download links or file attachment references
 - Write in natural English
 - Respond with JSON only, no other text`
   }
@@ -157,7 +159,9 @@ Rules:
 
 규칙:
 - content는 완전한 HTML (h2, p, ul, li, blockquote 사용)
-- 실용적인 정보와 무료 다운로드/템플릿 언급 포함
+- 실용적인 팁, 방법론, 도구 비교 위주로 작성
+- 파일 다운로드, 양식 다운로드, "무료 다운로드" 언급 절대 금지
+- 다운로드 링크나 첨부파일 관련 내용 포함 금지
 - 자연스러운 한국어로 작성
 - JSON만 응답, 다른 텍스트 없음`
 }

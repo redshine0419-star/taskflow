@@ -174,30 +174,32 @@ export default async function BlogPost({ params }) {
           />
         )}
 
-        {/* CTA box */}
-        <div style={{
-          border: '2px solid #10b981',
-          borderRadius: 12, padding: '20px 24px',
-          background: 'rgba(16,185,129,0.06)',
-          marginBottom: 40,
-          display: 'flex', flexDirection: 'column', gap: 12,
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#34d399', letterSpacing: 0.5 }}>
-            {isEn ? 'FREE DOWNLOAD' : '무료 다운로드'}
-          </div>
-          <div style={{ fontSize: 15, color: '#f4f4f5', fontWeight: 600 }}>
-            {post.downloadLabel || post.title}
-          </div>
-          <Link href="/" style={{
-            display: 'inline-block', width: 'fit-content',
-            background: '#10b981', color: '#fff',
-            fontWeight: 700, fontSize: 14, textDecoration: 'none',
-            padding: '11px 24px', borderRadius: 8,
+        {/* CTA box — only show for posts with explicit downloadLabel */}
+        {post.downloadLabel && (
+          <div style={{
+            border: '2px solid #10b981',
+            borderRadius: 12, padding: '20px 24px',
+            background: 'rgba(16,185,129,0.06)',
+            marginBottom: 40,
+            display: 'flex', flexDirection: 'column', gap: 12,
           }}>
-            {isEn ? 'Get it Free →' : (post.downloadLabel ? `${post.downloadLabel} →` : '무료 다운로드 →')}
-          </Link>
-          {post.downloadNote && <div style={{ fontSize: 12, color: '#71717a' }}>{post.downloadNote}</div>}
-        </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#34d399', letterSpacing: 0.5 }}>
+              {isEn ? 'FREE DOWNLOAD' : '무료 다운로드'}
+            </div>
+            <div style={{ fontSize: 15, color: '#f4f4f5', fontWeight: 600 }}>
+              {post.downloadLabel}
+            </div>
+            <Link href="/" style={{
+              display: 'inline-block', width: 'fit-content',
+              background: '#10b981', color: '#fff',
+              fontWeight: 700, fontSize: 14, textDecoration: 'none',
+              padding: '11px 24px', borderRadius: 8,
+            }}>
+              {isEn ? 'Get it Free →' : `${post.downloadLabel} →`}
+            </Link>
+            {post.downloadNote && <div style={{ fontSize: 12, color: '#71717a' }}>{post.downloadNote}</div>}
+          </div>
+        )}
 
         {/* Tags */}
         {postTags.length > 0 && (
