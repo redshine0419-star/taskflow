@@ -16,7 +16,9 @@ export default function BlogFilter({ posts }) {
 
   const categories = activeLang === 'en' ? EN_CATEGORIES : KO_CATEGORIES
   const allLabel = activeLang === 'en' ? 'All' : '전체'
-  const langPosts = posts.filter(p => (p.lang || 'ko') === activeLang)
+  const langPosts = posts
+    .filter(p => (p.lang || 'ko') === activeLang)
+    .sort((a, b) => new Date(b.publishedAt || b.date || 0) - new Date(a.publishedAt || a.date || 0))
   const filtered = activeCategory === allLabel ? langPosts : langPosts.filter(p => p.category === activeCategory)
 
   return (
