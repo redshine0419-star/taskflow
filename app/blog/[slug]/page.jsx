@@ -39,21 +39,21 @@ export async function generateMetadata({ params }) {
   const decodedSlug = decodeURIComponent(slug)
   const allPosts = await getAllPosts()
   const post = allPosts.find(p => p.slug === decodedSlug)
-  if (!post) return { title: 'Post not found | TaskFlow Blog' }
+  if (!post) return { title: 'Post not found | TaskGrid Blog' }
   const isEn = post.lang !== 'ko'
   const description = post.desc || post.excerpt || ''
   const keywords = post.keywords || post.tags || []
   return {
-    title: `${post.title} | TaskFlow Blog`,
+    title: `${post.title} | TaskGrid Blog`,
     description,
     keywords,
-    alternates: { canonical: `https://taskflow.vercel.app/blog/${slug}` },
+    alternates: { canonical: `https://taskgrid.my/blog/${slug}` },
     robots: { index: true, follow: true },
     openGraph: {
       title: post.title,
       description,
       type: 'article',
-      url: `https://taskflow.vercel.app/blog/${slug}`,
+      url: `https://taskgrid.my/blog/${slug}`,
       locale: isEn ? 'en_US' : 'ko_KR',
       publishedTime: post.date || post.publishedAt,
       tags: Array.isArray(keywords) ? keywords : [],
@@ -93,9 +93,9 @@ export default async function BlogPost({ params }) {
     headline: post.title,
     description: postDesc,
     datePublished: postDate,
-    author: { '@type': 'Organization', name: 'TaskFlow' },
-    publisher: { '@type': 'Organization', name: 'TaskFlow', url: 'https://taskflow.vercel.app' },
-    url: `https://taskflow.vercel.app/blog/${slug}`,
+    author: { '@type': 'Organization', name: 'TaskGrid' },
+    publisher: { '@type': 'Organization', name: 'TaskGrid', url: 'https://taskgrid.my' },
+    url: `https://taskgrid.my/blog/${slug}`,
     keywords: postTags.join(', '),
     image: post.imageUrl || undefined,
   }
@@ -127,7 +127,7 @@ export default async function BlogPost({ params }) {
             fontWeight: 800, fontSize: 17, textDecoration: 'none',
             color: '#f4f4f5', letterSpacing: -0.5,
           }}>
-            Task<span style={{ color: '#34d399' }}>Flow</span>
+            Task<span style={{ color: '#34d399' }}>Grid</span>
           </Link>
           <Link href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none' }}>
             {isEn ? '← Blog' : '← 블로그'}
@@ -248,7 +248,7 @@ export default async function BlogPost({ params }) {
             fontWeight: 700, fontSize: 14, textDecoration: 'none',
             padding: '11px 28px', borderRadius: 8,
           }}>
-            {isEn ? 'Start with TaskFlow — Free →' : 'TaskFlow로 팀 프로젝트 관리하기 →'}
+            {isEn ? 'Start with TaskGrid — Free →' : 'TaskGrid로 팀 프로젝트 관리하기 →'}
           </Link>
         </div>
 

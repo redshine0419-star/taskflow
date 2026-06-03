@@ -76,7 +76,7 @@ const TR = {
     feat4Title: 'Full Privacy',         feat4Desc: 'drive.file scope only',
     // tutorial
     tutorialBtn:   '? How to use',
-    tutorialTitle: 'Welcome to TaskFlow',
+    tutorialTitle: 'Welcome to TaskGrid',
     tutorialSkip:  'Skip',
     tutorialPrev:  '← Back',
     tutorialNext:  'Next →',
@@ -85,7 +85,7 @@ const TR = {
       { icon: '⬡', title: 'Kanban Board', body: 'Your tasks live in 4 stages: Planning → Design → Dev → Publishing. Drag the stage badge on each card to move it forward.' },
       { icon: '+', title: 'Add a Task', body: 'Click the dashed "+ Add task" button at the bottom of any column. Fill in title, assignee, priority, and due date.' },
       { icon: '⊞', title: 'Spreadsheet View', body: 'Switch to Sheet tab to see all tasks as a table. Edit cells inline — changes sync back to the kanban board instantly.' },
-      { icon: '◆', title: 'AI Meeting Parser', body: 'Click "AI Parser" in the header, paste your meeting notes, and TaskFlow will extract tasks automatically using Gemini AI.' },
+      { icon: '◆', title: 'AI Meeting Parser', body: 'Click "AI Parser" in the header, paste your meeting notes, and TaskGrid will extract tasks automatically using Gemini AI.' },
       { icon: '↑', title: 'Publish Tab', body: 'Mark a task complete, then go to the Publish tab to auto-generate a dev retrospective blog post — great for team SEO.' },
       { icon: '⚙', title: 'Settings', body: 'Rename pipeline stages to match your workflow (e.g. "Review" instead of "Publishing"), and invite teammates by email.' },
     ],
@@ -185,7 +185,7 @@ const TR = {
     articleCompleted:  'Completed',
     articlePriority:   'Priority',
     articleSummary:    'Summary',
-    articleSummaryBody: (t) => `This task — ${t} — was managed in the TaskFlow workspace and successfully delivered.`,
+    articleSummaryBody: (t) => `This task — ${t} — was managed in the TaskGrid workspace and successfully delivered.`,
     articleWork:       'Key Deliverables',
     articleWork1:      'Requirements analysis & tech spec',
     articleWork2:      'UI/UX design & publishing complete',
@@ -244,7 +244,7 @@ const TR = {
     aiAppendLog:     (n) => `Google Sheets append: batch insert ${n} row${n !== 1 ? 's' : ''}`,
     aiAppendDoneLog: (n) => `Sheets API 200 · ${n} row${n !== 1 ? 's' : ''} inserted`,
     // workspace init logs
-    initLog1: 'Drive API: TaskFlow_Database_2026.xlsx provisioned',
+    initLog1: 'Drive API: TaskGrid_Database_2026.xlsx provisioned',
     initLog2: 'Google Sheets: initialized (7 rows)',
     initLog3: 'Two-way real-time sync active',
     sheetReqLog:   (r, s) => `Sheets API request: row${r} col C → "${s}"`,
@@ -367,7 +367,7 @@ Attendees: Alex, Jordan, Sam
     feat4Title: '완전한 프라이버시',    feat4Desc: 'drive.file 스코프 제한',
     // tutorial
     tutorialBtn:   '? 사용법',
-    tutorialTitle: 'TaskFlow 시작하기',
+    tutorialTitle: 'TaskGrid 시작하기',
     tutorialSkip:  '건너뛰기',
     tutorialPrev:  '← 이전',
     tutorialNext:  '다음 →',
@@ -464,7 +464,7 @@ Attendees: Alex, Jordan, Sam
     articleCompleted:  '완료일',
     articlePriority:   '우선순위',
     articleSummary:    '요약',
-    articleSummaryBody: (t) => `본 태스크 — ${t} — 는 TaskFlow에서 관리된 업무의 최종 완료 회고록입니다.`,
+    articleSummaryBody: (t) => `본 태스크 — ${t} — 는 TaskGrid에서 관리된 업무의 최종 완료 회고록입니다.`,
     articleWork:       '주요 작업 내역',
     articleWork1:      '요건 분석 및 기술 스펙 정의',
     articleWork2:      'UI/UX 설계 및 퍼블리싱 완료',
@@ -516,7 +516,7 @@ Attendees: Alex, Jordan, Sam
     aiParsedLog:     (n) => `AI 파싱 완료: ${n}개 태스크 추출`,
     aiAppendLog:     (n) => `Google Sheets append 요청: ${n}행 일괄 적재`,
     aiAppendDoneLog: (n) => `Sheets API 응답 200 · ${n}개 행 삽입 완료`,
-    initLog1: 'Drive API: TaskFlow_Database_2026.xlsx 생성 완료',
+    initLog1: 'Drive API: TaskGrid_Database_2026.xlsx 생성 완료',
     initLog2: 'Google Sheets: 시트 초기화 완료 (7행)',
     initLog3: '양방향 실시간 동기화 활성화',
     sheetReqLog:   (r, s) => `Sheets API 요청: row${r} C열 → "${s}"`,
@@ -4613,7 +4613,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
 
       {/* Header */}
       <header style={{ borderBottom: `1px solid ${Z.border}`, padding: isMobile ? '10px 16px' : '10px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 20, background: Z.bg }}>
-        <div onClick={onGoHome} style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, cursor: 'pointer' }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
+        <div onClick={onGoHome} style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, cursor: 'pointer' }}>Task<span style={{ color: Z.emerald }}>Grid</span></div>
         {activeTab === 'kanban' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
             <span style={{ color: Z.muted }}>›</span>
@@ -4949,7 +4949,7 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
 
   const steps = [
     { num: '1', title: lang === 'ko' ? 'Google로 로그인' : 'Sign in with Google', desc: lang === 'ko' ? '한 번 클릭으로 시작 — 비밀번호를 저장하지 않습니다' : 'Click once — we never store your password' },
-    { num: '2', title: lang === 'ko' ? '스프레드시트 자동 생성' : 'Your spreadsheet is created', desc: lang === 'ko' ? 'TaskFlow_Database가 내 드라이브에 생성됩니다' : 'TaskFlow_Database lives in your own Drive' },
+    { num: '2', title: lang === 'ko' ? '스프레드시트 자동 생성' : 'Your spreadsheet is created', desc: lang === 'ko' ? 'TaskGrid_Database가 내 드라이브에 생성됩니다' : 'TaskGrid_Database lives in your own Drive' },
     { num: '3', title: lang === 'ko' ? '태스크 관리 시작' : 'Start managing tasks', desc: lang === 'ko' ? '칸반, 간트, 테이블 뷰 — 팀원을 초대하세요' : 'Kanban, Gantt, Table views — invite your team' },
   ]
 
@@ -4993,7 +4993,7 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
         }}>
           {/* Logo */}
           <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: -0.5, flexShrink: 0 }}>
-            Task<span style={{ color: Z.emerald }}>Flow</span>
+            Task<span style={{ color: Z.emerald }}>Grid</span>
           </div>
           {/* Center links — hidden on mobile */}
           <div style={{ display: 'flex', gap: 4, alignItems: 'center', flex: 1, justifyContent: 'center' }}
@@ -5229,8 +5229,8 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
       {/* ── FOOTER ── */}
       <footer style={{ padding: '32px clamp(16px,5vw,60px)', borderTop: `1px solid ${Z.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, marginBottom: 4 }}>Task<span style={{ color: Z.emerald }}>Flow</span></div>
-          <div style={{ fontSize: 11, color: Z.muted }}>© 2026 TaskFlow. Built with ♥ on Google Drive</div>
+          <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.5, marginBottom: 4 }}>Task<span style={{ color: Z.emerald }}>Grid</span></div>
+          <div style={{ fontSize: 11, color: Z.muted }}>© 2026 TaskGrid. Built with ♥ on Google Drive</div>
         </div>
         <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
           {[['Features', '#features'], ['Blog', '#blog'], ['Privacy', '#']].map(([label, href]) => (

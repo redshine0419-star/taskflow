@@ -5,16 +5,16 @@ import BlogFilter from './BlogFilter'
 export const revalidate = 3600
 
 export const metadata = {
-  title: 'Free Templates & Productivity Tools | TaskFlow Blog',
+  title: 'Free Templates & Productivity Tools | TaskGrid Blog',
   description: 'Free project management templates, kanban boards, task planners, and productivity tools. Download instantly, no signup required.',
   keywords: ['free project management template', 'kanban board free', 'task planner template', 'free productivity tools', 'team collaboration'],
-  alternates: { canonical: 'https://taskflow.vercel.app/blog' },
+  alternates: { canonical: 'https://taskgrid.my/blog' },
   robots: { index: true, follow: true },
   openGraph: {
-    title: 'Free Templates & Productivity Tools | TaskFlow Blog',
+    title: 'Free Templates & Productivity Tools | TaskGrid Blog',
     description: 'Free project management templates, kanban boards, task planners, and productivity tools.',
     type: 'website',
-    url: 'https://taskflow.vercel.app/blog',
+    url: 'https://taskgrid.my/blog',
     locale: 'en_US',
   },
 }
@@ -46,13 +46,13 @@ async function getPostsFromSheets() {
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'ItemList',
-  name: 'Free Templates & Productivity Tools — TaskFlow Blog',
-  url: 'https://taskflow.vercel.app/blog',
+  name: 'Free Templates & Productivity Tools — TaskGrid Blog',
+  url: 'https://taskgrid.my/blog',
   itemListElement: BLOG_POSTS.map((post, i) => ({
     '@type': 'ListItem',
     position: i + 1,
     name: post.title,
-    url: `https://taskflow.vercel.app/blog/${post.slug}`,
+    url: `https://taskgrid.my/blog/${post.slug}`,
     description: post.desc || post.excerpt || '',
   })),
 }
@@ -90,7 +90,7 @@ export default async function BlogIndex() {
             fontWeight: 800, fontSize: 17, textDecoration: 'none',
             color: '#f4f4f5', letterSpacing: -0.5,
           }}>
-            Task<span style={{ color: '#34d399' }}>Flow</span>
+            Task<span style={{ color: '#34d399' }}>Grid</span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Link href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none', fontWeight: 600 }}>Blog</Link>
@@ -132,7 +132,7 @@ export default async function BlogIndex() {
         flexWrap: 'wrap', gap: 12,
       }}>
         <Link href="/" style={{ fontWeight: 800, fontSize: 15, textDecoration: 'none', color: '#f4f4f5' }}>
-          Task<span style={{ color: '#34d399' }}>Flow</span>
+          Task<span style={{ color: '#34d399' }}>Grid</span>
         </Link>
         <div style={{ display: 'flex', gap: 20 }}>
           <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>Home</Link>

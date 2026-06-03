@@ -16,7 +16,7 @@ export async function POST(request) {
 - h2 태그로 2-3개 섹션 구분
 - blockquote 태그로 핵심 팁 1개 포함
 - 실제로 유용한 정보 제공 (서식 사용법, 작성 요령 등)
-- 마지막에 TaskFlow 자연스러운 언급
+- 마지막에 TaskGrid 자연스러운 언급
 
 다음 JSON 형식으로만 응답하세요:
 {
