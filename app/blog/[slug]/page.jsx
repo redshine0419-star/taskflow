@@ -5,24 +5,17 @@ export const revalidate = 3600
 export const dynamicParams = true
 
 async function getAllPosts() {
-  const token = process.env.GOOGLE_SHEETS_SERVICE_TOKEN
-  const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID
-  if (token && spreadsheetId) {
+  if (process.env.DATABASE_URL) {
     try {
-      const res = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/BlogPosts!A2:J1000`,
-        { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 3600 } }
-      )
-      const data = await res.json()
-      const rows = data.values || []
-      const sheetsPosts = rows.map(r => ({
-        slug: r[0] || '', title: r[1] || '', date: r[2] || '',
-        category: r[3] || '', desc: r[4] || '',
-        keywords: r[5] ? r[5].split(', ') : [],
-        content: r[6] || '', usedKeyword: r[7] || '',
-        lang: r[8] || 'ko', imageUrl: r[9] || '',
+      const { getAllBlogPosts } = await import('../../../lib/db.js')
+      const rows = await getAllBlogPosts()
+      const dbPosts = rows.map(r => ({
+        slug: r.slug, title: r.title, date: r.date,
+        category: r.category, desc: r.desc,
+        keywords: r.keywords ? r.keywords.split(', ') : [],
+        content: r.content, lang: r.lang, imageUrl: r.image_url,
       })).filter(p => p.slug && p.title)
-      if (sheetsPosts.length > 0) return [...BLOG_POSTS, ...sheetsPosts]
+      if (dbPosts.length > 0) return [...BLOG_POSTS, ...dbPosts]
     } catch {
       // fall through to static only
     }
