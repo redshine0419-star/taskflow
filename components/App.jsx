@@ -3374,8 +3374,8 @@ function BlogKeywordsTab({ Z }) {
   }
 
   const filtered = keywords.filter(k => k.lang === activeLang)
-  const enCats = ['tools', 'templates', 'productivity']
-  const koCats = ['무료서식', '무료템플릿', '툴소개']
+  const enCats = ['alternatives', 'google-workspace', 'ai-tools', 'productivity']
+  const koCats = ['툴비교', '구글활용', 'AI활용', '협업팁']
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -2,8 +2,21 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
-const KO_CATEGORIES = ['전체', '무료서식', '무료템플릿', '툴소개']
-const EN_CATEGORIES = ['All', 'tools', 'templates', 'productivity']
+const KO_CATEGORIES = ['전체', '툴비교', '구글활용', 'AI활용', '협업팁']
+const EN_CATEGORIES = ['All', 'alternatives', 'google-workspace', 'ai-tools', 'productivity']
+
+const CATEGORY_STYLES = {
+  'alternatives':      { background: '#6366f122', color: '#818cf8', border: '1px solid #6366f144' },
+  '툴비교':            { background: '#6366f122', color: '#818cf8', border: '1px solid #6366f144' },
+  'google-workspace':  { background: '#10b98122', color: '#34d399', border: '1px solid #34d39944' },
+  '구글활용':          { background: '#10b98122', color: '#34d399', border: '1px solid #34d39944' },
+  'ai-tools':          { background: '#f59e0b22', color: '#fbbf24', border: '1px solid #f59e0b44' },
+  'AI활용':            { background: '#f59e0b22', color: '#fbbf24', border: '1px solid #f59e0b44' },
+  'productivity':      { background: '#3b82f622', color: '#60a5fa', border: '1px solid #3b82f644' },
+  '협업팁':            { background: '#3b82f622', color: '#60a5fa', border: '1px solid #3b82f644' },
+}
+const DEFAULT_STYLE = { background: '#27272a', color: '#a1a1aa', border: '1px solid #3f3f46' }
+function getCategoryStyle(cat) { return CATEGORY_STYLES[cat] || DEFAULT_STYLE }
 
 export default function BlogFilter({ posts }) {
   const [activeLang, setActiveLang] = useState('en')
@@ -97,9 +110,7 @@ export default function BlogFilter({ posts }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <span style={{
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-                  background: (post.category === '툴소개' || post.category === 'tools') ? '#6366f122' : '#10b98122',
-                  color: (post.category === '툴소개' || post.category === 'tools') ? '#818cf8' : '#34d399',
-                  border: `1px solid ${(post.category === '툴소개' || post.category === 'tools') ? '#6366f144' : '#34d39944'}`,
+                  ...getCategoryStyle(post.category),
                   padding: '2px 8px', borderRadius: 20,
                 }}>
                   {post.category}
