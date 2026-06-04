@@ -1,6 +1,6 @@
 import { BLOG_POSTS } from '../../../lib/blog-posts'
 
-export const revalidate = 3600
+export const revalidate = 0
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
@@ -16,13 +16,11 @@ export async function GET(request) {
         keywords: r.keywords ? r.keywords.split(', ') : [],
         content: r.content, lang: r.lang || 'ko', imageUrl: r.image_url,
       })).filter(p => p.slug && p.title)
-      if (posts.length > 0) return Response.json(posts)
+      return Response.json(posts)
     } catch (e) {
       console.error('DB blog fetch failed:', e)
     }
   }
 
-  const staticPosts = BLOG_POSTS.map(p => ({ ...p, lang: p.lang || 'ko' }))
-  const filtered = lang ? staticPosts.filter(p => p.lang === lang) : staticPosts
-  return Response.json(filtered)
+  return Response.json([])
 }

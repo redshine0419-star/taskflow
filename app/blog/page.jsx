@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { BLOG_POSTS } from '../../lib/blog-posts'
 import BlogFilter from './BlogFilter'
 
-export const revalidate = 3600
+export const revalidate = 0
 
 export const metadata = {
   title: 'Free Templates & Productivity Tools | TaskGrid Blog',
@@ -53,9 +53,7 @@ const jsonLd = {
 
 export default async function BlogIndex() {
   const dbPosts = await getPostsFromDb()
-  const posts = dbPosts && dbPosts.length > 0
-    ? [...BLOG_POSTS, ...dbPosts]
-    : BLOG_POSTS
+  const posts = dbPosts ?? []
 
   return (
     <main style={{
