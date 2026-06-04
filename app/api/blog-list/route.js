@@ -1,4 +1,3 @@
-import { BLOG_POSTS } from '../../../lib/blog-posts'
 
 export const revalidate = 0
 
