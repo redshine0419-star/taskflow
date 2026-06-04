@@ -500,3 +500,5 @@ export const SEED_POSTS = [
 export function getPostWithImage(post) {
   return { ...post, imageUrl: getBlogImage(post.category) }
 }
+
+// ── PLACEHOLDER ── will be replaced
