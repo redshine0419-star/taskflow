@@ -1,4 +1,4 @@
-import { initBlogTable, insertBlogPost } from '../../../lib/db.js'
+import { initBlogTable, insertBlogPost, getDb } from '../../../lib/db.js'
 import { SEED_POSTS, getPostWithImage } from './data.js'
 
 export async function GET() {
@@ -7,6 +7,13 @@ export async function GET() {
   }
 
   await initBlogTable()
+
+  // Ensure keywords column accepts empty string (fix for pre-existing tables)
+  try {
+    const sql = getDb()
+    await sql`UPDATE blog_posts SET keywords = '' WHERE keywords IS NULL`
+    await sql`ALTER TABLE blog_posts ALTER COLUMN keywords SET DEFAULT ''`
+  } catch (_) { /* ignore if already correct */ }
 
   const results = []
   for (const post of SEED_POSTS) {
