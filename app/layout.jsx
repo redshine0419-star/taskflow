@@ -20,12 +20,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-VEMNPNXGMY" />
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-0CY0YYXTBX" />
         <script dangerouslySetInnerHTML={{ __html: `
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'G-VEMNPNXGMY');
+          gtag('config', 'G-0CY0YYXTBX');
         `}} />
       </head>
       <body>{children}</body>
