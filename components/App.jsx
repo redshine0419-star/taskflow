@@ -1907,7 +1907,7 @@ function ProjectGanttView({ projects, tasks, onSelectProject }) {
 }
 
 // ─── PROJECTS VIEW ────────────────────────────────────────────────────────────
-function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDeleteProject, onSelectProject }) {
+function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDeleteProject, onSelectProject, syncing }) {
   const { t } = useLang()
   const Z = useTheme()
   const [modalOpen, setModalOpen] = useState(false)
@@ -1945,7 +1945,7 @@ function ProjectsView({ projects, tasks, onCreateProject, onEditProject, onDelet
               }}>{m.label}</button>
             ))}
           </div>
-          <Btn variant="primary" onClick={() => { setEditingProject(null); setModalOpen(true) }}>{t('newProject')}</Btn>
+          <Btn variant="primary" onClick={() => { setEditingProject(null); setModalOpen(true) }} disabled={syncing}>{syncing ? '⏳' : t('newProject')}</Btn>
         </div>
       </div>
 
@@ -4252,7 +4252,20 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
         setMembersSheetId(numericMembersSheetId)
         addLog(`Spreadsheet ready: ${sid}`, 'success')
         const loadedProjects = await loadProjects(sid)
-        if (!cancelled) setProjects(loadedProjects)
+        if (!cancelled) {
+          setProjects(prev => {
+            const savedIds = new Set(loadedProjects.map(p => p.id))
+            const unsaved = prev.filter(p => !p.rowNum && !savedIds.has(p.id))
+            // Save any locally-created projects that weren't persisted yet
+            unsaved.forEach(async (p) => {
+              try {
+                const rowNum = await appendProject(sid, p)
+                setProjects(pr => pr.map(proj => proj.id === p.id ? { ...proj, rowNum } : proj))
+              } catch { }
+            })
+            return [...loadedProjects, ...unsaved]
+          })
+        }
         const loadedSubTasks = await loadSubTasks(sid)
         if (!cancelled) setAllSubTasks(loadedSubTasks)
         const loadedMembers = await loadMembers(sid)
@@ -4665,7 +4678,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
       {/* Main */}
       <main style={{ flex: 1, padding: isMobile ? '16px 16px 80px' : '24px', maxWidth: 1200, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {activeTab === 'projects' && (
-          <ProjectsView projects={projects} tasks={tasks}
+          <ProjectsView projects={projects} tasks={tasks} syncing={syncing}
             onCreateProject={onCreateProject} onEditProject={onEditProject} onDeleteProject={onDeleteProject}
             onSelectProject={(pid) => { setSelectedProjectId(pid); setActiveTab('kanban') }} />
         )}
