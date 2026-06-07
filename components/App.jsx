@@ -4231,48 +4231,41 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
   const openDrawer = () => { setDrawerOpen(true); setNewLogCount(0) }
 
   // ── Connect to Google Sheets on mount (non-sandbox) ──────────────────────
-  useEffect(() => {
+  const connectToSheets = useCallback(async () => {
     if (user?.sandbox) return
-    let cancelled = false
-    const connect = async () => {
-      setSyncing(true)
-      setSyncError(null)
-      try {
-        addLog('Connecting to Google Drive…', 'info')
-        const sid = await findOrCreateSpreadsheet()
-        if (cancelled) return
-        setSpreadsheetId(sid)
-        const numericSheetId = await getSheetId(sid)
-        setSheetId(numericSheetId)
-        const numericProjectsSheetId = await getProjectsSheetId(sid)
-        setProjectsSheetId(numericProjectsSheetId)
-        const numericSubTasksSheetId = await getSubTasksSheetId(sid)
-        setSubTasksSheetId(numericSubTasksSheetId)
-        const numericMembersSheetId = await getMembersSheetId(sid)
-        setMembersSheetId(numericMembersSheetId)
-        addLog(`Spreadsheet ready: ${sid}`, 'success')
-        const loadedProjects = await loadProjects(sid)
-        if (!cancelled) {
-          setProjects(prev => {
-            const savedIds = new Set(loadedProjects.map(p => p.id))
-            const unsaved = prev.filter(p => !p.rowNum && !savedIds.has(p.id))
-            // Save any locally-created projects that weren't persisted yet
-            unsaved.forEach(async (p) => {
-              try {
-                const rowNum = await appendProject(sid, p)
-                setProjects(pr => pr.map(proj => proj.id === p.id ? { ...proj, rowNum } : proj))
-              } catch { }
-            })
-            return [...loadedProjects, ...unsaved]
-          })
-        }
-        const loadedSubTasks = await loadSubTasks(sid)
-        if (!cancelled) setAllSubTasks(loadedSubTasks)
-        const loadedMembers = await loadMembers(sid)
-        if (!cancelled) setAllMembers(loadedMembers)
-        const loaded = await loadTasks(sid)
-        if (cancelled) return
-        setTasks(loaded.length > 0 ? loaded : INITIAL_TASKS)
+    setSyncing(true)
+    setSyncError(null)
+    try {
+      addLog('Connecting to Google Drive…', 'info')
+      const sid = await findOrCreateSpreadsheet()
+      setSpreadsheetId(sid)
+      const numericSheetId = await getSheetId(sid)
+      setSheetId(numericSheetId)
+      const numericProjectsSheetId = await getProjectsSheetId(sid)
+      setProjectsSheetId(numericProjectsSheetId)
+      const numericSubTasksSheetId = await getSubTasksSheetId(sid)
+      setSubTasksSheetId(numericSubTasksSheetId)
+      const numericMembersSheetId = await getMembersSheetId(sid)
+      setMembersSheetId(numericMembersSheetId)
+      addLog(`Spreadsheet ready: ${sid}`, 'success')
+      const loadedProjects = await loadProjects(sid)
+      setProjects(prev => {
+        const savedIds = new Set(loadedProjects.map(p => p.id))
+        const unsaved = prev.filter(p => !p.rowNum && !savedIds.has(p.id))
+        unsaved.forEach(async (p) => {
+          try {
+            const rowNum = await appendProject(sid, p)
+            setProjects(pr => pr.map(proj => proj.id === p.id ? { ...proj, rowNum } : proj))
+          } catch { }
+        })
+        return [...loadedProjects, ...unsaved]
+      })
+      const loadedSubTasks = await loadSubTasks(sid)
+      setAllSubTasks(loadedSubTasks)
+      const loadedMembers = await loadMembers(sid)
+      setAllMembers(loadedMembers)
+      const loaded = await loadTasks(sid)
+      setTasks(loaded.length > 0 ? loaded : INITIAL_TASKS)
         if (loaded.length === 0) {
           // Write initial demo tasks to sheet
           for (const task of INITIAL_TASKS) {
@@ -4283,15 +4276,17 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
         } else {
           addLog(`Loaded ${loaded.length} tasks from sheet`, 'success')
         }
-      } catch (e) {
-        if (!cancelled) setSyncError(e.message)
-        addLog(`Connection failed: ${e.message}`, 'error')
-      } finally {
-        if (!cancelled) setSyncing(false)
-      }
+    } catch (e) {
+      setSyncError(e.message)
+      addLog(`Connection failed: ${e.message}`, 'error')
+    } finally {
+      setSyncing(false)
     }
-    connect()
-    return () => { cancelled = true }
+  }, [user, addLog]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (user?.sandbox) return
+    connectToSheets()
   }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Sheets-aware CRUD helpers ────────────────────────────────────────────
@@ -4611,6 +4606,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
       {syncError && (
         <div style={{ background: `${Z.red}22`, borderBottom: `1px solid ${Z.red}44`, padding: '8px 24px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, fontSize: 12 }}>
           <span style={{ color: Z.red }}>⚠ Google Sheets sync error: {syncError}</span>
+          <button onClick={() => { setSyncError(null); connectToSheets() }} style={{ background: 'none', border: `1px solid ${Z.red}`, color: Z.red, borderRadius: 5, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>Retry</button>
           <button onClick={() => setSyncError(null)} style={{ background: 'none', border: `1px solid ${Z.red}`, color: Z.red, borderRadius: 5, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>Dismiss</button>
         </div>
       )}
