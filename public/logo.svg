@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <!-- Background -->
+  <rect width="120" height="120" rx="24" fill="#09090b"/>
+
+  <!-- Kanban columns -->
+  <!-- Column 1 (left) -->
+  <rect x="14" y="28" width="26" height="6" rx="3" fill="#34d399"/>
+  <rect x="14" y="38" width="26" height="18" rx="4" fill="#27272a"/>
+  <rect x="14" y="60" width="26" height="18" rx="4" fill="#27272a"/>
+  <rect x="14" y="82" width="26" height="10" rx="4" fill="#27272a"/>
+
+  <!-- Column 2 (middle) -->
+  <rect x="47" y="28" width="26" height="6" rx="3" fill="#34d399"/>
+  <rect x="47" y="38" width="26" height="18" rx="4" fill="#34d399" fill-opacity="0.25"/>
+  <rect x="47" y="60" width="26" height="10" rx="4" fill="#27272a"/>
+  <rect x="47" y="74" width="26" height="18" rx="4" fill="#27272a"/>
+
+  <!-- Column 3 (right) -->
+  <rect x="80" y="28" width="26" height="6" rx="3" fill="#34d399"/>
+  <rect x="80" y="38" width="26" height="10" rx="4" fill="#27272a"/>
+  <rect x="80" y="52" width="26" height="18" rx="4" fill="#27272a"/>
+  <rect x="80" y="74" width="26" height="18" rx="4" fill="#34d399" fill-opacity="0.25"/>
+
+  <!-- Highlight lines inside cards -->
+  <rect x="18" y="42" width="14" height="2" rx="1" fill="#52525b"/>
+  <rect x="18" y="46" width="10" height="2" rx="1" fill="#52525b"/>
+  <rect x="18" y="64" width="14" height="2" rx="1" fill="#52525b"/>
+  <rect x="18" y="68" width="8" height="2" rx="1" fill="#52525b"/>
+
+  <rect x="51" y="42" width="14" height="2" rx="1" fill="#34d399" fill-opacity="0.6"/>
+  <rect x="51" y="46" width="10" height="2" rx="1" fill="#34d399" fill-opacity="0.6"/>
+
+  <rect x="84" y="56" width="14" height="2" rx="1" fill="#52525b"/>
+  <rect x="84" y="60" width="10" height="2" rx="1" fill="#52525b"/>
+</svg>
