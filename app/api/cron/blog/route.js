@@ -5,6 +5,7 @@ import {
   initBlogTable, insertBlogPost, getUsedKeywords,
   pickClusterBalancedKeyword, markKeywordUsed, getRecentPostsForLinking,
 } from '../../../../lib/db.js'
+import { postTweet, buildTweetText } from '../../../../lib/twitter.js'
 
 const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
@@ -133,6 +134,11 @@ export async function GET(request) {
       if (picked.id) await markKeywordUsed(picked.id).catch(() => {})
 
       await notifySlack(`📝 [TaskGrid] 새 블로그 발행\n제목: ${postData.title}\n언어: ${picked.lang} | 클러스터: ${picked.cluster || '-'}\nURL: https://www.taskgrid.my/blog/${slug}`)
+
+      if (picked.lang === 'ko') {
+        const tweetText = buildTweetText(postData.title, postData.desc || '', `https://www.taskgrid.my/blog/${slug}`, '#생산성 #프로젝트관리 #구글시트')
+        await postTweet(tweetText)
+      }
 
       return { ok: true, keyword: picked.keyword, lang: picked.lang, slug, cluster: picked.cluster }
     } catch (e) {
