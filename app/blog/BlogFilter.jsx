@@ -18,9 +18,9 @@ const CATEGORY_STYLES = {
 const DEFAULT_STYLE = { background: '#27272a', color: '#a1a1aa', border: '1px solid #3f3f46' }
 function getCategoryStyle(cat) { return CATEGORY_STYLES[cat] || DEFAULT_STYLE }
 
-export default function BlogFilter({ posts }) {
-  const [activeLang, setActiveLang] = useState('en')
-  const [activeCategory, setActiveCategory] = useState(activeLang === 'en' ? 'All' : '전체')
+export default function BlogFilter({ posts, defaultLang = 'en' }) {
+  const [activeLang, setActiveLang] = useState(defaultLang)
+  const [activeCategory, setActiveCategory] = useState(defaultLang === 'en' ? 'All' : '전체')
 
   const handleLangChange = (lang) => {
     setActiveLang(lang)

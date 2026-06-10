@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { BLOG_POSTS } from '../../lib/blog-posts'
 import BlogFilter from './BlogFilter'
@@ -52,6 +53,8 @@ const jsonLd = {
 }
 
 export default async function BlogIndex() {
+  const headersList = await headers()
+  const lang = headersList.get('x-lang') ?? 'en'
   const dbPosts = await getPostsFromDb()
   const posts = dbPosts ?? []
 
@@ -114,7 +117,7 @@ export default async function BlogIndex() {
 
       {/* Client-side filter + grid */}
       <div style={{ padding: '0 16px 80px' }}>
-        <BlogFilter posts={posts} />
+        <BlogFilter posts={posts} defaultLang={lang} />
       </div>
 
       {/* Footer */}

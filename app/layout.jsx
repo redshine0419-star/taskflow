@@ -1,3 +1,4 @@
+import { headers } from 'next/headers'
 import './globals.css'
 
 export const metadata = {
@@ -23,10 +24,16 @@ export const metadata = {
   },
 }
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const headersList = await headers()
+  const lang = headersList.get('x-lang') ?? 'en'
+
   return (
-    <html lang="en">
+    <html lang={lang}>
       <head>
+        <link rel="alternate" hrefLang="ko" href="https://www.taskgrid.my/" />
+        <link rel="alternate" hrefLang="en" href="https://en.taskgrid.my/" />
+        <link rel="alternate" hrefLang="x-default" href="https://en.taskgrid.my/" />
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-0CY0YYXTBX" />
         <script dangerouslySetInnerHTML={{ __html: `
           window.dataLayer = window.dataLayer || [];
