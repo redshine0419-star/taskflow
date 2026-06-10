@@ -86,6 +86,7 @@ export default async function BlogIndex() {
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Link href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none', fontWeight: 600 }}>Blog</Link>
+            <Link href="/feedback" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none', fontWeight: 600 }}>Feedback</Link>
             <Link href="/" style={{
               fontSize: 13, fontWeight: 700, textDecoration: 'none',
               background: '#10b981', color: '#fff',
