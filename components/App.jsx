@@ -4983,6 +4983,7 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
     { label: lang === 'ko' ? '기능' : 'Features', href: '#features' },
     { label: lang === 'ko' ? '템플릿' : 'Templates', href: '#blog' },
     { label: 'Blog', href: '#blog' },
+    { label: lang === 'ko' ? '의견 보내기' : 'Feedback', href: '/feedback' },
   ]
 
   const sectionTitle = (text) => (
