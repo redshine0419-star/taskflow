@@ -1,9 +1,25 @@
 import { revalidatePath } from 'next/cache'
 import { BLOG_KEYWORDS } from '../../../../lib/blog-keywords'
 import { getBlogImage } from '../../../../lib/blog-images'
-import { initBlogTable, insertBlogPost, getUsedKeywords } from '../../../../lib/db.js'
+import {
+  initBlogTable, insertBlogPost, getUsedKeywords,
+  pickClusterBalancedKeyword, markKeywordUsed, getRecentPostsForLinking,
+} from '../../../../lib/db.js'
+import { postTweet, buildTweetText } from '../../../../lib/twitter.js'
 
 const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+
+const CTA_KO = '<hr><div style="background:#eff6ff;border:2px solid #3b82f6;border-radius:12px;padding:24px;margin:32px 0;text-align:center;"><p style="font-size:18px;font-weight:700;color:#1e40af;margin:0 0 8px">📋 TaskGrid — 무료 칸반 보드</p><p style="color:#374151;margin:0 0 16px">Google Sheets 기반으로 별도 설치 없이 바로 사용하는 프로젝트 관리</p><a href="https://www.taskgrid.my?utm_source=blog&utm_medium=cta&utm_campaign=organic" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">무료로 시작하기 →</a></div>'
+const CTA_EN = '<hr><div style="background:#eff6ff;border:2px solid #3b82f6;border-radius:12px;padding:24px;margin:32px 0;text-align:center;"><p style="font-size:18px;font-weight:700;color:#1e40af;margin:0 0 8px">📋 TaskGrid — Free Kanban Board</p><p style="color:#374151;margin:0 0 16px">Google Sheets-based project management — no installation needed</p><a href="https://www.taskgrid.my?utm_source=blog&utm_medium=cta&utm_campaign=organic" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600">Start for Free →</a></div>'
+
+async function notifySlack(message) {
+  if (!process.env.SLACK_WEBHOOK_URL) return
+  await fetch(process.env.SLACK_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: message }),
+  }).catch(() => {})
+}
 
 export async function GET(request) {
   const authHeader = request.headers.get('authorization')
@@ -24,35 +40,37 @@ export async function GET(request) {
     })
   }
 
-  // Ensure table exists
-  try {
-    await initBlogTable()
-  } catch (e) {
-    console.error('[cron/blog] initBlogTable failed:', e)
+  try { await initBlogTable() } catch (e) {
     return new Response(JSON.stringify({ error: 'DB init failed', detail: e.message }), {
       status: 500, headers: { 'Content-Type': 'application/json' },
     })
   }
 
-  // Load already-used keywords
-  let usedKeywords = []
+  // Cluster-balanced keyword selection from DB, fall back to static file
+  let pickedKo = null
+  let pickedEn = null
+
   try {
-    usedKeywords = await getUsedKeywords()
-    console.log('[cron/blog] usedKeywords count:', usedKeywords.length)
+    pickedKo = await pickClusterBalancedKeyword('ko')
+    pickedEn = await pickClusterBalancedKeyword('en')
   } catch (e) {
-    console.error('[cron/blog] getUsedKeywords failed:', e)
+    console.error('[cron/blog] DB keyword selection failed, falling back to static:', e.message)
   }
 
-  // Pick one unused KO keyword and one unused EN keyword
-  const unusedKo = BLOG_KEYWORDS.filter(k => k.lang === 'ko' && !usedKeywords.includes(k.keyword))
-  const unusedEn = BLOG_KEYWORDS.filter(k => k.lang === 'en' && !usedKeywords.includes(k.keyword))
+  if (!pickedKo) {
+    const used = await getUsedKeywords().catch(() => [])
+    const pool = BLOG_KEYWORDS.filter(k => k.lang === 'ko' && !used.includes(k.keyword))
+    const fallback = pool.length > 0 ? pool : BLOG_KEYWORDS.filter(k => k.lang === 'ko')
+    pickedKo = fallback[Math.floor(Math.random() * fallback.length)]
+  }
+  if (!pickedEn) {
+    const used = await getUsedKeywords().catch(() => [])
+    const pool = BLOG_KEYWORDS.filter(k => k.lang === 'en' && !used.includes(k.keyword))
+    const fallback = pool.length > 0 ? pool : BLOG_KEYWORDS.filter(k => k.lang === 'en')
+    pickedEn = fallback[Math.floor(Math.random() * fallback.length)]
+  }
 
-  const poolKo = unusedKo.length > 0 ? unusedKo : BLOG_KEYWORDS.filter(k => k.lang === 'ko')
-  const poolEn = unusedEn.length > 0 ? unusedEn : BLOG_KEYWORDS.filter(k => k.lang === 'en')
-
-  const pickedKo = poolKo[Math.floor(Math.random() * poolKo.length)]
-  const pickedEn = poolEn[Math.floor(Math.random() * poolEn.length)]
-  console.log('[cron/blog] picked KO:', pickedKo?.keyword, '| EN:', pickedEn?.keyword)
+  console.log('[cron/blog] KO:', pickedKo?.keyword, `(${pickedKo?.cluster})`, '| EN:', pickedEn?.keyword, `(${pickedEn?.cluster})`)
 
   const generatePost = async (picked) => {
     const prompt = buildBlogPrompt(picked)
@@ -84,20 +102,45 @@ export async function GET(request) {
 
       const today = new Date().toISOString().split('T')[0]
       const category = postData.category || picked.category
+      const slug = postData.slug || picked.keyword.replace(/\s+/g, '-')
+
+      // Build related posts section
+      let relatedHtml = ''
+      try {
+        const related = await getRecentPostsForLinking(picked.lang, slug, 3)
+        if (related.length > 0) {
+          const links = related.map(p => `<li><a href="/blog/${p.slug}">${p.title}</a></li>`).join('')
+          const heading = picked.lang === 'en' ? 'Related Articles' : '관련 글'
+          relatedHtml = `<hr><div class="related-posts"><h3>${heading}</h3><ul>${links}</ul></div>`
+        }
+      } catch { /* ignore */ }
+
+      const cta = picked.lang === 'en' ? CTA_EN : CTA_KO
+      const finalContent = postData.content + cta + relatedHtml
+
       await insertBlogPost({
-        slug: postData.slug || picked.keyword.replace(/\s+/g, '-'),
+        slug,
         title: postData.title || picked.keyword,
         date: today,
         category,
         desc: postData.desc || '',
         keywords: (postData.keywords || []).join(', '),
-        content: postData.content || '',
+        content: finalContent,
         usedKeyword: picked.keyword,
         lang: picked.lang || 'ko',
         imageUrl: getBlogImage(category),
       })
-      console.log(`[cron/blog] saved: "${postData.slug}" (${picked.lang})`)
-      return { ok: true, keyword: picked.keyword, lang: picked.lang, slug: postData.slug }
+
+      if (picked.id) await markKeywordUsed(picked.id).catch(() => {})
+
+      await notifySlack(`📝 [TaskGrid] 새 블로그 발행\n제목: ${postData.title}\n언어: ${picked.lang} | 클러스터: ${picked.cluster || '-'}\nURL: https://www.taskgrid.my/blog/${slug}`)
+
+      if (picked.lang === 'ko') {
+        const tweetText = buildTweetText(postData.title, postData.desc || '', `https://www.taskgrid.my/blog/${slug}`, '#생산성 #프로젝트관리 #구글시트')
+        await postTweet(tweetText)
+      }
+
+      return { ok: true, keyword: picked.keyword, lang: picked.lang, slug, cluster: picked.cluster }
     } catch (e) {
       clearTimeout(timer)
       console.error(`[cron/blog] failed for "${picked.keyword}":`, e.message)
@@ -110,7 +153,6 @@ export async function GET(request) {
     generatePost(pickedEn),
   ])
 
-  // Invalidate blog page cache so new posts appear immediately
   revalidatePath('/blog')
 
   return new Response(JSON.stringify({ ok: true, results: [koResult, enResult] }), {
