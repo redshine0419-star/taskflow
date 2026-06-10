@@ -1,27 +1,23 @@
-export const dynamic = 'force-dynamic'
+import { getAllBlogPosts } from '../lib/db.js'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.taskgrid.my'
+const BASE_URL = 'https://www.taskgrid.my'
 
 export default async function sitemap() {
-  const staticPages = [
+  const staticRoutes = [
     { url: BASE_URL, lastModified: new Date(), changeFrequency: 'weekly', priority: 1.0 },
     { url: `${BASE_URL}/blog`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
   ]
 
-  let blogEntries = []
   try {
-    const { getDb } = await import('../lib/db.js')
-    const sql = getDb()
-    const posts = await sql`SELECT slug, created_at FROM blog_posts ORDER BY created_at DESC`
-    blogEntries = posts.map((p) => ({
-      url: `${BASE_URL}/blog/${p.slug}`,
-      lastModified: p.created_at ? new Date(p.created_at) : new Date(),
+    const posts = await getAllBlogPosts()
+    const blogRoutes = posts.map(post => ({
+      url: `${BASE_URL}/blog/${post.slug}`,
+      lastModified: new Date(post.created_at || post.date),
       changeFrequency: 'monthly',
       priority: 0.7,
     }))
+    return [...staticRoutes, ...blogRoutes]
   } catch {
-    // DB unavailable
+    return staticRoutes
   }
-
-  return [...staticPages, ...blogEntries]
 }

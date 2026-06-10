@@ -8,6 +8,13 @@ export const metadata = {
     'kanban board', 'asana alternative', 'jira alternative', 'free kanban',
     'google drive project management', 'serverless task manager',
   ],
+  icons: {
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+  },
   openGraph: {
     title: 'TaskGrid — Serverless Kanban on Google Drive',
     description: 'Your tasks, your Drive. Zero central server.',
