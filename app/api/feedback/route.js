@@ -28,7 +28,7 @@ export async function GET(req) {
     const page = Math.max(1, Number(req.nextUrl.searchParams.get('page') ?? '1'))
     const result = await getFeedback({ page })
     return NextResponse.json(result)
-  } catch (e) {
+  } catch {
     return NextResponse.json({ rows: [], total: 0, page: 1, pageSize: 20 })
   }
 }
@@ -68,7 +68,7 @@ export async function POST(req) {
       ipHash,
     })
     return NextResponse.json({ ok: true, row })
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: '저장에 실패했습니다.' }, { status: 500 })
   }
 }
