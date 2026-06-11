@@ -18,11 +18,11 @@ const DARK = {
 }
 
 const LIGHT = {
-  bg:      '#f8fafc',
-  surface: '#ffffff',
-  border:  '#e2e8f0',
-  text:    '#0f172a',
-  muted:   '#64748b',
+  bg:      '#ffffff',
+  surface: '#f6f8fa',
+  border:  '#eaeef2',
+  text:    '#24292f',
+  muted:   '#57606a',
   emerald: '#059669',
   indigo:  '#4f46e5',
   red:     '#dc2626',
@@ -4175,7 +4175,7 @@ function TutorialModal({ open, onClose }) {
   )
 }
 
-function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark, darkMode }) {
+function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile }) {
   const { t } = useLang()
   const Z = useTheme()
   const [tasks, setTasks]                   = useState(user?.sandbox ? INITIAL_TASKS : [])
@@ -4652,9 +4652,6 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
               {syncing ? 'Syncing…' : syncError ? 'Sync error' : spreadsheetId ? 'Sheets connected' : 'Connecting…'}
             </div>
           )}
-          <button onClick={onToggleDark} title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'} style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 14, color: Z.muted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {darkMode ? '☀️' : '🌙'}
-          </button>
           {!isMobile && <Btn variant="ghost" small onClick={() => setTutorialOpen(true)}>{t('tutorialBtn')}</Btn>}
           {!isMobile && <Btn variant="default" small onClick={() => setShareOpen(true)}>{t('shareBtn')}</Btn>}
           <Btn variant="primary" small onClick={() => setAiOpen(true)}>{isMobile ? '✨' : t('aiParserBtn')}</Btn>
@@ -4928,7 +4925,7 @@ function HeroKanbanMockup() {
 }
 
 // ─── LANDING ─────────────────────────────────────────────────────────────────
-function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
+function Landing({ onSandbox, onResume }) {
   const { t, lang } = useLang()
   const Z = useTheme()
   const [redirecting, setRedirecting] = useState(false)
@@ -5022,11 +5019,6 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
           </div>
           {/* Right actions */}
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-            <button onClick={onToggleDark} title={darkMode ? 'Light mode' : 'Dark mode'}
-              style={{ background: 'none', border: `1px solid ${Z.border}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 13, color: Z.muted, lineHeight: 1, transition: 'border-color .15s', flexShrink: 0 }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = Z.emerald}
-              onMouseLeave={e => e.currentTarget.style.borderColor = Z.border}
-            >{darkMode ? '☀️' : '🌙'}</button>
             <div className="nav-lang-desktop"><LangToggle /></div>
             {/* Desktop: Sign in + CTA */}
             {!onResume && (
@@ -5263,23 +5255,7 @@ function Landing({ onSandbox, onResume, onToggleDark, darkMode }) {
 // ─── APP ROOT ────────────────────────────────────────────────────────────────
 export default function App() {
   const [lang, setLang]             = useState('en')
-  const [darkMode, setDarkMode]     = useState(() => {
-    if (typeof localStorage !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('tf_dark_mode')
-        if (saved !== null) return saved === 'true'
-      } catch (e) { void e }
-    }
-    return true
-  })
-  const Z = darkMode ? DARK : LIGHT
-  const toggleDark = () => {
-    setDarkMode(d => {
-      const next = !d
-      try { localStorage.setItem('tf_dark_mode', String(next)) } catch (e) { void e }
-      return next
-    })
-  }
+  const Z = LIGHT
   const [user, setUser]             = useState(() => {
     if (typeof window === 'undefined') return null
     return loadSession() || null
@@ -5350,8 +5326,8 @@ export default function App() {
     <ThemeCtx.Provider value={Z}>
       <LangContext.Provider value={{ lang, setLang, t }}>
         <div style={{ fontFamily: "'Inter',system-ui,-apple-system,sans-serif", background: Z.bg, color: Z.text, minHeight: '100vh', fontSize: 14, lineHeight: 1.5, opacity: transitioning ? 0 : 1, transition: 'opacity .3s' }}>
-          {scene === 'landing'    && <Landing onSandbox={handleSandbox} onResume={user ? () => setScene('workspace') : null} onToggleDark={toggleDark} darkMode={darkMode} />}
-          {scene === 'workspace'  && <Workspace user={user} onSignOut={handleSignOut} onGoHome={() => setScene('landing')} onSignIn={() => enter({ name: t('demoUserName'), email: t('demoUserEmail') })} isMobile={isMobile} onToggleDark={toggleDark} darkMode={darkMode} />}
+          {scene === 'landing'    && <Landing onSandbox={handleSandbox} onResume={user ? () => setScene('workspace') : null} />}
+          {scene === 'workspace'  && <Workspace user={user} onSignOut={handleSignOut} onGoHome={() => setScene('landing')} onSignIn={() => enter({ name: t('demoUserName'), email: t('demoUserEmail') })} isMobile={isMobile} />}
         </div>
       </LangContext.Provider>
     </ThemeCtx.Provider>

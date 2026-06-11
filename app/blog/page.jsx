@@ -58,7 +58,7 @@ export default async function BlogIndex() {
   return (
     <main style={{
       fontFamily: "'Inter', system-ui, sans-serif",
-      background: '#09090b', color: '#f4f4f5',
+      background: '#ffffff', color: '#24292f',
       minHeight: '100vh',
       overflowX: 'hidden',
     }}>
@@ -70,8 +70,8 @@ export default async function BlogIndex() {
       {/* Sticky Nav */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 50,
-        background: 'rgba(9,9,11,0.95)', backdropFilter: 'blur(8px)',
-        borderBottom: '1px solid #27272a',
+        background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid #eaeef2',
       }}>
         <div style={{
           maxWidth: 860, margin: '0 auto',
@@ -80,16 +80,16 @@ export default async function BlogIndex() {
         }}>
           <Link href="/" style={{
             fontWeight: 800, fontSize: 17, textDecoration: 'none',
-            color: '#f4f4f5', letterSpacing: -0.5,
+            color: '#24292f', letterSpacing: -0.5,
           }}>
-            Task<span style={{ color: '#34d399' }}>Grid</span>
+            Task<span style={{ color: '#059669' }}>Grid</span>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link href="/blog" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none', fontWeight: 600 }}>Blog</Link>
-            <Link href="/feedback" style={{ fontSize: 13, color: '#a1a1aa', textDecoration: 'none', fontWeight: 600 }}>Feedback</Link>
+            <Link href="/blog" style={{ fontSize: 13, color: '#57606a', textDecoration: 'none', fontWeight: 600 }}>Blog</Link>
+            <Link href="/feedback" style={{ fontSize: 13, color: '#57606a', textDecoration: 'none', fontWeight: 600 }}>Feedback</Link>
             <Link href="/" style={{
               fontSize: 13, fontWeight: 700, textDecoration: 'none',
-              background: '#10b981', color: '#fff',
+              background: '#059669', color: '#fff',
               padding: '7px 14px', borderRadius: 8, whiteSpace: 'nowrap',
             }}>Get Started Free</Link>
           </div>
@@ -104,9 +104,9 @@ export default async function BlogIndex() {
           margin: '0 0 16px',
         }}>
           Free Templates &amp; Tools<br />
-          <span style={{ color: '#34d399' }}>for Productive Teams</span>
+          <span style={{ color: '#059669' }}>for Productive Teams</span>
         </h1>
-        <p style={{ fontSize: 15, color: '#a1a1aa', margin: 0, lineHeight: 1.7, maxWidth: 520 }}>
+        <p style={{ fontSize: 15, color: '#57606a', margin: 0, lineHeight: 1.7, maxWidth: 520 }}>
           Download free project management templates, kanban boards, and productivity tools.
           No ads, no signup required — just practical resources for modern teams.
         </p>
@@ -120,17 +120,17 @@ export default async function BlogIndex() {
       {/* Footer */}
       <footer style={{
         maxWidth: 860, margin: '0 auto',
-        borderTop: '1px solid #27272a', padding: '32px 16px',
+        borderTop: '1px solid #eaeef2', padding: '32px 16px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: 12,
       }}>
-        <Link href="/" style={{ fontWeight: 800, fontSize: 15, textDecoration: 'none', color: '#f4f4f5' }}>
-          Task<span style={{ color: '#34d399' }}>Grid</span>
+        <Link href="/" style={{ fontWeight: 800, fontSize: 15, textDecoration: 'none', color: '#24292f' }}>
+          Task<span style={{ color: '#059669' }}>Grid</span>
         </Link>
         <div style={{ display: 'flex', gap: 20 }}>
-          <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>Home</Link>
-          <Link href="/" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>Sign Up Free</Link>
-          <Link href="/blog" style={{ fontSize: 13, color: '#71717a', textDecoration: 'none' }}>Blog</Link>
+          <Link href="/" style={{ fontSize: 13, color: '#57606a', textDecoration: 'none' }}>Home</Link>
+          <Link href="/" style={{ fontSize: 13, color: '#57606a', textDecoration: 'none' }}>Sign Up Free</Link>
+          <Link href="/blog" style={{ fontSize: 13, color: '#57606a', textDecoration: 'none' }}>Blog</Link>
         </div>
       </footer>
     </main>
