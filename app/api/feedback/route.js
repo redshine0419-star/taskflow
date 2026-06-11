@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { initFeedbackTable, getFeedback, insertFeedback, countRecentFeedbackByIp, hideFeedback } from '../../../../lib/db.js'
+import { initFeedbackTable, getFeedback, insertFeedback, countRecentFeedbackByIp, hideFeedback } from '../../../lib/db.js'
 
 export const dynamic = 'force-dynamic'
 
