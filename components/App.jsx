@@ -4252,7 +4252,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile }) {
         setMembersSheetId(numericMembersSheetId)
         addLog(`Spreadsheet ready: ${sid}`, 'success')
         const loadedProjects = await loadProjects(sid)
-        if (!cancelled) {
+        if (!cancelled && loadedProjects !== null) {
           setProjects(prev => {
             const savedIds = new Set(loadedProjects.map(p => p.id))
             const unsaved = prev.filter(p => !p.rowNum && !savedIds.has(p.id))
