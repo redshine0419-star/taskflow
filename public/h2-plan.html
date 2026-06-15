@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>하반기 업무 효율화 계획 | TaskGrid</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #09090b;
+    color: #f4f4f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .slide {
+    width: 960px;
+    min-height: 540px;
+    background: #111113;
+    border-radius: 16px;
+    border: 1px solid #27272a;
+    padding: 48px 56px;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #34d399, #10b981);
+  }
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 36px;
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 700;
+    color: #34d399;
+    background: #34d39920;
+    border: 1px solid #34d39940;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+  h1 span { color: #34d399; }
+  .subtitle {
+    font-size: 13px;
+    color: #71717a;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .card {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card-num {
+    font-size: 11px;
+    font-weight: 800;
+    color: #34d399;
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+  }
+  .card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #f4f4f5;
+  }
+  .card p {
+    font-size: 12.5px;
+    color: #a1a1aa;
+    line-height: 1.7;
+  }
+  .card p strong { color: #e4e4e7; }
+  .effects {
+    background: #18181b;
+    border: 1px solid #34d39930;
+    border-radius: 10px;
+    padding: 18px 24px;
+    display: flex;
+    gap: 32px;
+    align-items: center;
+  }
+  .effects-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #34d399;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .effects-list {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .effect-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: #a1a1aa;
+  }
+  .effect-item::before {
+    content: '✓';
+    color: #34d399;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .logo {
+    font-size: 16px;
+    font-weight: 800;
+    color: #f4f4f5;
+    text-decoration: none;
+  }
+  .logo span { color: #34d399; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="header">
+    <div>
+      <div class="tag" style="margin-bottom:12px">2026 하반기 업무 효율화 계획</div>
+      <h1>Google Drive 기반 <span>무료 칸반 보드</span><br>팀 업무 관리 시스템 구축</h1>
+      <p class="subtitle">별도 구독 없이, 우리 팀 데이터는 우리 Google Drive에</p>
+    </div>
+    <a class="logo" href="https://www.taskgrid.my">Task<span>Grid</span></a>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-num">01 &nbsp;이슈 &amp; 니즈</div>
+      <h3>현재의 문제</h3>
+      <p>
+        팀 업무가 <strong>카카오톡·이메일·메모</strong> 등에 분산되어 현황 파악이 어렵고,
+        Jira·Asana 등 유료 툴은 <strong>월 구독 비용</strong> 부담이 있음.
+        외부 서버에 데이터를 맡기는 것에 대한 <strong>보안 우려</strong>도 존재.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-num">02 &nbsp;구축 내용</div>
+      <h3>TaskGrid 도입</h3>
+      <p>
+        <strong>Google 계정으로 즉시 시작</strong>하는 칸반 보드.
+        모든 데이터는 <strong>팀원 본인의 Google Drive</strong>에 스프레드시트로 저장.
+        칸반·간트·팀 현황·AI 회의록 파싱 기능을 <strong>무료</strong>로 제공.
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-num">03 &nbsp;기대 효과</div>
+      <h3>얻고자 하는 것</h3>
+      <p>
+        업무 현황을 <strong>한 화면에서 시각화</strong>하여 보고 시간 절감.
+        Google Sheets와 <strong>양방향 실시간 동기화</strong>로 기존 스프레드시트 활용 유지.
+        <strong>추가 비용 0원</strong>, 데이터 외부 유출 위험 없음.
+      </p>
+    </div>
+  </div>
+
+  <div class="effects">
+    <div class="effects-label">KEY POINTS</div>
+    <div class="effects-list">
+      <div class="effect-item">완전 무료 (구독 불필요)</div>
+      <div class="effect-item">데이터 = 내 Google Drive</div>
+      <div class="effect-item">Google 계정만 있으면 즉시 사용</div>
+      <div class="effect-item">AI 회의록 → 태스크 자동 변환</div>
+      <div class="effect-item">별도 설치 없음 (웹 기반)</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
