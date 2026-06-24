@@ -4261,7 +4261,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile }) {
               try {
                 const rowNum = await appendProject(sid, p)
                 setProjects(pr => pr.map(proj => proj.id === p.id ? { ...proj, rowNum } : proj))
-              } catch { /* ignore */ }
+              } catch (err) { void err }
             })
             return [...loadedProjects, ...unsaved]
           })
@@ -4292,7 +4292,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile }) {
     }
     connect()
     return () => { cancelled = true }
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user])
 
   // ── Sheets-aware CRUD helpers ────────────────────────────────────────────
   const syncUpdate = useCallback(async (task) => {
