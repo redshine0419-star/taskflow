@@ -4256,7 +4256,7 @@ function Workspace({ user, onSignOut, onSignIn, onGoHome, isMobile, onToggleDark
           try {
             const rowNum = await appendProject(sid, p)
             setProjects(pr => pr.map(proj => proj.id === p.id ? { ...proj, rowNum } : proj))
-          } catch { }
+          } catch { /* ignore unsaved project sync failure */ }
         })
         return [...loadedProjects, ...unsaved]
       })
