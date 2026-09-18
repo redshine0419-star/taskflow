@@ -115,7 +115,7 @@ export default function ChatbotDemo() {
 
       <header style={{ borderBottom: `1px solid ${T.border}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <Link href="/portfolio" style={{ fontWeight: 800, fontSize: 15, textDecoration: 'none', color: T.text }}>
-          Task<span style={{ color: T.emerald }}>Grid</span> Chatbot
+          Chat<span style={{ color: T.emerald }}>bot</span>
         </Link>
         <select value={model} onChange={(e) => setModel(e.target.value)} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, color: T.text, fontSize: 12, padding: '4px 8px', outline: 'none' }}>
           {MODELS.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}

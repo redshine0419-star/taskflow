@@ -234,7 +234,7 @@ export default function ServiceDashboardDemo() {
       </div>
       <header style={{ borderBottom: `1px solid ${T.border}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <Link href="/portfolio" style={{ fontWeight: 800, fontSize: 15, textDecoration: 'none', color: T.text }}>
-          Task<span style={{ color: T.emerald }}>Grid</span> Ops
+          Service<span style={{ color: T.emerald }}>Dashboard</span>
         </Link>
         <div style={{ display: 'flex', gap: 2, marginLeft: 8, flexWrap: 'wrap' }}>
           {TABS.map((t) => (
