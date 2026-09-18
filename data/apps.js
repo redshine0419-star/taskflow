@@ -77,4 +77,13 @@ export const apps = [
     demoPath: '/apps/service-dashboard',
     guidePath: '/guides/service-dashboard',
   },
+  {
+    id: 'flavorsync',
+    name: 'FlavorSync',
+    description: '레시피 위키와 2구 요리 모드, 냉장고 관리를 한 번에 해봐요.',
+    tags: ['레시피', '요리', '블로그'],
+    status: 'live',
+    demoPath: '/apps/flavorsync',
+    guidePath: '/guides/flavorsync',
+  },
 ]
