@@ -50,4 +50,13 @@ export const apps = [
     demoPath: '/apps/habit-tracker',
     guidePath: '/guides/habit-tracker',
   },
+  {
+    id: 'fitness-tracker',
+    name: 'Fitness Tracker',
+    description: '6개월 PPL 스플릿 운동 플랜과 인바디 기록을 관리해요.',
+    tags: ['피트니스', '헬스', '플래너'],
+    status: 'live',
+    demoPath: '/apps/fitness-tracker',
+    guidePath: '/guides/fitness-tracker',
+  },
 ]
