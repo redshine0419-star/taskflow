@@ -59,4 +59,22 @@ export const apps = [
     demoPath: '/apps/fitness-tracker',
     guidePath: '/guides/fitness-tracker',
   },
+  {
+    id: 'chatbot',
+    name: 'Chatbot',
+    description: '멀티 모델 선택이 가능한 AI 챗봇 UI를 체험해봐요.',
+    tags: ['AI', '챗봇'],
+    status: 'live',
+    demoPath: '/apps/chatbot',
+    guidePath: '/guides/chatbot',
+  },
+  {
+    id: 'service-dashboard',
+    name: 'Service Dashboard',
+    description: '여러 서비스의 현황·비용·AI 플랜을 한 화면에서 관리해요.',
+    tags: ['운영', '대시보드', 'AI'],
+    status: 'live',
+    demoPath: '/apps/service-dashboard',
+    guidePath: '/guides/service-dashboard',
+  },
 ]
