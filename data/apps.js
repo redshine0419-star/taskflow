@@ -217,7 +217,7 @@ export const apps = [
   },
   {
     id: 'globalhope',
-    name: '글로벌호프 (GlobalHope)',
+    name: '홈페이지',
     description: 'NGO 후원단체 홈페이지와 배너·사업·소식·문의를 관리하는 CMS를 함께 체험해요.',
     tags: ['NGO', 'CMS', '공공'],
     status: 'live',
