@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { DARK as T } from './theme'
+import { EDM } from './edmTheme'
 
 export default function AppCard({ app }) {
   const isLive = app.status === 'live'
@@ -9,38 +9,26 @@ export default function AppCard({ app }) {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        border: `1px solid ${T.border}`,
-        borderRadius: 12,
-        overflow: 'hidden',
-        background: T.bg,
+        gap: EDM.space[3],
+        border: `1px solid ${EDM.borderLight}`,
+        borderRadius: EDM.radius.card,
+        boxShadow: EDM.shadowBlue01,
+        background: EDM.bg,
+        padding: EDM.space[6],
       }}
     >
-      <div
-        style={{
-          position: 'relative',
-          aspectRatio: '16 / 9',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: T.surface,
-          borderBottom: `1px solid ${T.border}`,
-        }}
-      >
-        <span style={{ fontSize: 32, fontWeight: 700, color: T.muted }}>
-          {app.name.slice(0, 1).toUpperCase()}
-        </span>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: EDM.space[2] }}>
+        <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: EDM.text1, letterSpacing: '-0.01em' }}>{app.name}</h3>
         {!isLive && (
           <span
             style={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              fontSize: 11,
+              flexShrink: 0,
+              fontSize: 12,
               fontWeight: 600,
-              color: T.amber,
-              border: `1px solid ${T.amber}`,
-              borderRadius: 999,
-              padding: '3px 9px',
+              color: EDM.text3,
+              background: EDM.borderLight,
+              borderRadius: EDM.radius.badge,
+              padding: '3px 8px',
             }}
           >
             곧 공개
@@ -48,97 +36,85 @@ export default function AppCard({ app }) {
         )}
       </div>
 
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: T.text }}>{app.name}</h3>
+      <p style={{ margin: 0, fontSize: 15, color: EDM.text2, lineHeight: 1.6, flex: 1 }}>{app.description}</p>
 
-        <p
-          style={{
-            margin: 0,
-            fontSize: 13.5,
-            color: T.muted,
-            lineHeight: 1.5,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {app.description}
-        </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: EDM.space[2] }}>
+        {app.tags.map((tag) => (
+          <span
+            key={tag}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: 13,
+              fontWeight: 600,
+              color: EDM.blue[600],
+              border: `1px solid ${EDM.blue[600]}`,
+              borderRadius: EDM.radius.badge,
+              padding: '2px 8px',
+            }}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {app.tags.map((tag) => (
-            <span
-              key={tag}
-              style={{
-                fontSize: 11.5,
-                color: T.muted,
-                border: `1px solid ${T.border}`,
-                borderRadius: 999,
-                padding: '2px 9px',
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 6 }}>
-          {isLive ? (
-            <Link
-              href={app.demoPath}
-              style={{
-                flex: 1,
-                textAlign: 'center',
-                fontSize: 13,
-                fontWeight: 600,
-                color: T.bg,
-                background: T.emerald,
-                border: `1px solid ${T.emerald}`,
-                borderRadius: 8,
-                padding: '8px 0',
-                textDecoration: 'none',
-              }}
-            >
-              데모 보기
-            </Link>
-          ) : (
-            <button
-              type="button"
-              disabled
-              style={{
-                flex: 1,
-                fontSize: 13,
-                fontWeight: 600,
-                color: T.muted,
-                background: 'transparent',
-                border: `1px solid ${T.border}`,
-                borderRadius: 8,
-                padding: '8px 0',
-                cursor: 'not-allowed',
-              }}
-            >
-              데모 보기
-            </button>
-          )}
-
+      <div style={{ display: 'flex', gap: EDM.space[2], marginTop: EDM.space[2] }}>
+        {isLive ? (
           <Link
-            href={app.guidePath}
+            href={app.demoPath}
             style={{
               flex: 1,
               textAlign: 'center',
-              fontSize: 13,
-              fontWeight: 600,
-              color: T.text,
-              background: 'transparent',
-              border: `1px solid ${T.border}`,
-              borderRadius: 8,
-              padding: '8px 0',
+              fontSize: 15,
+              fontWeight: 500,
+              letterSpacing: '-0.16px',
+              color: '#fff',
+              background: EDM.green[500],
+              borderRadius: EDM.radius.control,
+              padding: '10px 0',
               textDecoration: 'none',
             }}
           >
-            가이드 보기
+            데모 보기
           </Link>
-        </div>
+        ) : (
+          <button
+            type="button"
+            disabled
+            style={{
+              flex: 1,
+              fontSize: 15,
+              fontWeight: 500,
+              color: EDM.text4,
+              background: EDM.neutral[50],
+              border: 'none',
+              borderRadius: EDM.radius.control,
+              padding: '10px 0',
+              cursor: 'not-allowed',
+            }}
+          >
+            데모 보기
+          </button>
+        )}
+
+        <Link
+          href={app.guidePath}
+          style={{
+            flex: 1,
+            textAlign: 'center',
+            fontSize: 15,
+            fontWeight: 500,
+            letterSpacing: '-0.16px',
+            color: EDM.text1,
+            background: 'transparent',
+            border: `1px solid ${EDM.text1}`,
+            borderRadius: EDM.radius.control,
+            padding: '10px 0',
+            textDecoration: 'none',
+          }}
+        >
+          가이드 보기
+        </Link>
       </div>
     </div>
   )
