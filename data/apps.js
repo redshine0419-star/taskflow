@@ -87,6 +87,15 @@ export const apps = [
     guidePath: '/guides/flavorsync',
   },
   {
+    id: 'globalhope',
+    name: '글로벌호프 (GlobalHope)',
+    description: 'NGO 후원단체 홈페이지와 배너·사업·소식·문의를 관리하는 CMS를 함께 체험해요.',
+    tags: ['NGO', 'CMS', '공공'],
+    status: 'live',
+    demoPath: '/apps/globalhope',
+    guidePath: '/guides/globalhope',
+  },
+  {
     id: 'marketerops-diagnosis',
     name: 'MarketerOps 진단·AI 어드바이저',
     description: 'URL 하나로 성능·SEO·GEO 점수와 AI 개선 전략을 받아봐요.',
