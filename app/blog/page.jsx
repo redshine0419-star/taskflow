@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { BLOG_POSTS } from '../../lib/blog-posts'
-import BlogFilter from './BlogFilter'
+import { MARKETEROPS_BLOG_POSTS } from '../../data/marketerOpsBlogPosts'
+import BlogSourceTabs from './BlogSourceTabs'
 
 export const revalidate = 0
 
@@ -42,7 +43,7 @@ const jsonLd = {
   '@type': 'ItemList',
   name: 'Free Templates & Productivity Tools — TaskGrid Blog',
   url: 'https://taskgrid.my/blog',
-  itemListElement: BLOG_POSTS.map((post, i) => ({
+  itemListElement: [...BLOG_POSTS, ...MARKETEROPS_BLOG_POSTS].map((post, i) => ({
     '@type': 'ListItem',
     position: i + 1,
     name: post.title,
@@ -53,7 +54,7 @@ const jsonLd = {
 
 export default async function BlogIndex() {
   const dbPosts = await getPostsFromDb()
-  const posts = dbPosts ?? []
+  const taskgridPosts = dbPosts ?? []
 
   return (
     <main style={{
@@ -111,9 +112,9 @@ export default async function BlogIndex() {
         </p>
       </div>
 
-      {/* Client-side filter + grid */}
+      {/* Client-side source tabs + filter + grid */}
       <div style={{ padding: '0 16px 80px' }}>
-        <BlogFilter posts={posts} />
+        <BlogSourceTabs taskgridPosts={taskgridPosts} marketeropsPosts={MARKETEROPS_BLOG_POSTS} />
       </div>
 
       {/* Footer */}
