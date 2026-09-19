@@ -114,15 +114,6 @@ export const apps = [
     guidePath: '/guides/marketerops-blogsite',
   },
   {
-    id: 'marketerops-work',
-    name: 'MarketerOps 업무관리',
-    description: '칸반 보드로 팀 업무를 관리하고 AI PM 리포트까지 받아봐요.',
-    tags: ['협업', '칸반', 'AI'],
-    status: 'live',
-    demoPath: '/apps/marketerops-work',
-    guidePath: '/guides/marketerops-work',
-  },
-  {
     id: 'marketerops-content',
     name: 'MarketerOps 콘텐츠·키워드',
     description: '주제 하나로 블로그·SNS·뉴스레터·광고카피를 한 번에 생성해요.',
