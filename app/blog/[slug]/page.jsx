@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { BLOG_POSTS } from '../../../lib/blog-posts'
+import { MARKETEROPS_BLOG_POSTS } from '../../../data/marketerOpsBlogPosts'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -14,17 +15,18 @@ async function getAllPosts() {
         category: r.category, desc: r.description,
         keywords: r.keywords ? r.keywords.split(', ') : [],
         content: r.content, lang: r.lang, imageUrl: r.image_url,
+        source: 'taskgrid',
       })).filter(p => p.slug && p.title)
-      if (dbPosts.length > 0) return [...BLOG_POSTS, ...dbPosts]
+      if (dbPosts.length > 0) return [...BLOG_POSTS, ...MARKETEROPS_BLOG_POSTS, ...dbPosts]
     } catch {
       // fall through to static only
     }
   }
-  return BLOG_POSTS
+  return [...BLOG_POSTS, ...MARKETEROPS_BLOG_POSTS]
 }
 
 export async function generateStaticParams() {
-  return BLOG_POSTS.map(p => ({ slug: p.slug }))
+  return [...BLOG_POSTS, ...MARKETEROPS_BLOG_POSTS].map(p => ({ slug: p.slug }))
 }
 
 export async function generateMetadata({ params }) {
