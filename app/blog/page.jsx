@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { BLOG_POSTS } from '../../lib/blog-posts'
 import { MARKETEROPS_BLOG_POSTS } from '../../data/marketerOpsBlogPosts'
 import { EDM, PRETENDARD_CSS_URL } from '../../components/gallery/edmTheme'
+import SiteNav from '../../components/gallery/SiteNav'
 import BlogSourceTabs from './BlogSourceTabs'
 
 export const revalidate = 0
@@ -70,33 +71,7 @@ export default async function BlogIndex() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Sticky Nav */}
-      <nav style={{
-        position: 'sticky', top: 0, zIndex: 50,
-        background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
-        borderBottom: `1px solid ${EDM.borderLight}`,
-      }}>
-        <div style={{
-          maxWidth: 860, margin: '0 auto',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '14px 16px',
-        }}>
-          <Link href="/" style={{
-            fontWeight: 800, fontSize: 17, textDecoration: 'none',
-            color: EDM.text1, letterSpacing: -0.5,
-          }}>
-            Task<span style={{ color: EDM.green[600] }}>Grid</span>
-          </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link href="/blog" style={{ fontSize: 13, color: EDM.text2, textDecoration: 'none', fontWeight: 600 }}>Blog</Link>
-            <Link href="/" style={{
-              fontSize: 13, fontWeight: 700, textDecoration: 'none',
-              background: EDM.green[500], color: '#fff',
-              padding: '7px 14px', borderRadius: EDM.radius.control, whiteSpace: 'nowrap',
-            }}>Get Started Free</Link>
-          </div>
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* Hero */}
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 16px 32px' }}>
@@ -126,13 +101,13 @@ export default async function BlogIndex() {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: 12,
       }}>
-        <Link href="/" style={{ fontWeight: 800, fontSize: 15, textDecoration: 'none', color: EDM.text1 }}>
-          Task<span style={{ color: EDM.green[600] }}>Grid</span>
-        </Link>
+        <span style={{ fontWeight: 800, fontSize: 15, color: EDM.text1 }}>
+          바이브<span style={{ color: EDM.green[600] }}>코딩</span>
+        </span>
         <div style={{ display: 'flex', gap: 20 }}>
-          <Link href="/" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>Home</Link>
-          <Link href="/" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>Sign Up Free</Link>
-          <Link href="/blog" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>Blog</Link>
+          <Link href="/" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>메인</Link>
+          <Link href="/portfolio" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>포트폴리오</Link>
+          <Link href="/blog" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>블로그</Link>
         </div>
       </footer>
     </main>
