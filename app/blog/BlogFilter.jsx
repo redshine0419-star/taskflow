@@ -1,21 +1,22 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import { EDM } from '../../components/gallery/edmTheme'
 
 const KO_CATEGORIES = ['전체', '툴비교', '구글활용', 'AI활용', '협업팁']
 const EN_CATEGORIES = ['All', 'alternatives', 'google-workspace', 'ai-tools', 'productivity']
 
 const CATEGORY_STYLES = {
-  'alternatives':      { background: '#6366f122', color: '#818cf8', border: '1px solid #6366f144' },
-  '툴비교':            { background: '#6366f122', color: '#818cf8', border: '1px solid #6366f144' },
-  'google-workspace':  { background: '#10b98122', color: '#34d399', border: '1px solid #34d39944' },
-  '구글활용':          { background: '#10b98122', color: '#34d399', border: '1px solid #34d39944' },
-  'ai-tools':          { background: '#f59e0b22', color: '#fbbf24', border: '1px solid #f59e0b44' },
-  'AI활용':            { background: '#f59e0b22', color: '#fbbf24', border: '1px solid #f59e0b44' },
-  'productivity':      { background: '#3b82f622', color: '#60a5fa', border: '1px solid #3b82f644' },
-  '협업팁':            { background: '#3b82f622', color: '#60a5fa', border: '1px solid #3b82f644' },
+  'alternatives':      { background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE' },
+  '툴비교':            { background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE' },
+  'google-workspace':  { background: EDM.green[50], color: EDM.green[700], border: `1px solid ${EDM.green[200]}` },
+  '구글활용':          { background: EDM.green[50], color: EDM.green[700], border: `1px solid ${EDM.green[200]}` },
+  'ai-tools':          { background: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' },
+  'AI활용':            { background: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' },
+  'productivity':      { background: '#EFF6FF', color: EDM.blue[600], border: '1px solid #BFDBFE' },
+  '협업팁':            { background: '#EFF6FF', color: EDM.blue[600], border: '1px solid #BFDBFE' },
 }
-const DEFAULT_STYLE = { background: '#27272a', color: '#a1a1aa', border: '1px solid #3f3f46' }
+const DEFAULT_STYLE = { background: EDM.neutral[50], color: EDM.text3, border: `1px solid ${EDM.border}` }
 function getCategoryStyle(cat) { return CATEGORY_STYLES[cat] || DEFAULT_STYLE }
 
 export default function BlogFilter({ posts }) {
@@ -35,12 +36,12 @@ export default function BlogFilter({ posts }) {
   const filtered = activeCategory === allLabel ? langPosts : langPosts.filter(p => p.category === activeCategory)
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto' }}>
+    <div>
       <style>{`
         .cat-tab { transition: background .15s, color .15s; cursor: pointer; }
-        .cat-tab:hover { background: #27272a !important; }
+        .cat-tab:hover { background: ${EDM.neutral[100]} !important; }
         .post-card-blog { transition: border-color .15s, transform .15s; }
-        .post-card-blog:hover { border-color: #34d399 !important; transform: translateY(-1px); }
+        .post-card-blog:hover { border-color: ${EDM.green[500]} !important; transform: translateY(-1px); }
       `}</style>
 
       {/* Language tabs */}
@@ -51,10 +52,10 @@ export default function BlogFilter({ posts }) {
             className="cat-tab"
             onClick={() => handleLangChange(lang)}
             style={{
-              padding: '6px 14px', borderRadius: 8, border: 'none',
+              padding: '6px 14px', borderRadius: EDM.radius.control, border: 'none',
               fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              background: activeLang === lang ? '#3b82f6' : '#18181b',
-              color: activeLang === lang ? '#fff' : '#a1a1aa',
+              background: activeLang === lang ? EDM.blue[500] : EDM.neutral[50],
+              color: activeLang === lang ? '#fff' : EDM.text3,
               letterSpacing: 0.5,
             }}
           >
@@ -71,10 +72,10 @@ export default function BlogFilter({ posts }) {
             className="cat-tab"
             onClick={() => setActiveCategory(cat)}
             style={{
-              padding: '7px 16px', borderRadius: 20, border: 'none',
+              padding: '7px 16px', borderRadius: EDM.radius.full, border: 'none',
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: activeCategory === cat ? '#10b981' : '#18181b',
-              color: activeCategory === cat ? '#fff' : '#a1a1aa',
+              background: activeCategory === cat ? EDM.green[500] : EDM.neutral[50],
+              color: activeCategory === cat ? '#fff' : EDM.text3,
             }}
           >
             {cat}
@@ -95,8 +96,9 @@ export default function BlogFilter({ posts }) {
             className="post-card-blog"
             style={{
               display: 'block', textDecoration: 'none',
-              background: '#18181b', border: '1px solid #27272a',
-              borderRadius: 12, overflow: 'hidden',
+              background: EDM.bg, border: `1px solid ${EDM.borderLight}`,
+              borderRadius: EDM.radius.card, overflow: 'hidden',
+              boxShadow: EDM.shadowBlue01,
             }}
           >
             {post.imageUrl && (
@@ -111,21 +113,21 @@ export default function BlogFilter({ posts }) {
                 <span style={{
                   fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
                   ...getCategoryStyle(post.category),
-                  padding: '2px 8px', borderRadius: 20,
+                  padding: '2px 8px', borderRadius: EDM.radius.full,
                 }}>
                   {post.category}
                 </span>
-                {post.readTime && <span style={{ fontSize: 11, color: '#52525b' }}>{activeLang === 'en' ? `${post.readTime} min` : `${post.readTime}분 읽기`}</span>}
+                {post.readTime && <span style={{ fontSize: 11, color: EDM.text4 }}>{activeLang === 'en' ? `${post.readTime} min` : `${post.readTime}분 읽기`}</span>}
               </div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#f4f4f5', marginBottom: 8, lineHeight: 1.4 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: EDM.text1, marginBottom: 8, lineHeight: 1.4 }}>
                 {post.title}
               </div>
-              <div style={{ fontSize: 13, color: '#71717a', lineHeight: 1.6, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: EDM.text3, lineHeight: 1.6, marginBottom: 16 }}>
                 {post.desc || post.excerpt}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: '#52525b' }}>{post.date || post.publishedAt}</span>
-                <span style={{ fontSize: 13, color: '#34d399', fontWeight: 700 }}>
+                <span style={{ fontSize: 11, color: EDM.text4 }}>{post.date || post.publishedAt}</span>
+                <span style={{ fontSize: 13, color: EDM.green[600], fontWeight: 700 }}>
                   {activeLang === 'en' ? 'Read more →' : '바로가기 →'}
                 </span>
               </div>
@@ -135,7 +137,7 @@ export default function BlogFilter({ posts }) {
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign: 'center', color: '#52525b', fontSize: 14, padding: '40px 0' }}>
+        <div style={{ textAlign: 'center', color: EDM.text4, fontSize: 14, padding: '40px 0' }}>
           {activeLang === 'en' ? 'No posts found.' : '포스트가 없습니다.'}
         </div>
       )}
