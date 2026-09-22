@@ -34,6 +34,28 @@ const PROCESS = [
 
 const FEATURED_IDS = ['taskflow', 'globalhope', 'marketerops-diagnosis', 'flavorsync']
 
+const PRICING = [
+  {
+    name: '랜딩페이지',
+    price: '50만원~',
+    tagline: '소개 홈페이지 · 랜딩페이지',
+    features: ['1페이지 반응형 디자인', '핵심 섹션 3~5개 구성', '문의 폼 연동', '평균 제작 기간 1주'],
+  },
+  {
+    name: '비즈니스 홈페이지',
+    price: '150만원~',
+    tagline: '기업 · 단체 홈페이지 + 관리자 CMS',
+    features: ['5페이지 내외 구성', '콘텐츠 관리자 CMS 포함', '반응형 디자인', '평균 제작 기간 2~3주'],
+    highlighted: true,
+  },
+  {
+    name: '맞춤 웹 서비스',
+    price: '300만원~',
+    tagline: '칸반 툴 · 대시보드 · AI 기능 연동',
+    features: ['커스텀 기능 개발', 'AI 기능 연동 옵션', '데이터 저장 구조 설계', '규모는 별도 협의'],
+  },
+]
+
 export default function HomeLanding({ apps }) {
   const featured = FEATURED_IDS.map((id) => apps.find((a) => a.id === id)).filter(Boolean)
 
@@ -178,6 +200,61 @@ export default function HomeLanding({ apps }) {
               <div style={{ marginTop: EDM.space[4], fontSize: 13, fontWeight: 700, color: EDM.green[600] }}>데모 보기 →</div>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section style={{ background: EDM.bgAlt, padding: '64px 24px' }}>
+        <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+          <h2 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: EDM.text1, textAlign: 'center', letterSpacing: '-0.01em' }}>
+            가격 안내
+          </h2>
+          <p style={{ margin: `${EDM.space[3]}px 0 0`, fontSize: 15, color: EDM.text3, textAlign: 'center' }}>
+            프로젝트 범위에 따라 달라질 수 있는 참고용 가격이에요. 정확한 견적은 문의 후 안내해드려요.
+          </p>
+          <div style={{
+            marginTop: EDM.space[8], display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: EDM.space[5],
+          }}>
+            {PRICING.map((tier) => (
+              <div key={tier.name} style={{
+                position: 'relative',
+                border: tier.highlighted ? `2px solid ${EDM.green[500]}` : `1px solid ${EDM.borderLight}`,
+                borderRadius: EDM.radius.card, boxShadow: EDM.shadowBlue01,
+                padding: EDM.space[6], background: EDM.bg,
+              }}>
+                {tier.highlighted && (
+                  <span style={{
+                    position: 'absolute', top: -12, left: EDM.space[6],
+                    fontSize: 12, fontWeight: 700, color: '#fff',
+                    background: EDM.green[500], borderRadius: EDM.radius.full, padding: '3px 12px',
+                  }}>
+                    가장 많이 찾는 패키지
+                  </span>
+                )}
+                <div style={{ fontSize: 13, fontWeight: 600, color: EDM.text3, marginBottom: EDM.space[2] }}>{tier.tagline}</div>
+                <div style={{ fontSize: 19, fontWeight: 700, color: EDM.text1, marginBottom: EDM.space[1] }}>{tier.name}</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: EDM.text1, marginBottom: EDM.space[5] }}>{tier.price}</div>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: EDM.space[2], marginBottom: EDM.space[6] }}>
+                  {tier.features.map((f) => (
+                    <li key={f} style={{ fontSize: 13.5, color: EDM.text2, display: 'flex', gap: 8 }}>
+                      <span style={{ color: EDM.green[600] }}>✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/portfolio" style={{
+                  display: 'block', textAlign: 'center', textDecoration: 'none',
+                  fontSize: 14, fontWeight: 700,
+                  color: tier.highlighted ? '#fff' : EDM.text1,
+                  background: tier.highlighted ? EDM.green[500] : EDM.neutral[50],
+                  borderRadius: EDM.radius.control, padding: '11px 0',
+                }}>
+                  문의하기
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
