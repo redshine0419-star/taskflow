@@ -32,7 +32,7 @@ const PROCESS = [
   { step: '04', title: '배포 & 전달', desc: '바로 쓸 수 있는 상태로 배포해서 전달해요.' },
 ]
 
-const FEATURED_IDS = ['taskflow', 'globalhope', 'marketerops-diagnosis', 'flavorsync']
+const FEATURED_IDS = ['cafe-landing', 'lawfirm-landing', 'wedding-landing', 'taskflow', 'marketerops-diagnosis', 'realestate-landing']
 
 const PRICING = [
   {
