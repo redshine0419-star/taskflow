@@ -93,6 +93,14 @@ export default function StartupLandingDemo() {
         </div>
       </section>
 
+      {/* Team photo */}
+      <section style={{ maxWidth: 1040, margin: '0 auto', padding: '0 24px 64px' }}>
+        <div style={{
+          borderRadius: 20, overflow: 'hidden', border: `1px solid ${T.border}`, height: 340,
+          background: `linear-gradient(rgba(11,13,23,0.35), rgba(11,13,23,0.55)), url('https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1600&q=80') center/cover`,
+        }} />
+      </section>
+
       {/* Trust logos */}
       <section id="trust" style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
         <div style={{ maxWidth: 1040, margin: '0 auto', padding: '28px 24px', display: 'flex', gap: 32, justifyContent: 'center', flexWrap: 'wrap' }}>

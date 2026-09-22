@@ -74,22 +74,27 @@ export default function ClinicLandingDemo() {
       </nav>
 
       {/* Hero */}
-      <section style={{ maxWidth: 780, margin: '0 auto', padding: '90px 24px 60px', textAlign: 'center' }}>
-        <span style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: T.accent, background: T.accentLight, padding: '6px 14px', borderRadius: 999, marginBottom: 20 }}>
-          가족 같은 마음으로 진료합니다
-        </span>
-        <h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.4 }}>
-          믿을 수 있는 동네 주치의,<br />정다운의원
-        </h1>
-        <p style={{ marginTop: 18, fontSize: 16, color: T.muted, lineHeight: 1.7 }}>
-          내과·정형외과·소아청소년과 전문의가 상주하며, 예약制으로 대기 시간 없이 진료받으실 수 있어요.
-        </p>
-        <a href="#reserve" style={{
-          display: 'inline-block', marginTop: 28, fontSize: 14, fontWeight: 700, textDecoration: 'none',
-          color: '#fff', background: T.accent, padding: '13px 28px', borderRadius: 8,
-        }}>
-          진료 예약하기
-        </a>
+      <section style={{
+        padding: '110px 24px 70px', textAlign: 'center',
+        background: `linear-gradient(rgba(247,250,253,0.9), rgba(247,250,253,0.94)), url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1600&q=80') center 30%/cover`,
+      }}>
+        <div style={{ maxWidth: 780, margin: '0 auto' }}>
+          <span style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: T.accent, background: T.accentLight, padding: '6px 14px', borderRadius: 999, marginBottom: 20 }}>
+            가족 같은 마음으로 진료합니다
+          </span>
+          <h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.4 }}>
+            믿을 수 있는 동네 주치의,<br />정다운의원
+          </h1>
+          <p style={{ marginTop: 18, fontSize: 16, color: T.muted, lineHeight: 1.7 }}>
+            내과·정형외과·소아청소년과 전문의가 상주하며, 예약制으로 대기 시간 없이 진료받으실 수 있어요.
+          </p>
+          <a href="#reserve" style={{
+            display: 'inline-block', marginTop: 28, fontSize: 14, fontWeight: 700, textDecoration: 'none',
+            color: '#fff', background: T.accent, padding: '13px 28px', borderRadius: 8,
+          }}>
+            진료 예약하기
+          </a>
+        </div>
       </section>
 
       {/* Departments */}
