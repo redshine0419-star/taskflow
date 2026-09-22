@@ -67,20 +67,24 @@ export default function CafeLandingDemo() {
       </nav>
 
       {/* Hero */}
-      <section style={{ maxWidth: 780, margin: '0 auto', padding: '90px 24px 60px', textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>☕</div>
-        <h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.35 }}>
-          하루의 쉼표,<br />카페 소슬입니다
-        </h1>
-        <p style={{ marginTop: 18, fontSize: 16, color: T.muted, lineHeight: 1.7 }}>
-          직접 로스팅한 원두와 매일 아침 굽는 페이스트리로 조용한 오후를 채워드려요.
-        </p>
-        <a href="#visit" style={{
-          display: 'inline-block', marginTop: 28, fontSize: 14, fontWeight: 700, textDecoration: 'none',
-          color: '#fff', background: T.accent, padding: '13px 28px', borderRadius: 999,
-        }}>
-          오시는 길 보기
-        </a>
+      <section style={{
+        padding: '120px 24px 100px', textAlign: 'center',
+        background: `linear-gradient(rgba(59,42,30,0.45), rgba(59,42,30,0.55)), url('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1600&q=80') center/cover`,
+      }}>
+        <div style={{ maxWidth: 780, margin: '0 auto' }}>
+          <h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.35, color: '#fff' }}>
+            하루의 쉼표,<br />카페 소슬입니다
+          </h1>
+          <p style={{ marginTop: 18, fontSize: 16, color: '#F3E9DC', lineHeight: 1.7 }}>
+            직접 로스팅한 원두와 매일 아침 굽는 페이스트리로 조용한 오후를 채워드려요.
+          </p>
+          <a href="#visit" style={{
+            display: 'inline-block', marginTop: 28, fontSize: 14, fontWeight: 700, textDecoration: 'none',
+            color: '#fff', background: T.accent, padding: '13px 28px', borderRadius: 999,
+          }}>
+            오시는 길 보기
+          </a>
+        </div>
       </section>
 
       {/* Menu */}

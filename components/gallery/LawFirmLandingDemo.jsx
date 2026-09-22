@@ -74,7 +74,10 @@ export default function LawFirmLandingDemo() {
       </nav>
 
       {/* Hero */}
-      <section style={{ background: T.dark, padding: '90px 24px 70px' }}>
+      <section style={{
+        padding: '90px 24px 70px',
+        background: `linear-gradient(rgba(11,30,61,0.88), rgba(11,30,61,0.92)), url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80') center/cover`,
+      }}>
         <div style={{ maxWidth: 780, margin: '0 auto', textAlign: 'center' }}>
           <span style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: T.gold, border: `1px solid ${T.gold}`, padding: '6px 14px', borderRadius: 999, marginBottom: 20 }}>
             의뢰인의 편에서 끝까지

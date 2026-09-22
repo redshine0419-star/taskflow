@@ -73,22 +73,27 @@ export default function RealEstateLandingDemo() {
       </nav>
 
       {/* Hero */}
-      <section style={{ maxWidth: 780, margin: '0 auto', padding: '90px 24px 60px', textAlign: 'center' }}>
-        <span style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: T.gold, border: `1px solid ${T.gold}`, padding: '6px 14px', borderRadius: 999, marginBottom: 20 }}>
-          20년 경력의 지역 전문가
-        </span>
-        <h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.4 }}>
-          우리 동네 부동산은<br />한강 공인중개사가 잘 압니다
-        </h1>
-        <p style={{ marginTop: 18, fontSize: 16, color: T.muted, lineHeight: 1.7 }}>
-          매매·전세·월세부터 상가 계약까지, 등기부등본 확인과 시세 분석을 꼼꼼히 챙겨드려요.
-        </p>
-        <a href="#listings" style={{
-          display: 'inline-block', marginTop: 28, fontSize: 14, fontWeight: 700, textDecoration: 'none',
-          color: '#fff', background: T.green, padding: '13px 28px', borderRadius: 8,
-        }}>
-          매물 보러가기
-        </a>
+      <section style={{
+        padding: '110px 24px 70px', textAlign: 'center',
+        background: `linear-gradient(rgba(246,248,246,0.88), rgba(246,248,246,0.94)), url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80') center/cover`,
+      }}>
+        <div style={{ maxWidth: 780, margin: '0 auto' }}>
+          <span style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: T.gold, border: `1px solid ${T.gold}`, padding: '6px 14px', borderRadius: 999, marginBottom: 20 }}>
+            20년 경력의 지역 전문가
+          </span>
+          <h1 style={{ margin: 0, fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.4 }}>
+            우리 동네 부동산은<br />한강 공인중개사가 잘 압니다
+          </h1>
+          <p style={{ marginTop: 18, fontSize: 16, color: T.muted, lineHeight: 1.7 }}>
+            매매·전세·월세부터 상가 계약까지, 등기부등본 확인과 시세 분석을 꼼꼼히 챙겨드려요.
+          </p>
+          <a href="#listings" style={{
+            display: 'inline-block', marginTop: 28, fontSize: 14, fontWeight: 700, textDecoration: 'none',
+            color: '#fff', background: T.green, padding: '13px 28px', borderRadius: 8,
+          }}>
+            매물 보러가기
+          </a>
+        </div>
       </section>
 
       {/* Listings */}
