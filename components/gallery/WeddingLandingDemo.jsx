@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { PRETENDARD_CSS_URL } from './edmTheme'
+import DeviceToggle from './DeviceToggle'
 import './edenWedding.css'
 
 const GALLERY_IMAGES = [
@@ -45,6 +46,7 @@ export default function WeddingLandingDemo() {
   return (
     <div className="eden-scope">
       <link rel="stylesheet" href={PRETENDARD_CSS_URL} />
+      <DeviceToggle />
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&display=swap" />
 
       <nav>
