@@ -14,6 +14,7 @@
  * @property {string} name - Display name shown on the card.
  * @property {string} description - One-line summary shown on the card.
  * @property {string[]} tags - Tag badges; also drives the tag filter bar.
+ * @property {"app"|"homepage"} category - "app" for SaaS/tool demos, "homepage" for one-page site/landing-page demos.
  * @property {"live"|"coming-soon"} status - "live" enables the demo button.
  * @property {string} demoPath - Internal route to the live demo.
  * @property {string} guidePath - Internal route to the usage guide.
@@ -28,6 +29,7 @@ export const apps = [
     description: '구글 시트 기반의 서버리스 칸반 보드로 팀 작업을 관리해요.',
     tags: ['생산성', '칸반', '협업'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/taskflow',
     guidePath: '/guides/taskflow',
     guide: {
@@ -54,6 +56,7 @@ export const apps = [
     description: '뽀모도로 사이클로 집중 시간과 휴식을 자동으로 관리해줘요.',
     tags: ['생산성', '타이머'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/focus-timer',
     guidePath: '/guides/focus-timer',
     guide: {
@@ -78,6 +81,7 @@ export const apps = [
     description: '카테고리별 지출을 기록하고 월별 소비 패턴을 한눈에 봐요.',
     tags: ['가계부', '데이터'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/expense-tracker',
     guidePath: '/guides/expense-tracker',
     guide: {
@@ -102,6 +106,7 @@ export const apps = [
     description: '매일의 습관을 체크하고 연속 기록(스트릭)으로 동기부여해요.',
     tags: ['생산성', '습관'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/habit-tracker',
     guidePath: '/guides/habit-tracker',
     guide: {
@@ -125,6 +130,7 @@ export const apps = [
     description: '6개월 PPL 스플릿 운동 플랜과 인바디 기록을 관리해요.',
     tags: ['피트니스', '헬스', '플래너'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/fitness-tracker',
     guidePath: '/guides/fitness-tracker',
     guide: {
@@ -149,6 +155,7 @@ export const apps = [
     description: '멀티 모델 선택이 가능한 AI 챗봇 UI를 체험해봐요.',
     tags: ['AI', '챗봇'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/chatbot',
     guidePath: '/guides/chatbot',
     guide: {
@@ -173,6 +180,7 @@ export const apps = [
     description: '여러 서비스의 현황·비용·AI 플랜을 한 화면에서 관리해요.',
     tags: ['운영', '대시보드', 'AI'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/service-dashboard',
     guidePath: '/guides/service-dashboard',
     guide: {
@@ -197,6 +205,7 @@ export const apps = [
     description: '레시피 위키와 2구 요리 모드, 냉장고 관리를 한 번에 해봐요.',
     tags: ['레시피', '요리', '블로그'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/flavorsync',
     guidePath: '/guides/flavorsync',
     guide: {
@@ -221,6 +230,7 @@ export const apps = [
     description: 'NGO 후원단체 홈페이지와 배너·사업·소식·문의를 관리하는 CMS를 함께 체험해요.',
     tags: ['NGO', 'CMS', '공공'],
     status: 'live',
+    category: 'homepage',
     demoPath: '/apps/globalhope',
     guidePath: '/guides/globalhope',
     guide: {
@@ -247,6 +257,7 @@ export const apps = [
     description: 'URL 하나로 성능·SEO·GEO 점수와 AI 개선 전략을 받아봐요.',
     tags: ['마케팅', 'AI', '진단'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/marketerops-diagnosis',
     guidePath: '/guides/marketerops-diagnosis',
     guide: {
@@ -271,6 +282,7 @@ export const apps = [
     description: 'GA4·GSC 연동부터 AI 언급률(SOV), 경쟁사 비교까지 한 번에 봐요.',
     tags: ['마케팅', 'AI', '분석'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/marketerops-channels',
     guidePath: '/guides/marketerops-channels',
     guide: {
@@ -295,6 +307,7 @@ export const apps = [
     description: 'AI 블로그 CMS와 사이트 편집기, 뉴스레터 구독까지 관리해요.',
     tags: ['마케팅', 'AI', 'CMS'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/marketerops-blogsite',
     guidePath: '/guides/marketerops-blogsite',
     guide: {
@@ -320,6 +333,7 @@ export const apps = [
     description: '주제 하나로 블로그·SNS·뉴스레터·광고카피를 한 번에 생성해요.',
     tags: ['마케팅', 'AI', '콘텐츠'],
     status: 'live',
+    category: 'app',
     demoPath: '/apps/marketerops-content',
     guidePath: '/guides/marketerops-content',
     guide: {
@@ -344,6 +358,7 @@ export const apps = [
     description: '카페 소슬 — 메뉴·소개·오시는 길을 담은 1페이지 홈페이지예요.',
     tags: ['홈페이지', '랜딩페이지', '소상공인'],
     status: 'live',
+    category: 'homepage',
     demoPath: '/apps/cafe-landing',
     guidePath: '/guides/cafe-landing',
     guide: {
@@ -369,6 +384,7 @@ export const apps = [
     description: '정다운의원 — 진료과목·의료진 소개·예약 문의를 담은 홈페이지예요.',
     tags: ['홈페이지', '랜딩페이지', '의료'],
     status: 'live',
+    category: 'homepage',
     demoPath: '/apps/clinic-landing',
     guidePath: '/guides/clinic-landing',
     guide: {
@@ -393,6 +409,7 @@ export const apps = [
     description: '이현 법률사무소 — 전문분야·상담절차·상담신청을 담은 홈페이지예요.',
     tags: ['홈페이지', '랜딩페이지', '전문직'],
     status: 'live',
+    category: 'homepage',
     demoPath: '/apps/lawfirm-landing',
     guidePath: '/guides/lawfirm-landing',
     guide: {
@@ -417,6 +434,7 @@ export const apps = [
     description: '런치패드 — 제품 소개와 얼리 액세스 신청을 담은 다크 테마 랜딩페이지예요.',
     tags: ['홈페이지', '랜딩페이지', '스타트업'],
     status: 'live',
+    category: 'homepage',
     demoPath: '/apps/startup-landing',
     guidePath: '/guides/startup-landing',
     guide: {
@@ -441,6 +459,7 @@ export const apps = [
     description: '한강 공인중개사 — 주요매물·서비스 안내·매물 문의를 담은 홈페이지예요.',
     tags: ['홈페이지', '랜딩페이지', '부동산'],
     status: 'live',
+    category: 'homepage',
     demoPath: '/apps/realestate-landing',
     guidePath: '/guides/realestate-landing',
     guide: {
@@ -465,6 +484,7 @@ export const apps = [
     description: 'Eden Wedding — 웨딩 갤러리·패키지 안내·상담 예약을 담은 홈페이지예요.',
     tags: ['홈페이지', '랜딩페이지', '웨딩'],
     status: 'live',
+    category: 'homepage',
     demoPath: '/apps/wedding-landing',
     guidePath: '/guides/wedding-landing',
     guide: {
