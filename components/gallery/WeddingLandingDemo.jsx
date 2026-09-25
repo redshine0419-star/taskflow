@@ -17,6 +17,17 @@ const PACKAGES = [
   { name: 'Signature', price: '980', items: ['프리웨딩', '본식 영상', '전담 플래너', 'VIP 앨범'] },
 ]
 
+const STATS = [
+  { value: '500+', label: '함께한 커플' },
+  { value: '4.9★', label: '평균 만족도' },
+  { value: '10년', label: '웨딩 촬영 경력' },
+]
+
+const REVIEWS = [
+  { name: '신부 이O은', rating: 5, text: '플래너님이 하나하나 세심하게 챙겨주셔서 준비 과정이 편했어요.' },
+  { name: '신랑 정O우', rating: 5, text: '본식 스냅이 정말 자연스럽게 나와서 다들 놀랐어요.' },
+]
+
 function BookingForm() {
   const [form, setForm] = useState({ name: '', phone: '', date: '' })
   const [sent, setSent] = useState(false)
@@ -43,6 +54,8 @@ function BookingForm() {
 }
 
 export default function WeddingLandingDemo() {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <div className="eden-scope">
       <link rel="stylesheet" href={PRETENDARD_CSS_URL} />
@@ -54,12 +67,15 @@ export default function WeddingLandingDemo() {
           <Link href="/portfolio" className="back-link">← 갤러리로</Link>
           <div className="logo">Eden</div>
         </div>
-        <ul>
-          <li><a href="#gallery-section">Story</a></li>
-          <li><a href="#gallery-section">Gallery</a></li>
-          <li><a href="#package-section">Package</a></li>
-          <li><a href="#booking-section">Contact</a></li>
+        <ul className={menuOpen ? 'open' : ''}>
+          <li><a href="#gallery-section" onClick={() => setMenuOpen(false)}>Story</a></li>
+          <li><a href="#gallery-section" onClick={() => setMenuOpen(false)}>Gallery</a></li>
+          <li><a href="#package-section" onClick={() => setMenuOpen(false)}>Package</a></li>
+          <li><a href="#booking-section" onClick={() => setMenuOpen(false)}>Contact</a></li>
         </ul>
+        <button className="nav-toggle" onClick={() => setMenuOpen((v) => !v)} aria-label="메뉴">
+          {menuOpen ? '✕' : '☰'}
+        </button>
       </nav>
 
       <section className="hero">
@@ -69,6 +85,15 @@ export default function WeddingLandingDemo() {
           <a className="btn" href="#package-section">패키지 보기</a>
         </div>
       </section>
+
+      <div className="stats-row">
+        {STATS.map((s) => (
+          <div key={s.label}>
+            <div className="stat-value">{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
 
       <section id="gallery-section">
         <div className="title">
@@ -95,6 +120,22 @@ export default function WeddingLandingDemo() {
               <ul>
                 {p.items.map((it) => <li key={it}>{it}</li>)}
               </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="title">
+          <span>REVIEWS</span>
+          <h2>신랑신부 후기</h2>
+        </div>
+        <div className="review-grid">
+          {REVIEWS.map((r) => (
+            <div key={r.name} className="review-card">
+              <div className="stars">{'★'.repeat(r.rating)}</div>
+              <p>&ldquo;{r.text}&rdquo;</p>
+              <div className="review-name">{r.name}</div>
             </div>
           ))}
         </div>

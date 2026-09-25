@@ -17,6 +17,17 @@ const WORKS = [
   { title: '베이비 촬영', emoji: '👶' },
 ]
 
+const STATS = [
+  { value: '9년', label: '촬영 경력' },
+  { value: '1,100+', label: '누적 촬영 건수' },
+  { value: '4.9★', label: '고객 평점' },
+]
+
+const REVIEWS = [
+  { name: '신부 한O빈', text: '자연광을 정말 잘 살려주셔서 사진이 다 화보 같았어요.' },
+  { name: '고객 유O진', text: '프로필 촬영인데도 편하게 리드해주셔서 표정이 자연스럽게 나왔어요.' },
+]
+
 function InquiryForm() {
   const [form, setForm] = useState({ name: '', phone: '', type: WORKS[0].title })
   const [sent, setSent] = useState(false)
@@ -50,21 +61,41 @@ function InquiryForm() {
 }
 
 export default function PhotographerLandingDemo() {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Pretendard', -apple-system, sans-serif", color: T.text }}>
       <link rel="stylesheet" href={PRETENDARD_CSS_URL} />
       <DeviceToggle />
 
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,10,10,0.9)', backdropFilter: 'blur(6px)', borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ maxWidth: 1040, margin: '0 auto', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <style>{`
+        .ph-nav-links { display: flex; gap: 24px; align-items: center; }
+        .ph-nav-toggle { display: none; }
+        .ph-work-item { transition: transform .25s ease; }
+        .ph-work-item:hover { transform: scale(1.05); }
+        .ph-review { transition: transform .18s ease; }
+        .ph-review:hover { transform: translateY(-4px); }
+        @media (max-width: 680px) {
+          .ph-nav-links { display: none; }
+          .ph-nav-links.open { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; position: absolute; top: 100%; left: 0; right: 0; background: ${T.bg}; padding: 20px 24px; border-bottom: 1px solid ${T.border}; }
+          .ph-nav-toggle { display: block; }
+        }
+      `}</style>
+
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(10,10,10,0.92)', backdropFilter: 'blur(6px)', borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ maxWidth: 1040, margin: '0 auto', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Link href="/portfolio" style={{ fontSize: 12, color: T.muted, textDecoration: 'none' }}>← 갤러리로</Link>
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '0.15em' }}>STUDIO ILLUM</span>
           </div>
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <a href="#works" style={{ fontSize: 13, color: T.muted, textDecoration: 'none' }}>WORKS</a>
-            <a href="#inquiry" style={{ fontSize: 13, fontWeight: 700, color: '#0A0A0A', background: '#fff', padding: '8px 16px', textDecoration: 'none' }}>문의하기</a>
+          <div className={`ph-nav-links${menuOpen ? ' open' : ''}`}>
+            <a href="#works" onClick={() => setMenuOpen(false)} style={{ fontSize: 13, color: T.muted, textDecoration: 'none' }}>WORKS</a>
+            <a href="#reviews" onClick={() => setMenuOpen(false)} style={{ fontSize: 13, color: T.muted, textDecoration: 'none' }}>REVIEWS</a>
+            <a href="#inquiry" onClick={() => setMenuOpen(false)} style={{ fontSize: 13, fontWeight: 700, color: '#0A0A0A', background: '#fff', padding: '8px 16px', textDecoration: 'none' }}>문의하기</a>
           </div>
+          <button className="ph-nav-toggle" onClick={() => setMenuOpen((v) => !v)} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer', color: '#fff' }}>
+            {menuOpen ? '✕' : '☰'}
+          </button>
         </div>
       </nav>
 
@@ -90,15 +121,27 @@ export default function PhotographerLandingDemo() {
         </div>
       </section>
 
+      {/* Stats */}
+      <section style={{ borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 24px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, textAlign: 'center' }}>
+          {STATS.map((s) => (
+            <div key={s.label}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Works */}
       <section id="works" style={{ maxWidth: 1040, margin: '0 auto', padding: '64px 24px' }}>
         <div style={{ fontSize: 12, letterSpacing: '0.2em', color: T.muted, textAlign: 'center', marginBottom: 8 }}>PORTFOLIO</div>
         <h2 style={{ textAlign: 'center', fontSize: 26, fontWeight: 700, marginBottom: 36 }}>작업물</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 4 }}>
           {WORKS.map((w) => (
-            <div key={w.title} style={{
+            <div key={w.title} className="ph-work-item" style={{
               aspectRatio: '1', background: T.surface, border: `1px solid ${T.border}`,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer',
             }}>
               <span style={{ fontSize: 32 }}>{w.emoji}</span>
               <span style={{ fontSize: 13, color: T.muted }}>{w.title}</span>
@@ -107,16 +150,54 @@ export default function PhotographerLandingDemo() {
         </div>
       </section>
 
-      {/* Inquiry */}
-      <section id="inquiry" style={{ background: T.surface, borderTop: `1px solid ${T.border}` }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '56px 24px' }}>
-          <h2 style={{ textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 24 }}>촬영 문의</h2>
-          <InquiryForm />
+      {/* Reviews */}
+      <section id="reviews" style={{ background: T.surface, borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ maxWidth: 780, margin: '0 auto', padding: '56px 24px' }}>
+          <h2 style={{ textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 28 }}>고객 후기</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+            {REVIEWS.map((r) => (
+              <div key={r.name} className="ph-review" style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 4, padding: 24 }}>
+                <p style={{ margin: 0, fontSize: 14, color: T.text, lineHeight: 1.7 }}>&ldquo;{r.text}&rdquo;</p>
+                <div style={{ marginTop: 12, fontSize: 12, color: T.muted, fontWeight: 600 }}>{r.name}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      <footer style={{ textAlign: 'center', padding: '32px 24px', fontSize: 12, color: T.muted }}>
-        STUDIO ILLUM · 이 페이지는 포트폴리오용으로 제작된 예시 홈페이지 데모예요.
+      {/* Inquiry */}
+      <section id="inquiry" style={{ maxWidth: 720, margin: '0 auto', padding: '56px 24px' }}>
+        <h2 style={{ textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 24 }}>촬영 문의</h2>
+        <InquiryForm />
+      </section>
+
+      {/* Footer */}
+      <footer style={{ borderTop: `1px solid ${T.border}`, padding: '40px 24px' }}>
+        <div style={{ maxWidth: 1040, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 14, letterSpacing: '0.1em', marginBottom: 8 }}>STUDIO ILLUM</div>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.8 }}>
+              사업자등록번호 890-12-34567 (예시)<br />
+              서울 성수동 스튜디오길 5<br />
+              010-1234-5678
+            </div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>촬영 시간</div>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.8 }}>
+              매일 09:00 – 20:00 (사전 예약제)
+            </div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>SNS</div>
+            <div style={{ display: 'flex', gap: 10, fontSize: 20 }}>
+              <span>📷</span><span>🎞️</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 1040, margin: '32px auto 0', paddingTop: 20, borderTop: `1px solid ${T.border}`, fontSize: 12, color: T.muted, textAlign: 'center' }}>
+          STUDIO ILLUM · 이 페이지는 포트폴리오용으로 제작된 예시 홈페이지 데모예요.
+        </div>
       </footer>
     </div>
   )

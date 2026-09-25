@@ -25,6 +25,16 @@ const STATS = [
   { value: '27년', label: '활동 역사' },
 ]
 
+const TESTIMONIALS = [
+  { name: '정기후원자 김O영', stars: 5, text: '매달 보내주시는 아동 성장 소식지를 보면서 후원이 실제로 닿고 있다는 걸 느껴요.' },
+  { name: '정기후원자 박O수', stars: 5, text: '투명한 후원금 사용 보고서 덕분에 믿고 오래 후원하고 있습니다.' },
+  { name: '자원봉사자 이O진', stars: 5, text: '현장 봉사에 참여하면서 직원분들의 진심을 느낄 수 있었어요.' },
+]
+
+function Stars({ n }) {
+  return <span className="stars">{'★'.repeat(n) + '☆'.repeat(5 - n)}</span>
+}
+
 export default function Home() {
   const [banners, setBanners] = useState([])
   const [programs, setPrograms] = useState([])
@@ -113,6 +123,25 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      <section className="section section-alt">
+        <div className="container">
+          <div className="section-head">
+            <span className="eyebrow">VOICE</span>
+            <h2>후원자·자원봉사자의 목소리</h2>
+            <p>글로벌호프와 함께하는 분들의 이야기를 들어보세요.</p>
+          </div>
+          <div className="grid grid-3">
+            {TESTIMONIALS.map((t) => (
+              <div key={t.name} className="testimonial-card">
+                <Stars n={t.stars} />
+                <p>&ldquo;{t.text}&rdquo;</p>
+                <div className="testimonial-name">{t.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="section">
         <div className="container">

@@ -21,6 +21,21 @@ const SERVICES = [
   { icon: '📐', title: '시세 상담', desc: '보유 부동산의 적정 시세를 무료로 분석해드려요.' },
 ]
 
+const STATS = [
+  { value: '20년', label: '지역 중개 경력' },
+  { value: '1,800+', label: '누적 거래 건수' },
+  { value: '4.8★', label: '고객 만족도' },
+]
+
+const REVIEWS = [
+  { name: '거래고객 서O진', rating: 5, text: '등기부등본까지 꼼꼼히 확인해주셔서 안심하고 계약했어요.' },
+  { name: '거래고객 오O택', rating: 5, text: '시세를 정확하게 짚어주셔서 좋은 가격에 매도할 수 있었어요.' },
+]
+
+function Stars({ n }) {
+  return <span style={{ color: T.gold, fontSize: 12, letterSpacing: 1 }}>{'★'.repeat(Math.round(n))}{'☆'.repeat(5 - Math.round(n))}</span>
+}
+
 function InquiryForm() {
   const [form, setForm] = useState({ name: '', phone: '', interest: LISTINGS[0].name })
   const [sent, setSent] = useState(false)
@@ -54,29 +69,46 @@ function InquiryForm() {
 }
 
 export default function RealEstateLandingDemo() {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Pretendard', -apple-system, sans-serif", color: T.text }}>
       <link rel="stylesheet" href={PRETENDARD_CSS_URL} />
       <DeviceToggle />
 
+      <style>{`
+        .re-nav-links { display: flex; gap: 24px; align-items: center; }
+        .re-nav-toggle { display: none; }
+        .re-card { transition: transform .18s ease, box-shadow .18s ease; }
+        .re-card:hover { transform: translateY(-4px); box-shadow: 0 14px 26px rgba(27,67,50,0.12); }
+        @media (max-width: 680px) {
+          .re-nav-links { display: none; }
+          .re-nav-links.open { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; position: absolute; top: 100%; left: 0; right: 0; background: ${T.bg}; padding: 20px 24px; border-bottom: 1px solid ${T.border}; }
+          .re-nav-toggle { display: block; }
+        }
+      `}</style>
+
       {/* Nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(246,248,246,0.92)', backdropFilter: 'blur(6px)', borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ maxWidth: 1040, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(246,248,246,0.95)', backdropFilter: 'blur(6px)', borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ maxWidth: 1040, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Link href="/portfolio" style={{ fontSize: 12, color: T.muted, textDecoration: 'none' }}>← 갤러리로</Link>
             <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.02em', color: T.green }}>한강 공인중개사</span>
           </div>
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <a href="#listings" style={{ fontSize: 13, color: T.text, textDecoration: 'none' }}>주요매물</a>
-            <a href="#services" style={{ fontSize: 13, color: T.text, textDecoration: 'none' }}>서비스</a>
-            <a href="#inquiry" style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: T.green, padding: '8px 16px', borderRadius: 8, textDecoration: 'none' }}>매물 문의</a>
+          <div className={`re-nav-links${menuOpen ? ' open' : ''}`}>
+            <a href="#listings" onClick={() => setMenuOpen(false)} style={{ fontSize: 13, color: T.text, textDecoration: 'none' }}>주요매물</a>
+            <a href="#services" onClick={() => setMenuOpen(false)} style={{ fontSize: 13, color: T.text, textDecoration: 'none' }}>서비스</a>
+            <a href="#inquiry" onClick={() => setMenuOpen(false)} style={{ fontSize: 13, fontWeight: 700, color: '#fff', background: T.green, padding: '8px 16px', borderRadius: 8, textDecoration: 'none' }}>매물 문의</a>
           </div>
+          <button className="re-nav-toggle" onClick={() => setMenuOpen((v) => !v)} style={{ border: 'none', background: 'none', fontSize: 20, cursor: 'pointer', color: T.text }}>
+            {menuOpen ? '✕' : '☰'}
+          </button>
         </div>
       </nav>
 
       {/* Hero */}
       <section style={{
-        padding: '110px 24px 70px', textAlign: 'center',
+        padding: '110px 24px 60px', textAlign: 'center',
         background: `linear-gradient(rgba(246,248,246,0.88), rgba(246,248,246,0.94)), url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1600&q=80') center/cover`,
       }}>
         <div style={{ maxWidth: 780, margin: '0 auto' }}>
@@ -98,12 +130,24 @@ export default function RealEstateLandingDemo() {
         </div>
       </section>
 
+      {/* Stats */}
+      <section style={{ borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 24px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, textAlign: 'center' }}>
+          {STATS.map((s) => (
+            <div key={s.label}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: T.green }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Listings */}
-      <section id="listings" style={{ maxWidth: 1040, margin: '0 auto', padding: '48px 24px' }}>
+      <section id="listings" style={{ maxWidth: 1040, margin: '0 auto', padding: '56px 24px' }}>
         <h2 style={{ textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 32 }}>주요 매물</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
           {LISTINGS.map((l) => (
-            <div key={l.name} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
+            <div key={l.name} className="re-card" style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: 24 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: T.green, background: '#E7F0EA', padding: '3px 10px', borderRadius: 999 }}>{l.type}</span>
               <div style={{ fontWeight: 700, fontSize: 15, marginTop: 12 }}>{l.name}</div>
               <div style={{ marginTop: 4, fontSize: 13, color: T.muted }}>{l.area}</div>
@@ -129,14 +173,54 @@ export default function RealEstateLandingDemo() {
         </div>
       </section>
 
-      {/* Inquiry */}
-      <section id="inquiry" style={{ maxWidth: 720, margin: '0 auto', padding: '56px 24px' }}>
-        <h2 style={{ textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 24 }}>매물 문의</h2>
-        <InquiryForm />
+      {/* Reviews */}
+      <section style={{ maxWidth: 780, margin: '0 auto', padding: '56px 24px' }}>
+        <h2 style={{ textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 28 }}>거래고객 후기</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+          {REVIEWS.map((r) => (
+            <div key={r.name} className="re-card" style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 16, padding: 22 }}>
+              <Stars n={r.rating} />
+              <p style={{ margin: '10px 0 0', fontSize: 13.5, color: T.muted, lineHeight: 1.7 }}>&ldquo;{r.text}&rdquo;</p>
+              <div style={{ marginTop: 10, fontSize: 12, fontWeight: 600 }}>{r.name}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      <footer style={{ textAlign: 'center', padding: '32px 24px', fontSize: 12, color: T.muted }}>
-        한강 공인중개사 · 이 페이지는 포트폴리오용으로 제작된 예시 홈페이지 데모예요.
+      {/* Inquiry */}
+      <section id="inquiry" style={{ background: T.surface, borderTop: `1px solid ${T.border}` }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '56px 24px' }}>
+          <h2 style={{ textAlign: 'center', fontSize: 24, fontWeight: 700, marginBottom: 24 }}>매물 문의</h2>
+          <InquiryForm />
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ borderTop: `1px solid ${T.border}`, padding: '40px 24px' }}>
+        <div style={{ maxWidth: 1040, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: T.green, marginBottom: 8 }}>한강 공인중개사</div>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.8 }}>
+              사업자등록번호 678-90-12345 (예시)<br />
+              서울 용산구 한강대로 56<br />
+              02-5678-9012
+            </div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>영업시간</div>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.8 }}>
+              평일 09:00 – 19:00<br />
+              토요일 10:00 – 15:00
+            </div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>등록번호</div>
+            <div style={{ fontSize: 12, color: T.muted }}>공인중개사사무소 등록 제2026-000123호 (예시)</div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 1040, margin: '32px auto 0', paddingTop: 20, borderTop: `1px solid ${T.border}`, fontSize: 12, color: T.muted, textAlign: 'center' }}>
+          한강 공인중개사 · 이 페이지는 포트폴리오용으로 제작된 예시 홈페이지 데모예요.
+        </div>
       </footer>
     </div>
   )
