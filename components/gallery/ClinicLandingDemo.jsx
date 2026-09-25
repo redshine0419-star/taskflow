@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { PRETENDARD_CSS_URL } from './edmTheme'
+import DeviceToggle from './DeviceToggle'
 
 const T = {
   bg: '#F7FAFD', surface: '#FFFFFF', text: '#1F2937', muted: '#6B7280',
@@ -56,6 +57,7 @@ export default function ClinicLandingDemo() {
   return (
     <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Pretendard', -apple-system, sans-serif", color: T.text }}>
       <link rel="stylesheet" href={PRETENDARD_CSS_URL} />
+      <DeviceToggle />
 
       {/* Nav */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(247,250,253,0.92)', backdropFilter: 'blur(6px)', borderBottom: `1px solid ${T.border}` }}>
