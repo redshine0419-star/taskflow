@@ -7,18 +7,35 @@ import { EDM, PRETENDARD_CSS_URL } from './edmTheme'
 
 const ALL = '전체'
 
-export default function PortfolioGallery({ apps }) {
-  const tags = useMemo(() => {
-    const set = new Set()
-    apps.forEach((app) => app.tags.forEach((tag) => set.add(tag)))
-    return [ALL, ...Array.from(set)]
-  }, [apps])
+const CATEGORIES = [
+  { key: 'all', label: '전체' },
+  { key: 'app', label: '앱' },
+  { key: 'homepage', label: '홈페이지' },
+]
 
+export default function PortfolioGallery({ apps }) {
+  const [activeCategory, setActiveCategory] = useState('all')
   const [activeTag, setActiveTag] = useState(ALL)
 
+  const categoryApps = useMemo(
+    () => (activeCategory === 'all' ? apps : apps.filter((app) => app.category === activeCategory)),
+    [apps, activeCategory]
+  )
+
+  const tags = useMemo(() => {
+    const set = new Set()
+    categoryApps.forEach((app) => app.tags.forEach((tag) => set.add(tag)))
+    return [ALL, ...Array.from(set)]
+  }, [categoryApps])
+
+  const handleCategoryChange = (key) => {
+    setActiveCategory(key)
+    setActiveTag(ALL)
+  }
+
   const visibleApps = useMemo(
-    () => (activeTag === ALL ? apps : apps.filter((app) => app.tags.includes(activeTag))),
-    [apps, activeTag]
+    () => (activeTag === ALL ? categoryApps : categoryApps.filter((app) => app.tags.includes(activeTag))),
+    [categoryApps, activeTag]
   )
 
   return (
@@ -38,7 +55,7 @@ export default function PortfolioGallery({ apps }) {
             각 앱마다 어떻게 만들었는지 설명하는 개발 가이드도 함께 볼 수 있어요.
           </p>
           <p style={{ marginTop: EDM.space[3], fontSize: 15, color: EDM.text3, lineHeight: 1.7 }}>
-            아래 태그로 원하는 카테고리의 앱을 필터링해보세요. 프로젝트를 만들며 정리한 글은{' '}
+            아래에서 앱과 홈페이지를 구분해서 보거나, 태그로 원하는 카테고리를 필터링해보세요. 프로젝트를 만들며 정리한 글은{' '}
             <Link href="/blog" style={{ color: EDM.blue[600], fontWeight: 600, textDecoration: 'underline' }}>
               블로그
             </Link>
@@ -46,6 +63,33 @@ export default function PortfolioGallery({ apps }) {
           </p>
         </header>
 
+        {/* Category tabs: 앱 vs 홈페이지 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: EDM.space[2], marginBottom: EDM.space[4] }}>
+          {CATEGORIES.map((cat) => {
+            const active = cat.key === activeCategory
+            return (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => handleCategoryChange(cat.key)}
+                style={{
+                  fontSize: 15,
+                  fontWeight: active ? 700 : 500,
+                  color: active ? '#fff' : EDM.text2,
+                  background: active ? EDM.text1 : EDM.neutral[50],
+                  border: 'none',
+                  borderRadius: EDM.radius.control,
+                  padding: '10px 22px',
+                  cursor: 'pointer',
+                }}
+              >
+                {cat.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Tag filter, scoped to the active category */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: EDM.space[2], marginBottom: EDM.space[8] }}>
           {tags.map((tag) => {
             const active = tag === activeTag
@@ -86,7 +130,7 @@ export default function PortfolioGallery({ apps }) {
 
         {visibleApps.length === 0 && (
           <p style={{ color: EDM.text3, fontSize: 15, marginTop: EDM.space[6] }}>
-            해당 태그의 앱이 아직 없어요.
+            해당 조건의 프로젝트가 아직 없어요.
           </p>
         )}
       </div>
