@@ -50,13 +50,6 @@ const PRICING = [
     features: ['5페이지 내외 구성', '콘텐츠 관리자 CMS 포함', '반응형 디자인', '완전한 코드 소유권 (플랫폼 종속 없음)', '평균 제작 기간 2~3주'],
     highlighted: true,
   },
-  {
-    name: '맞춤 웹 서비스',
-    price: '59만원~',
-    maintenance: '월 19만원~',
-    tagline: '칸반 툴 · 대시보드 · AI 기능 연동',
-    features: ['커스텀 기능 개발', 'AI 기능 연동 옵션', '데이터 저장 구조 설계', '템플릿 빌더로는 불가능한 기능 구현', '규모는 별도 협의'],
-  },
 ]
 
 const COMPARISON = {
