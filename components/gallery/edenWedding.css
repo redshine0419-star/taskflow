@@ -61,6 +61,87 @@
   font-size: 14px;
 }
 
+.eden-scope .nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #111;
+}
+
+.eden-scope .stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  padding: 32px 8%;
+  text-align: center;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.eden-scope .stat-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 30px;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.eden-scope .stat-label {
+  font-size: 12px;
+  color: var(--sub);
+  margin-top: 4px;
+}
+
+.eden-scope .review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.eden-scope .review-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.eden-scope .review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 26px rgba(176, 138, 85, 0.14);
+}
+
+.eden-scope .review-card .stars {
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.eden-scope .review-card p {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  color: var(--sub);
+  line-height: 1.7;
+}
+
+.eden-scope .review-card .review-name {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.eden-scope .card {
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.eden-scope .card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 30px rgba(176, 138, 85, 0.14);
+}
+
 .eden-scope .hero {
   min-height: 100vh;
   display: flex;
@@ -237,5 +318,28 @@
 
   .eden-scope .booking .right {
     height: 260px;
+  }
+}
+
+@media (max-width: 680px) {
+  .eden-scope nav ul {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: var(--bg);
+    padding: 20px 8%;
+    gap: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .eden-scope nav ul.open {
+    display: flex;
+  }
+
+  .eden-scope .nav-toggle {
+    display: block;
   }
 }
