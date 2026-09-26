@@ -4,24 +4,24 @@ import { EDM, PRETENDARD_CSS_URL } from './edmTheme'
 
 const SERVICES = [
   {
-    icon: '🗂️',
-    title: '업무용 SaaS 웹앱',
-    desc: '칸반 보드, 운영 대시보드처럼 팀이 매일 쓰는 웹 서비스를 만들어요.',
-  },
-  {
-    icon: '🤖',
-    title: 'AI 기능 연동',
-    desc: '진단, 콘텐츠 생성, 챗봇처럼 AI가 실제로 일하는 기능을 앱에 붙여요.',
-  },
-  {
     icon: '🌐',
-    title: '홈페이지 · 랜딩페이지',
-    desc: '단체·서비스 소개 홈페이지부터 관리자 CMS까지 한 번에 만들어요.',
+    title: '랜딩페이지',
+    desc: '1페이지로 핵심만 담은 소개·홍보 사이트를 빠르게 만들어요.',
   },
   {
-    icon: '📊',
-    title: '운영 대시보드',
-    desc: '여러 서비스의 현황·비용·데이터를 한 화면에서 관리하게 해줘요.',
+    icon: '🏢',
+    title: '비즈니스 홈페이지',
+    desc: '다중 페이지 구성에 콘텐츠를 직접 관리할 수 있는 CMS까지 포함해요.',
+  },
+  {
+    icon: '🎨',
+    title: '업종별 맞춤 디자인',
+    desc: '카페·법률사무소·웨딩·부동산 등 13개+ 업종 디자인 경험을 갖고 있어요.',
+  },
+  {
+    icon: '📱',
+    title: '반응형 · 모바일 최적화',
+    desc: 'PC와 모바일 어디서 봐도 완벽하게 대응하는 화면으로 만들어요.',
   },
 ]
 
@@ -32,7 +32,7 @@ const PROCESS = [
   { step: '04', title: '배포 & 전달', desc: '바로 쓸 수 있는 상태로 배포해서 전달해요.' },
 ]
 
-const FEATURED_IDS = ['cafe-landing', 'lawfirm-landing', 'wedding-landing', 'taskflow', 'marketerops-diagnosis', 'realestate-landing']
+const FEATURED_IDS = ['cafe-landing', 'lawfirm-landing', 'wedding-landing', 'shop-landing', 'salon-landing', 'realestate-landing']
 
 const PRICING = [
   {
@@ -78,21 +78,21 @@ export default function HomeLanding({ apps }) {
           background: EDM.green[50], border: `1px solid ${EDM.green[200]}`,
           padding: '6px 14px', borderRadius: EDM.radius.full, marginBottom: EDM.space[6],
         }}>
-          바이브 코딩으로 만드는 실전 웹 서비스
+          바이브 코딩으로 빠르고 저렴하게 만드는 홈페이지
         </span>
         <h1 style={{
           margin: 0, fontSize: 'clamp(30px, 5vw, 52px)', fontWeight: 800,
           letterSpacing: '-0.03em', lineHeight: 1.3, color: EDM.text1,
         }}>
           말로 설명한 아이디어가,<br />
-          며칠 만에 실제로 쓰는 앱이 됩니다
+          며칠 만에 우리 홈페이지가 됩니다
         </h1>
         <p style={{
           marginTop: EDM.space[6], fontSize: 17, color: EDM.text3, lineHeight: 1.7,
           maxWidth: 640, marginLeft: 'auto', marginRight: 'auto',
         }}>
-          기획서 대신 프롬프트로 시작해서, AI와 함께 빠르게 프로토타입을 만들고 다듬어 실제 서비스로 완성해 드려요.
-          칸반 툴부터 AI 마케팅 대시보드, 단체 홈페이지까지 — 직접 만든 결과물로 증명합니다.
+          기획서 대신 프롬프트로 시작해서, AI와 함께 빠르게 시안을 만들고 다듬어 실제로 쓰는 홈페이지로 완성해 드려요.
+          카페·법률사무소·웨딩업체부터 단체 홈페이지까지 — 직접 만든 결과물로 증명합니다.
         </p>
         <div style={{ marginTop: EDM.space[8], display: 'flex', gap: EDM.space[3], justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/portfolio" style={{
@@ -117,7 +117,7 @@ export default function HomeLanding({ apps }) {
           {[
             { value: `${apps.length}개`, label: '만든 프로젝트' },
             { value: '100%', label: '로그인 없이 바로 체험' },
-            { value: '4가지', label: '제작 가능한 서비스 유형' },
+            { value: '13개+', label: '업종별 홈페이지 데모' },
           ].map((s) => (
             <div key={s.label}>
               <div style={{ fontSize: 26, fontWeight: 800, color: EDM.text1 }}>{s.value}</div>
