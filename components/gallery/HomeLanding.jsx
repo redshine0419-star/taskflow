@@ -37,20 +37,23 @@ const FEATURED_IDS = ['cafe-landing', 'lawfirm-landing', 'wedding-landing', 'tas
 const PRICING = [
   {
     name: '랜딩페이지',
-    price: '60만원~',
+    price: '9만원~',
+    maintenance: '월 4.9만원~',
     tagline: '소개 홈페이지 · 랜딩페이지',
-    features: ['1페이지 반응형 디자인', '핵심 섹션 3~5개 구성', '문의 폼 연동', '월 구독료 없음 · 평생 추가 비용 0원', '평균 제작 기간 1주'],
+    features: ['1페이지 반응형 디자인', '핵심 섹션 3~5개 구성', '문의 폼 연동', '유지보수: 콘텐츠 수정 · 보안 업데이트 · 우선 지원', '평균 제작 기간 1주'],
   },
   {
     name: '비즈니스 홈페이지',
-    price: '180만원~',
+    price: '29만원~',
+    maintenance: '월 9.9만원~',
     tagline: '기업 · 단체 홈페이지 + 관리자 CMS',
     features: ['5페이지 내외 구성', '콘텐츠 관리자 CMS 포함', '반응형 디자인', '완전한 코드 소유권 (플랫폼 종속 없음)', '평균 제작 기간 2~3주'],
     highlighted: true,
   },
   {
     name: '맞춤 웹 서비스',
-    price: '350만원~',
+    price: '59만원~',
+    maintenance: '월 19만원~',
     tagline: '칸반 툴 · 대시보드 · AI 기능 연동',
     features: ['커스텀 기능 개발', 'AI 기능 연동 옵션', '데이터 저장 구조 설계', '템플릿 빌더로는 불가능한 기능 구현', '규모는 별도 협의'],
   },
@@ -59,11 +62,11 @@ const PRICING = [
 const COMPARISON = {
   them: {
     label: '아임웹 등 템플릿 빌더',
-    rows: ['제작 대행비 15만~500만원 + 월 구독료 16,000~40,000원 평생 지속', '템플릿 안에서만 커스터마이징 가능', '플랫폼 종속 — 코드 소유권 없음', '칸반·AI 기능 등 커스텀 로직 구현 불가'],
+    rows: ['제작 대행비 15만~500만원 + 월 구독료 16,000~40,000원 (직접 관리)', '콘텐츠 수정도 직접 하거나 별도 대행비 발생', '템플릿 안에서만 커스터마이징 가능', '플랫폼 종속 — 코드 소유권 없음'],
   },
   us: {
     label: '바이브코딩',
-    rows: ['제작비 1회 결제, 월 구독료 없음', '완전 커스텀 코드로 자유롭게 제작', '코드 100% 소유 — 어디로든 이전 가능', 'AI 기능, 대시보드 등 실제 로직 구현 가능'],
+    rows: ['파격적으로 낮은 초기 제작비로 시작', '월 유지보수에 콘텐츠 수정 · 보안 · 우선 지원 포함', '완전 커스텀 코드로 자유롭게 제작', '코드 100% 소유 — 어디로든 이전 가능'],
   },
 }
 
@@ -272,7 +275,14 @@ export default function HomeLanding({ apps }) {
                 )}
                 <div style={{ fontSize: 13, fontWeight: 600, color: EDM.text3, marginBottom: EDM.space[2] }}>{tier.tagline}</div>
                 <div style={{ fontSize: 19, fontWeight: 700, color: EDM.text1, marginBottom: EDM.space[1] }}>{tier.name}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: EDM.text1, marginBottom: EDM.space[5] }}>{tier.price}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: EDM.space[1] }}>
+                  <span style={{ fontSize: 13, color: EDM.text3 }}>제작비</span>
+                  <span style={{ fontSize: 28, fontWeight: 800, color: EDM.text1 }}>{tier.price}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: EDM.space[5] }}>
+                  <span style={{ fontSize: 13, color: EDM.text3 }}>유지보수</span>
+                  <span style={{ fontSize: 16, fontWeight: 700, color: EDM.green[700] }}>{tier.maintenance}</span>
+                </div>
                 <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: EDM.space[2], marginBottom: EDM.space[6] }}>
                   {tier.features.map((f) => (
                     <li key={f} style={{ fontSize: 13.5, color: EDM.text2, display: 'flex', gap: 8 }}>
