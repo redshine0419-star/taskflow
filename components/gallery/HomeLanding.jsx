@@ -37,24 +37,35 @@ const FEATURED_IDS = ['cafe-landing', 'lawfirm-landing', 'wedding-landing', 'tas
 const PRICING = [
   {
     name: '랜딩페이지',
-    price: '50만원~',
+    price: '60만원~',
     tagline: '소개 홈페이지 · 랜딩페이지',
-    features: ['1페이지 반응형 디자인', '핵심 섹션 3~5개 구성', '문의 폼 연동', '평균 제작 기간 1주'],
+    features: ['1페이지 반응형 디자인', '핵심 섹션 3~5개 구성', '문의 폼 연동', '월 구독료 없음 · 평생 추가 비용 0원', '평균 제작 기간 1주'],
   },
   {
     name: '비즈니스 홈페이지',
-    price: '150만원~',
+    price: '180만원~',
     tagline: '기업 · 단체 홈페이지 + 관리자 CMS',
-    features: ['5페이지 내외 구성', '콘텐츠 관리자 CMS 포함', '반응형 디자인', '평균 제작 기간 2~3주'],
+    features: ['5페이지 내외 구성', '콘텐츠 관리자 CMS 포함', '반응형 디자인', '완전한 코드 소유권 (플랫폼 종속 없음)', '평균 제작 기간 2~3주'],
     highlighted: true,
   },
   {
     name: '맞춤 웹 서비스',
-    price: '300만원~',
+    price: '350만원~',
     tagline: '칸반 툴 · 대시보드 · AI 기능 연동',
-    features: ['커스텀 기능 개발', 'AI 기능 연동 옵션', '데이터 저장 구조 설계', '규모는 별도 협의'],
+    features: ['커스텀 기능 개발', 'AI 기능 연동 옵션', '데이터 저장 구조 설계', '템플릿 빌더로는 불가능한 기능 구현', '규모는 별도 협의'],
   },
 ]
+
+const COMPARISON = {
+  them: {
+    label: '아임웹 등 템플릿 빌더',
+    rows: ['제작 대행비 15만~500만원 + 월 구독료 16,000~40,000원 평생 지속', '템플릿 안에서만 커스터마이징 가능', '플랫폼 종속 — 코드 소유권 없음', '칸반·AI 기능 등 커스텀 로직 구현 불가'],
+  },
+  us: {
+    label: '바이브코딩',
+    rows: ['제작비 1회 결제, 월 구독료 없음', '완전 커스텀 코드로 자유롭게 제작', '코드 100% 소유 — 어디로든 이전 가능', 'AI 기능, 대시보드 등 실제 로직 구현 가능'],
+  },
+}
 
 export default function HomeLanding({ apps }) {
   const featured = FEATURED_IDS.map((id) => apps.find((a) => a.id === id)).filter(Boolean)
@@ -212,6 +223,33 @@ export default function HomeLanding({ apps }) {
           <p style={{ margin: `${EDM.space[3]}px 0 0`, fontSize: 15, color: EDM.text3, textAlign: 'center' }}>
             프로젝트 범위에 따라 달라질 수 있는 참고용 가격이에요. 정확한 견적은 문의 후 안내해드려요.
           </p>
+
+          <div style={{
+            marginTop: EDM.space[8], maxWidth: 760, marginLeft: 'auto', marginRight: 'auto',
+            border: `1px solid ${EDM.borderLight}`, borderRadius: EDM.radius.card,
+            boxShadow: EDM.shadowBlue01, padding: EDM.space[6], background: EDM.bg,
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: EDM.space[6],
+          }}>
+            {[COMPARISON.them, COMPARISON.us].map((col, i) => (
+              <div key={col.label}>
+                <div style={{
+                  fontSize: 13, fontWeight: 700, marginBottom: EDM.space[3],
+                  color: i === 1 ? EDM.green[700] : EDM.text3,
+                }}>
+                  {col.label}
+                </div>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: EDM.space[2] }}>
+                  {col.rows.map((r) => (
+                    <li key={r} style={{ fontSize: 13.5, color: EDM.text2, lineHeight: 1.6, display: 'flex', gap: 8 }}>
+                      <span style={{ color: i === 1 ? EDM.green[600] : EDM.text3 }}>{i === 1 ? '✓' : '·'}</span>
+                      {r}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
           <div style={{
             marginTop: EDM.space[8], display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: EDM.space[5],
