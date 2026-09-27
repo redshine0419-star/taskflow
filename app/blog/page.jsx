@@ -102,7 +102,7 @@ export default async function BlogIndex() {
         flexWrap: 'wrap', gap: 12,
       }}>
         <span style={{ fontWeight: 800, fontSize: 15, color: EDM.text1 }}>
-          바이브<span style={{ color: EDM.wine[600] }}>코딩</span>
+          Task<span style={{ color: EDM.wine[600] }}>Grid</span>
         </span>
         <div style={{ display: 'flex', gap: 20 }}>
           <Link href="/" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>회사소개</Link>

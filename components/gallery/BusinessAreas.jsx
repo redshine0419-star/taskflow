@@ -16,7 +16,7 @@ const SITE_COMPARISON = {
     rows: ['제작 대행비 15만~500만원 + 월 구독료 16,000~40,000원 (직접 관리)', '콘텐츠 수정도 직접 하거나 별도 대행비 발생', '템플릿 안에서만 커스터마이징 가능', '플랫폼 종속 — 코드 소유권 없음'],
   },
   us: {
-    label: '바이브코딩',
+    label: 'TaskGrid',
     rows: ['파격적으로 낮은 초기 제작비로 시작', '인테이크 폼 1회로 진행 · 미팅 없이 비동기로 완성', '월 유지보수에 콘텐츠 수정 · 보안 업데이트 포함 (요청 후 3영업일 내 처리)', '완전 커스텀 코드로 자유롭게 제작 · 코드 100% 소유'],
   },
 }
@@ -309,7 +309,7 @@ export default function BusinessAreas() {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
         }}>
           <span style={{ fontWeight: 800, fontSize: 15, color: EDM.text1 }}>
-            바이브<span style={{ color: EDM.wine[600] }}>코딩</span>
+            Task<span style={{ color: EDM.wine[600] }}>Grid</span>
           </span>
           <div style={{ display: 'flex', gap: 20 }}>
             <Link href="/" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>회사소개</Link>
