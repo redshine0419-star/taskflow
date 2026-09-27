@@ -27,7 +27,7 @@ export default function SiteNav() {
           fontWeight: 800, fontSize: 17, textDecoration: 'none',
           color: EDM.text1, letterSpacing: -0.5,
         }}>
-          바이브<span style={{ color: EDM.wine[600] }}>코딩</span>
+          Task<span style={{ color: EDM.wine[600] }}>Grid</span>
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>

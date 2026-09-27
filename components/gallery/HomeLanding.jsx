@@ -54,7 +54,7 @@ export default function HomeLanding({ apps }) {
           maxWidth: 640, marginLeft: 'auto', marginRight: 'auto',
         }}>
           가맹점이 늘어날수록 홈페이지도 블로그도 꾸준히 관리할 손이 필요해요.
-          바이브코딩은 저렴한 초기 제작비와 합리적인 월 유지보수로, 본사와 사장님이 부담 없이 온라인을 운영하도록 도와드려요.
+          TaskGrid는 저렴한 초기 제작비와 합리적인 월 유지보수로, 본사와 사장님이 부담 없이 온라인을 운영하도록 도와드려요.
         </p>
         <div style={{ marginTop: EDM.space[8], display: 'flex', gap: EDM.space[3], justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/business" style={{
@@ -117,7 +117,7 @@ export default function HomeLanding({ apps }) {
       <section style={{ background: EDM.bgAlt, padding: '64px 24px' }}>
         <div style={{ maxWidth: 1160, margin: '0 auto' }}>
           <h2 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: EDM.text1, textAlign: 'center', letterSpacing: '-0.01em' }}>
-            왜 바이브코딩인가요
+            왜 TaskGrid인가요
           </h2>
           <div style={{
             marginTop: EDM.space[8], display: 'grid',
@@ -197,7 +197,7 @@ export default function HomeLanding({ apps }) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
         }}>
           <span style={{ fontWeight: 800, fontSize: 15, color: EDM.text1 }}>
-            바이브<span style={{ color: EDM.wine[600] }}>코딩</span>
+            Task<span style={{ color: EDM.wine[600] }}>Grid</span>
           </span>
           <div style={{ display: 'flex', gap: 20 }}>
             <Link href="/" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>회사소개</Link>
