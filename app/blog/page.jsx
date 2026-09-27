@@ -81,7 +81,7 @@ export default async function BlogIndex() {
           margin: '0 0 16px', color: EDM.text1,
         }}>
           Free Templates &amp; Tools<br />
-          <span style={{ color: EDM.green[600] }}>for Productive Teams</span>
+          <span style={{ color: EDM.wine[600] }}>for Productive Teams</span>
         </h1>
         <p style={{ fontSize: 15, color: EDM.text3, margin: 0, lineHeight: 1.7, maxWidth: 520 }}>
           Download free project management templates, kanban boards, and productivity tools.
@@ -102,11 +102,12 @@ export default async function BlogIndex() {
         flexWrap: 'wrap', gap: 12,
       }}>
         <span style={{ fontWeight: 800, fontSize: 15, color: EDM.text1 }}>
-          바이브<span style={{ color: EDM.green[600] }}>코딩</span>
+          바이브<span style={{ color: EDM.wine[600] }}>코딩</span>
         </span>
         <div style={{ display: 'flex', gap: 20 }}>
-          <Link href="/" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>메인</Link>
-          <Link href="/portfolio" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>포트폴리오</Link>
+          <Link href="/" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>회사소개</Link>
+          <Link href="/business" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>사업영역</Link>
+          <Link href="/portfolio" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>샘플</Link>
           <Link href="/blog" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>블로그</Link>
         </div>
       </footer>

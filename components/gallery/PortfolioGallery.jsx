@@ -103,7 +103,7 @@ export default function PortfolioGallery({ apps }) {
                   fontWeight: active ? 700 : 400,
                   letterSpacing: '-0.14px',
                   color: active ? '#fff' : EDM.text3,
-                  background: active ? EDM.green[500] : EDM.neutral[50],
+                  background: active ? EDM.wine[500] : EDM.neutral[50],
                   border: 'none',
                   borderRadius: EDM.radius.full,
                   padding: '9px 20px',

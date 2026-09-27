@@ -4,9 +4,9 @@ import { usePathname } from 'next/navigation'
 import { EDM } from './edmTheme'
 
 const NAV_ITEMS = [
-  { href: '/', label: '메인' },
-  { href: '/portfolio', label: '포트폴리오' },
-  { href: '/content-marketing', label: '콘텐츠 마케팅' },
+  { href: '/', label: '회사소개' },
+  { href: '/business', label: '사업영역' },
+  { href: '/portfolio', label: '샘플' },
   { href: '/blog', label: '블로그' },
 ]
 
@@ -27,7 +27,7 @@ export default function SiteNav() {
           fontWeight: 800, fontSize: 17, textDecoration: 'none',
           color: EDM.text1, letterSpacing: -0.5,
         }}>
-          바이브<span style={{ color: EDM.green[600] }}>코딩</span>
+          바이브<span style={{ color: EDM.wine[600] }}>코딩</span>
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
@@ -51,11 +51,11 @@ export default function SiteNav() {
             href="/portfolio"
             style={{
               fontSize: 13, fontWeight: 700, textDecoration: 'none',
-              background: EDM.green[500], color: '#fff',
+              background: EDM.wine[500], color: '#fff',
               padding: '9px 16px', borderRadius: EDM.radius.control, whiteSpace: 'nowrap',
             }}
           >
-            포트폴리오 보기
+            샘플 보기
           </Link>
         </div>
       </div>

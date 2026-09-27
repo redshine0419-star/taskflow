@@ -2,6 +2,7 @@
 // to the portfolio gallery + guide pages (never the demo apps themselves).
 export const EDM = {
   green: { 50: '#ECFBF2', 100: '#D2F4DE', 200: '#A5E9BD', 500: '#1EC95B', 600: '#18A149', 700: '#127937' },
+  wine: { 50: '#FBEAEE', 100: '#F4CCD6', 200: '#E39DB0', 500: '#9F1D3F', 600: '#7E1732', 700: '#5C1025' },
   red: { 500: '#FC1D01', 600: '#CA1701' },
   blue: { 500: '#0086FA', 600: '#006BC8' },
   neutral: { 50: '#F5F5F7', 100: '#E2E2E5', 200: '#CCCCCC', 300: '#C5C5C5', 400: '#999999', 500: '#666666', 600: '#333333', black: '#000000' },

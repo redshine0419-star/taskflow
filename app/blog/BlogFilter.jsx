@@ -9,8 +9,8 @@ const EN_CATEGORIES = ['All', 'alternatives', 'google-workspace', 'ai-tools', 'p
 const CATEGORY_STYLES = {
   'alternatives':      { background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE' },
   '툴비교':            { background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE' },
-  'google-workspace':  { background: EDM.green[50], color: EDM.green[700], border: `1px solid ${EDM.green[200]}` },
-  '구글활용':          { background: EDM.green[50], color: EDM.green[700], border: `1px solid ${EDM.green[200]}` },
+  'google-workspace':  { background: EDM.wine[50], color: EDM.wine[700], border: `1px solid ${EDM.wine[200]}` },
+  '구글활용':          { background: EDM.wine[50], color: EDM.wine[700], border: `1px solid ${EDM.wine[200]}` },
   'ai-tools':          { background: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' },
   'AI활용':            { background: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' },
   'productivity':      { background: '#EFF6FF', color: EDM.blue[600], border: '1px solid #BFDBFE' },
@@ -41,7 +41,7 @@ export default function BlogFilter({ posts }) {
         .cat-tab { transition: background .15s, color .15s; cursor: pointer; }
         .cat-tab:hover { background: ${EDM.neutral[100]} !important; }
         .post-card-blog { transition: border-color .15s, transform .15s; }
-        .post-card-blog:hover { border-color: ${EDM.green[500]} !important; transform: translateY(-1px); }
+        .post-card-blog:hover { border-color: ${EDM.wine[500]} !important; transform: translateY(-1px); }
       `}</style>
 
       {/* Language tabs */}
@@ -74,7 +74,7 @@ export default function BlogFilter({ posts }) {
             style={{
               padding: '7px 16px', borderRadius: EDM.radius.full, border: 'none',
               fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              background: activeCategory === cat ? EDM.green[500] : EDM.neutral[50],
+              background: activeCategory === cat ? EDM.wine[500] : EDM.neutral[50],
               color: activeCategory === cat ? '#fff' : EDM.text3,
             }}
           >
@@ -127,7 +127,7 @@ export default function BlogFilter({ posts }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 11, color: EDM.text4 }}>{post.date || post.publishedAt}</span>
-                <span style={{ fontSize: 13, color: EDM.green[600], fontWeight: 700 }}>
+                <span style={{ fontSize: 13, color: EDM.wine[600], fontWeight: 700 }}>
                   {activeLang === 'en' ? 'Read more →' : '바로가기 →'}
                 </span>
               </div>

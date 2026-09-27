@@ -7,7 +7,7 @@ const CATEGORIES = ['전체', '사이트진단', '콘텐츠·키워드', '채널
 
 const CATEGORY_STYLES = {
   '사이트진단':    { background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE' },
-  '콘텐츠·키워드': { background: EDM.green[50], color: EDM.green[700], border: `1px solid ${EDM.green[200]}` },
+  '콘텐츠·키워드': { background: EDM.wine[50], color: EDM.wine[700], border: `1px solid ${EDM.wine[200]}` },
   '채널분석':      { background: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A' },
   '블로그·SEO':    { background: '#EFF6FF', color: EDM.blue[600], border: '1px solid #BFDBFE' },
 }
