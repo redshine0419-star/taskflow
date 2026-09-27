@@ -69,7 +69,7 @@ export default function AppCard({ app }) {
               fontWeight: 500,
               letterSpacing: '-0.16px',
               color: '#fff',
-              background: EDM.green[500],
+              background: EDM.wine[500],
               borderRadius: EDM.radius.control,
               padding: '10px 0',
               textDecoration: 'none',

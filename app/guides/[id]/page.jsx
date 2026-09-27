@@ -87,7 +87,7 @@ export default function GuidePage({ params }) {
                   fontSize: 15,
                   fontWeight: 500,
                   color: '#fff',
-                  background: EDM.green[500],
+                  background: EDM.wine[500],
                   borderRadius: EDM.radius.control,
                   padding: '12px 24px',
                   textDecoration: 'none',

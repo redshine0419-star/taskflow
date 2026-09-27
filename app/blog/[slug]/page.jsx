@@ -74,7 +74,7 @@ export default async function BlogPost({ params }) {
       }}>
         <link rel="stylesheet" href={PRETENDARD_CSS_URL} />
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Post not found</h1>
-        <Link href="/blog" style={{ color: EDM.green[600], textDecoration: 'none', marginTop: 16, display: 'inline-block' }}>← Back to Blog</Link>
+        <Link href="/blog" style={{ color: EDM.wine[600], textDecoration: 'none', marginTop: 16, display: 'inline-block' }}>← Back to Blog</Link>
       </main>
     )
   }
@@ -125,7 +125,7 @@ export default async function BlogPost({ params }) {
             fontWeight: 800, fontSize: 17, textDecoration: 'none',
             color: EDM.text1, letterSpacing: -0.5,
           }}>
-            Task<span style={{ color: EDM.green[600] }}>Grid</span>
+            Task<span style={{ color: EDM.wine[600] }}>Grid</span>
           </Link>
           <Link href="/blog" style={{ fontSize: 13, color: EDM.text3, textDecoration: 'none' }}>
             {isEn ? '← Blog' : '← 블로그'}
@@ -147,8 +147,8 @@ export default async function BlogPost({ params }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
           <span style={{
             fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
-            background: EDM.green[50], color: EDM.green[700],
-            border: `1px solid ${EDM.green[200]}`,
+            background: EDM.wine[50], color: EDM.wine[700],
+            border: `1px solid ${EDM.wine[200]}`,
             padding: '2px 10px', borderRadius: EDM.radius.full,
           }}>
             {post.category}
@@ -182,13 +182,13 @@ export default async function BlogPost({ params }) {
         {/* CTA box — only show for posts with explicit downloadLabel */}
         {post.downloadLabel && (
           <div style={{
-            border: `2px solid ${EDM.green[500]}`,
+            border: `2px solid ${EDM.wine[500]}`,
             borderRadius: EDM.radius.card, padding: '20px 24px',
-            background: EDM.green[50],
+            background: EDM.wine[50],
             marginBottom: 40,
             display: 'flex', flexDirection: 'column', gap: 12,
           }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: EDM.green[700], letterSpacing: 0.5 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: EDM.wine[700], letterSpacing: 0.5 }}>
               {isEn ? 'FREE DOWNLOAD' : '무료 다운로드'}
             </div>
             <div style={{ fontSize: 15, color: EDM.text1, fontWeight: 600 }}>
@@ -196,7 +196,7 @@ export default async function BlogPost({ params }) {
             </div>
             <Link href="/" style={{
               display: 'inline-block', width: 'fit-content',
-              background: EDM.green[500], color: '#fff',
+              background: EDM.wine[500], color: '#fff',
               fontWeight: 700, fontSize: 14, textDecoration: 'none',
               padding: '11px 24px', borderRadius: EDM.radius.control,
             }}>
@@ -244,7 +244,7 @@ export default async function BlogPost({ params }) {
           </div>
           <Link href="/" style={{
             display: 'inline-block',
-            background: EDM.green[500], color: '#fff',
+            background: EDM.wine[500], color: '#fff',
             fontWeight: 700, fontSize: 14, textDecoration: 'none',
             padding: '11px 28px', borderRadius: EDM.radius.control,
           }}>
