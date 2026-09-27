@@ -6,6 +6,7 @@ import { EDM } from './edmTheme'
 const NAV_ITEMS = [
   { href: '/', label: '메인' },
   { href: '/portfolio', label: '포트폴리오' },
+  { href: '/content-marketing', label: '콘텐츠 마케팅' },
   { href: '/blog', label: '블로그' },
 ]
 
